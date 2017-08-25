@@ -1,3 +1,7 @@
+""" File objects
+"""
+# TODO: Add yaml support
+
 from abc import ABCMeta, abstractmethod
 from dxpy.file_system.path import Path
 
@@ -211,9 +215,6 @@ class FileAbstract(metaclass=ABCMeta):
         return result
 
 
-
-
-
 class Directory(FileAbstract):
     def __init__(self, path, file_system, factory=None):
         if factory is None:
@@ -267,7 +268,7 @@ class NormalFile(FileAbstract):
 
     def delete(self):
         self.fs.File.delete(self.path)
-    
+
     def update(self):
         return self
 
@@ -276,6 +277,7 @@ class NormalFile(FileAbstract):
         result = super().ftype
         result.add('NormalFile')
         return result
+
 
 class Exec(NormalFile):
     pass

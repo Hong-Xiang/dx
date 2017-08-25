@@ -70,3 +70,18 @@ class TestPath(unittest.TestCase):
         p = Path('/tmp/file')
         p2 = Path(p)
         assert p.abs == p2.abs        
+
+    def test_div(self):
+        p = Path('/tmp')
+        p = p / 'sub'
+        assert p.abs == '/tmp/sub'
+
+    def test_yaml_dump(self):
+        p = Path('/tmp/test')
+        import yaml
+        assert yaml.dump(p) == "!path '/tmp/test'\n"
+
+    def test_yaml_load(self):
+        import yaml
+        p = yaml.load("!path '/tmp/test'\n")
+        assert p.abs == "/tmp/test"

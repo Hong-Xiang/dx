@@ -62,3 +62,62 @@
 #         with open(file_name, 'r') as fin:
 #             self._configs = json.load(fin)
 
+# """ Config utility class """
+import json
+import inspect
+from functools import wraps
+from pathlib import Path
+from collections import ChainMap
+
+from xlearn.utils.collections import AttrDict
+
+
+def __parse_config_args(func, *args, config_files=None, **kwargs):
+    """ Analysic func args and inputs/JSON file.
+
+    Inputs:
+
+        * args: tuple of positional arguments,                
+        * config_files: filename or list of filenames of JSON file(s), *which may
+          or may not present in original function's argument list*.
+        * kwargs: dict of keyword arugments.
+
+    Returns:
+        1. a tuple, positional arguments,        
+        2. a dict, keyword arugments.
+
+    Raises:
+
+    """
+    # TODO: refine doc, add test.
+    if isinstance(config_files, str):
+        config_files = [config_files]
+    if config_files is None:
+        config_files = []
+    json_dicts = []
+    for fn in config_files:
+        with open(fn, 'r') as fin:
+            json_dicts.append(json.load(fin))
+    sig = inspect.signature(func)
+    kwargs['config_files'] = config_files
+    kwargs = ChainMap(*([kwargs] + json_dicts))
+    func_arg_keys = [k for k in sig.parameters]
+    poped_keys = []
+    func_arg_keys_tmp = list(func_arg_keys)
+    for a, k in zip(args, func_arg_keys_tmp):
+        poped_keys.append(func_arg_keys.pop(func_arg_keys.index(k)))
+    kwargs_fine = {k: kwargs.get(k)
+                   for k in func_arg_keys if kwargs.get(k) is not None}
+    ba = sig.bind(*args, **kwargs_fine)
+    ba.apply_defaults()
+    return ba.args, ba.kwargs, poped_keys
+
+
+def json_config(func):
+    """ Add auto jason kwargs to function, by adding a preserved keyword 'config_files' """
+    @wraps(func)
+    def wrapper(*args, config_files=None, **kwargs):
+        f_args, f_kwargs, _ = __parse_config_args(
+            func, *args, config_files=config_files, **kwargs)
+        return func(*f_args, **f_kwargs)
+    return wrapper

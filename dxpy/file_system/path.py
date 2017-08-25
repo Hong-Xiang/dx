@@ -1,6 +1,6 @@
 import pathlib
 import urllib
-from functools import wraps
+import yaml
 
 
 class PathError(Exception):
@@ -15,7 +15,7 @@ class NotUrlPathError(PathError, ValueError):
     pass
 
 
-class NotPurePathError(PathError, ValueError):
+class IsUrlPathError(PathError, ValueError):
     pass
 
 
@@ -37,7 +37,7 @@ def _is_url_path(path, is_strict=False):
 
 def _url_quote(path):
     if _is_url_path(path, is_strict=True):
-        raise NotPurePathError(path)
+        raise IsUrlPathError(path)
     qpath = urllib.parse.quote_plus(str(pathlib.Path(path).absolute()))
     qqpath = urllib.parse.quote_plus(qpath)
     return qqpath
@@ -50,18 +50,14 @@ def _url_unquote(path_url):
     path = urllib.parse.unquote_plus(qpath)
     return path
 
-# TODO: Add str path warper
-# def path_str_support(func):
-#     @warps(func)
-#     def warper(path, )
 
-
-class Path:
-    """ Path warper for posix/windows/url paths.
+class Path(yaml.YAMLObject):
+    """ Unified path for posix/windows/url paths.
     This class is an 'abstract' path object, which means it only normalize its representation for different platform,
     but there is not any relation to the true file system. Thus this class does **NOT** provide methods like `exists()` or
     `is_dir()`, please refer `dxpy.file_syste.file.File` for these functions.
     """
+    yaml_tag = '!path'
 
     def __init__(self, path, is_url_path=None, ):
         """
@@ -69,6 +65,9 @@ class Path:
         """
         if isinstance(path, Path):
             self.path = path.path
+            return
+        if isinstance(path, pathlib.Path):
+            self.path = path
             return
         if path is None:
             raise NotValidPathError
@@ -81,6 +80,9 @@ class Path:
 
     def __str__(self):
         return '<dxpy.file_system.path.Path object with path: {abs}>'.format(abs=self.abs)
+
+    def __truediv__(self, name):
+        return Path(self.path / name)
 
     def parts(self):
         return self.path.parts
@@ -125,3 +127,23 @@ class Path:
             'parts': self.parts()
         })
         return result
+    
+    @classmethod
+    def to_yaml(cls, dumper, data):
+        return yaml.ScalarNode(cls.yaml_tag, data.abs)
+
+    @classmethod
+    def from_yaml(cls, loader, node):
+        return Path(loader.construct_scalar(node))
+
+# def _path_representer(dumper, data):
+#     return dumper.represent_scalar('!path', data.abs)
+
+
+# def _path_constructor(loader, node):
+#     value = loader.construct_scalar(node)
+#     return Path(value)
+
+
+# # yaml.add_representer(Path, _path_representer)
+# yaml.add_constructor('!path', _path_constructor)
