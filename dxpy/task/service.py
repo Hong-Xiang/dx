@@ -3,19 +3,25 @@ import yaml
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
+from rx import Observable
 from dxpy.file_system.path import Path
 from dxpy.task.task import Task
+import filelock
+
 logger = logging.getLogger(__name__)
 
-PATH_DATEBASE = 'sqlite:////home/hongxwing/Workspace/databases/tasks.db'
+PATH_DATEBASE_FILE = '/home/hongxwing/Workspace/databases/tasks.db'
+PATH_DATABASE_ROOT = 'sqlite:///'
+PATH_DATEBASE = PATH_DATABASE_ROOT + PATH_DATEBASE_FILE
+
 
 Base = declarative_base()
 engine = create_engine(PATH_DATEBASE)
-DBSession = sessionmaker(bind=engine)
+DBSession = scoped_session(sessionmaker(bind=engine))
 
 
-class TaskDBModel(Base):
+class _TaskDBModel(Base):
     __tablename__ = 'task'
     id = Column(Integer, primary_key=True)
     name = Column(String)
@@ -23,90 +29,109 @@ class TaskDBModel(Base):
     active = Column(Boolean)
 
     def __repr__(self):
-        return "<TaskDBModel: id: {0}, name: {1}, path:{2}>".format(self.id, self.name, self.path)
+        return "<_TaskDBModel: id: {0}, name: {1}, path:{2}>".format(self.id, self.name, self.path)
 
 
 def create_datebase(is_overwrite=False):
     """ Helper function to create new engine """
     from pathlib import Path
-    db_file = Path(PATH_DATEBASE)
-    if not db_file.exists or is_overwrite:
-        Base.metadata.create_all(engine)
+    db_file = Path(PATH_DATEBASE_FILE)
+    if is_overwrite and db_file.exists:
+        db_file.unlink()
+    Base.metadata.create_all(engine)
 
 
-class TaskDBService:
+class _DatabaseService:
 
     def __init__(self):
         self.session = DBSession()
 
-    def add(self, name=None, path=None, active=True):
-        new_task = TaskDBModel(name=name, path=Path(path).abs, active=active)
+    def add(self, path=None, name=None, active=True):
+        new_task = _TaskDBModel(name=name, path=Path(path).abs, active=active)
         self.session.add(new_task)
         self.session.commit()
         return new_task.id
 
-    def get(self, id):
-        return self.session.query(TaskDBModel).get(id)
+    def get(self, id_):
+        return self.session.query(_TaskDBModel).get(id_)
 
     def all(self):
-        return self.session.query(TaskDBModel).all()
+        """ 
+        () -> Observable<_TaskDBModel[]>
+        """
+        return Observable.from_(self.session.query(_TaskDBModel).all())
+
+    def delete(self, id_):
+        self.session.delete(self.session.query(_TaskDBModel).get(id_))
+        self.session.commit()
 
 
-class TaskFileService:
+class _FileService:
     """
-    Manipulation of task *representation* objects.
-
-    Functions:
-    ----------
-
-    new(task_type, *args, **kwargs):
-
     """
 
-    def add(self, path, task):
-        with open(path, 'w') as fout:
-            yaml.dump(task, fout)
+    @classmethod
+    def overwrite(cls, path, tasks, is_lock=True):
+        if is_lock:
+            lock = filelock.FileLock(path + '.lock')
+            with lock:
+                with open(path, 'w') as fout:
+                    yaml.dump(tasks, fout)
+        else:
+            with open(path, 'w') as fout:
+                yaml.dump(tasks, fout)
 
-    # def append(self, path, task):
-    #     try:
-    #         tasks = self.get(path)
-    #     except FileNotFoundError:
-    #         tasks = []
-    #     tasks = [task] + tasks
-    #     with open(path, 'w') as fout:
-    #         yaml.dump(tasks, fout)
-
-    def get(self, path):
+    @classmethod
+    def get(self, path, is_lock=True):
         """
         Return:
             tasks: list of Task objects.
         """
         try:
-            with open(path, 'r') as fin:
-                tasks = yaml.load(fin)
+            if is_lock:
+                lock = filelock.FileLock(path + '.lock')
+                with lock:
+                    with open(path, 'r') as fin:
+                        tasks = yaml.load(fin)
+            else:
+                with open(path, 'r') as fin:
+                    tasks = yaml.load(fin)
         except FileNotFoundError:
             return []
         except Exception as e:
             logger.error(e.msg, e.args, exc_info=1)
+
         if tasks is None:
             return []
         if not isinstance(tasks, (list, tuple)):
             return [tasks]
         return tasks
 
-    def append(self, path, task):
-        tasks = self.get(path)
-        found = False
-        for i, t in enumerate(tasks):
-            if t.id == task.id:
-                tasks[i] = task
-                found = True
-                break
-        if not found:
-            tasks.append(task)
-        with open(path, 'w') as fout:
-            yaml.dump(tasks, fout)
+    @classmethod
+    def append(cls, path, task):
+        lock = filelock.FileLock(path + '.lock')
+        with lock:
+            tasks = _FileService.get(path, is_lock=False)
+            found = False
+            for i, t in enumerate(tasks):
+                if t.id == task.id:
 
+                    tasks[i] = task
+                    found = True
+                    break
+            if not found:
+                tasks.append(task)
+            _FileService.overwrite(path, tasks, is_lock=False)
+
+    @classmethod
+    def delete(cls, path, task):
+        lock = filelock.FileLock(path + '.lock')
+        with lock:
+            tasks = _FileService.get(path, is_lock=False)
+            for i, t in enumerate(tasks):
+                if t.id == task.id:
+                    tasks.pop(i)
+            _FileService.overwrite(path, tasks, is_lock=False)
     # @classmethod
     # def get(cls, id=None):
     #     """ Get task path from database """
@@ -149,113 +174,122 @@ class TaskFileService:
     #     TaskService.TASKS.pop(id)
 
 
-class TaskService:
-    from dxpy.task.service import TaskDBService, task_file_service
-
-    def create(self, task_cls, path, name, *args, **kwargs):
-        """
+class TaskStoreService:
+    """ Task
+    """
+    @classmethod
+    def create(cls, task_cls, path, name, *args, **kwargs):
+        """ Create a single task
         Returns:
             tid: int, task id.
         """
-        tid = TaskService.TaskDBService().add(name, path)
-        if isinstance(task_cls, str):
-            task_cls = get_task_cls(task_cls)
+        tid = _DatabaseService().add(path, name)
+        # if isinstance(task_cls, str):
+        #     task_cls = get_task_cls(task_cls)
         task = task_cls(tid, name, *args, **kwargs)
-        TaskService.task_file_service.append(path, task)
+        _FileService.append(path, task)
         return tid
 
-    def get(self, id):
-        """
-        Returns:
-            task: Task.
-        Raises:
-            FileNotFoundError:
-        """
-        return get_task(id)
-
-    def get_path(self, id):
+    @classmethod
+    def get_path(cls, id_):
         """
         Returns:
             path: str, path of .yaml file saving task.
         """
-        return TaskService.TaskDBService().get(id).path
+        return _DatabaseService().get(id_).path
 
-    def submit(self, id):
-        task = self.get(id)
-        task.submit()
+    @classmethod
+    def get(cls, id_):
+        """
+        Returns:
+            task: Task.
+        Raises:
+            FileNotFoundError:            
+        """
+        for t in _FileService.get(TaskStoreService.get_path(id_)):
+            if t.id == id_:
+                return t
+        return None
 
-    def delete(self, id):
-        pass
+    @classmethod
+    def all(cls, filter_func=None):
+        """
+        (filter_func) -> Observable<Task[]>
+        """
+        if filter_func is None:
+            def filter_func(x): return x is not None
+        return (_DatabaseService().all()
+                .map(lambda tdb: TaskStoreService.get(tdb.id))
+                .filter(filter_func))
 
-    def run_cycle(self):
-        task_run_service.run()
+    @classmethod
+    def update(cls, task):
+        _FileService.append(TaskStoreService.get_path(task.id),
+                            task)
 
-    def submit_cycle(self):
-        task_run_service.submit()
+    @classmethod
+    def submit(self, id_):
+        tsk = TaskStoreService.get(id_)
+        tsk.submit()
+        _FileService.append(TaskStoreService.get_path(id_),
+                            tsk)
 
-    def print_all(self):
-        for t in [get_task(t.id) for t in TaskDBService().all()]:
-            print(t)
-
-
-task_service = TaskService()
-
-
-task_file_service = TaskFileService()
-
-
-def get_task(id):
-    tasks = TaskService.task_file_service.get(TaskDBService().get(id).path)
-    for t in tasks:
-        if t.id == id:
-            return t
-    return None
-
+    @classmethod
+    def delete(self, id_):
+        tsk = TaskStoreService.get(id_)
+        _FileService.delete(TaskStoreService.get_path(id_),
+                            TaskStoreService.get(id_))
+        _DatabaseService().delete(tsk.id)
 
 # Modify this function to add tasks.
-def get_task_cls(task_type_name):
-    """
 
-    """
-    from dxpy.task.task import Task
-    from dxpy.task.task_ex import TaskSleep, TaskSleepChain
-    mapping = {
-        'Task': Task,
-        'TaskSleep': TaskSleep,
-        'TaskSleepChain': TaskSleepChain
-    }
-    return mapping[task_type_name]
+
+# def get_task_cls(task_type_name):
+#     """
+
+#     """
+#     from dxpy.task.task import Task
+#     from dxpy.task.task_ex import TaskSleep, TaskSleepChain
+#     mapping = {
+#         'Task': Task,
+#         'TaskSleep': TaskSleep,
+#         'TaskSleepChain': TaskSleepChain
+#     }
+#     return mapping[task_type_name]
 
 
 class TaskRunService:
     """ run commands of tasks
     """
-
-    def all(self):
-        tasks = [get_task(t.id) for t in TaskDBService().all()]
-        return [t for t in tasks if t is not None]
-
+    @classmethod
     def submit(self):
-        for t in self.all():
-            if t.state.run == t.state.RunState.Pending:
-                if not t.is_to_run:
-                    for tp in t.tasks_to_run():
-                        if tp.state.run == tp.state.RunState.WaitingToSubmit:
-                            tp.submit()
+        (
+            TaskStoreService.all()
+            .filter(lambda t: t.state.run == t.state.RunState.Pending)
+            .filter(lambda t: not t.is_to_run)
+            .flat_map(lambda t: t.dependence())
+            .filter(lambda t: t.state.is_waiting_to_submit)
+            .subscribe(lambda t: t.submit())
+        )
+        # if t.state.run == t.state.RunState.Pending:
+        #     if not t.is_to_run:
+        #         for tp in t.tasks_to_run():
+        #             if tp.state.run == tp.state.RunState.WaitingToSubmit:
+        #                 tp.submit()
 
+    @classmethod
     def run(self):
         logger.debug('TaskRunService.run called.')
-        for t in self.all():
-            print(t)
-            if t.is_to_run:
-                t.run()
+        (
+            TaskStoreService.all()
+            .filter(lambda t: t.is_to_run)
+            .subscribe(lambda t: t.run())
+        )
 
+    @classmethod
     def mark_as_finish(self, id_or_task):
         if isinstance(id_or_task, int):
             task = self.get(id_or_task)
         else:
             task = id_or_task
         task.finish()
-
-
-task_run_service = TaskRunService()

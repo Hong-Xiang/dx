@@ -18,6 +18,7 @@ NB_THREADS = 5
 logger = logging.getLogger(__name__)
 pool_scheduler = ThreadPoolScheduler(NB_THREADS)
 
+
 class TaskState(yaml.YAMLObject):
     yaml_tag = '!task_state'
 
@@ -115,11 +116,8 @@ class Task(yaml.YAMLObject):
         self.pre = []
         self.state = state or TaskState()
 
-    # def _default_path(self):
-    #     return Path('.')
-
     def _default_workdir(self):
-        return Path('.') / 'task_{tid:d}.yaml'.format(tid=self.id)
+        return Path('.')
 
     # @property
     # def is_waiting_to_submit(self):
@@ -141,10 +139,16 @@ class Task(yaml.YAMLObject):
     #     self.pull()
     #     return self.state.is_complete
 
+    def dependence(self):
+        from dxpy.task.service import TaskStoreService
+        return (Observable.from_(self.pre)
+                .map(lambda i: TaskStoreService.get(i)))
+
     @property
     def is_to_run(self):
+        from dxpy.task.service import TaskStoreService
         self.pull()
-        return all(t.is_fin for t in self.pre) and not self.state.is_lock and self.state.is_pending
+        return all(TaskStoreService.get(t).state.is_complete for t in self.pre) and not self.state.is_lock and self.state.is_pending
 
     # @property
     # def is_lock(self):
@@ -170,25 +174,22 @@ class Task(yaml.YAMLObject):
         self.push()
 
     def _run_kernel(self):
-
         pass
 
     def _post_run(self, result):
-        print(current_thread().name)
-        self.finish()
-        self.push()
+        pass
 
     def check_state(self):
         pass
 
     def pull(self):
-        from dxpy.task.service import get_task
-        tsk = get_task(self.id)
+        from dxpy.task.service import TaskStoreService
+        tsk = TaskStoreService.get(self.id)
         self.__dict__ == copy.deepcopy(tsk.__dict__)
 
     def push(self):
-        from dxpy.task.service import TaskDBService, TaskFileService
-        TaskFileService().append(TaskDBService().get(self.id).path, self)
+        from dxpy.task.service import TaskStoreService
+        TaskStoreService.update(self)
 
     def submit(self):
         self.state.run = TaskState.RunState.Pending
@@ -206,6 +207,9 @@ class Task(yaml.YAMLObject):
             with open('errorlog.txt', 'w') as fout:
                 print(e, file=fout)
 
+    def check_complete(self):
+        pass
+
     def finish(self):
         self.state.run = TaskState.RunState.Finished
         self.free()
@@ -215,17 +219,20 @@ class Task(yaml.YAMLObject):
         return yaml.dump(self)
 
     def tasks_pre_to_run(self):
-        result = []
+        """
+        () -> Observable<Task[]>
+        """
         self.pull()
         if self.is_to_run:
-            return []
+            return Observable.empty()
         else:
-            for t in self.pre:
-                if t.is_to_run:
-                    result += [t]
-                else:
-                    result += t.tasks_to_run()
-        return result
+            can_run = (self.dependence()
+                       .filter(lambda t: t.is_to_run)
+                       .flat_map(lambda t: Observable.just(t)))
+            has_pre = (self.dependence()
+                       .filter(lambda t: not t.is_to_run)
+                       .flat_map(lambda t: t.dependence()))
+            return Observable.merge(can_run, has_pre)
 
     def wait(self, tsks):
         self.pre.append(tsks.id)
@@ -240,13 +247,36 @@ class TaskCommand(Task):
         self.is_print = is_print
 
     def _run_kernel(self):
-        print(current_thread().name)
         result = os.popen(self.command).read()
         return result
 
     def _post_run(self, result):
-        print(current_thread().name)
         if self.is_print:
             print(result)
         self.finish()
+
+
+class TaskSbatch(Task):
+    from dxpy.slurm import Slurm
+
+    def __init__(self, *args, sfile, **kwargs):
+        logger.debug(type(self))
+        super(TaskSbatch, self).__init__(*args, **kwargs)
+        self.sfile = sfile
+        self.sid = None
+        self.cmd = 'cd {dir}'.format(dir=self.workdir.abs)
+        self.cmd += ' && sbatch {file}'.format(file=self.sfile)
+
+    def _run_kernel(self):
+        result = os.popen(self.cmd).read()
+        return TaskSbatch.Slurm().get_id(result)
+
+    def check_complete(self):
+        for info in TaskSbatch.Slurm().sinfo():
+            if info.id == self.sid:
+                return None
+        self.finish()
+
+    def _post_run(self, result):
+        self.sid = result
         self.push()

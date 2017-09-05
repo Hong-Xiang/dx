@@ -1,33 +1,52 @@
-""" TaskService (exported) API.
-Functions:
-==========
-#. create(task_template_cls, args, kwargs):
-    Create a task from task template class/type, with given args and kwargs. 
-    The task will be written to task database.
+""" Export APIs for task service. """
+from flask_restful import Resource
 
-#. get(id):
-    Get ???serilized or not??? task object by id.
+from dxpy.task.service import create_datebase
+from dxpy.task.service import TaskStoreService
+from dxpy.task.templates import TaskTemplates
 
-#. get_all(filter_function):
-
-"""
 
 class TaskSerivce:
+    """ TaskService APIs for python.
+    Functions:
+    ==========
+    #. create_from_template(task_template_cls, args, kwargs):
+        Create a task from task template class/type, with given args and kwargs. 
+        The task will be written to task database.
+
+    #. get(id):
+        Get task object by id.
+
+    #. get_all(filter_function):
+        Get all tasks satisfies filter_function.
+    """
     @classmethod
-    def create(cls, task_template_cls, args, kwargs):
-        pass
+    def create_from_template(cls, task_template_name, *args, **kwargs):
+        return getattr(TaskTemplates, task_template_name)(*args, **kwargs)
 
     @classmethod
-    def get(cls, id):
+    def get(cls, id_):
         """ Get tasks
         """
-        pass
+        return TaskStoreService.get(id_)
 
     @classmethod
-    def get_all(cls, filter_function):
-        pass
+    def submit(cls, id_):
+        return TaskStoreService.submit(id_)
 
-class TaskServiceResource:
+    @classmethod
+    def delete(cls, id_):
+        TaskStoreService.delete(id_)
+
+    @classmethod
+    def all(cls, filter_func=None):
+        return TaskStoreService.all(filter_func)
+
+
+class TaskResource:
     pass
 
+class TasksResource:
+    def get(self):
+        all_tasks = TaskSerivce.all().subscribe
 
