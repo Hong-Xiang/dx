@@ -1,5 +1,10 @@
+import re
 from dxpy.task.service import TaskStoreService
 from dxpy.task.task import TaskCommand, TaskSbatch
+
+
+class UnknownTemplateNameError(Exception):
+    pass
 
 
 class TaskTemplates:
@@ -27,3 +32,9 @@ class TaskTemplates:
     @staticmethod
     def sbatch(path, name, sfile):
         return TaskStoreService.create(TaskSbatch, path, name, sfile=sfile)
+
+
+def create(tpl_name, *args, **kwargs):
+    if not hasattr(TaskTemplates, tpl_name):
+        raise UnknownTemplateNameError(tpl_name)
+    return getattr(TaskTemplates, tpl_name)(*args, **kwargs)

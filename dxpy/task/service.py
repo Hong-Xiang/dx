@@ -6,7 +6,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from rx import Observable
 from dxpy.file_system.path import Path
-from dxpy.task.task import Task
 import filelock
 
 logger = logging.getLogger(__name__)
@@ -87,6 +86,8 @@ class _FileService:
         Return:
             tasks: list of Task objects.
         """
+        if path is None:
+            return []
         try:
             if is_lock:
                 lock = filelock.FileLock(path + '.lock')
@@ -98,8 +99,8 @@ class _FileService:
                     tasks = yaml.load(fin)
         except FileNotFoundError:
             return []
-        except Exception as e:
-            logger.error(e.msg, e.args, exc_info=1)
+        # except Exception as e:
+        #     logger.error(e.msg, e.args, exc_info=1)
 
         if tasks is None:
             return []
@@ -196,7 +197,11 @@ class TaskStoreService:
         Returns:
             path: str, path of .yaml file saving task.
         """
-        return _DatabaseService().get(id_).path
+        tdb = _DatabaseService().get(id_)
+        if tdb:
+            return tdb.path
+        else:
+            return None
 
     @classmethod
     def get(cls, id_):
@@ -262,7 +267,7 @@ class TaskRunService:
     """ run commands of tasks
     """
     @classmethod
-    def submit(self):
+    def submit(cls):
         (
             TaskStoreService.all()
             .filter(lambda t: t.state.run == t.state.RunState.Pending)
@@ -271,20 +276,23 @@ class TaskRunService:
             .filter(lambda t: t.state.is_waiting_to_submit)
             .subscribe(lambda t: t.submit())
         )
-        # if t.state.run == t.state.RunState.Pending:
-        #     if not t.is_to_run:
-        #         for tp in t.tasks_to_run():
-        #             if tp.state.run == tp.state.RunState.WaitingToSubmit:
-        #                 tp.submit()
 
     @classmethod
-    def run(self):
-        logger.debug('TaskRunService.run called.')
+    def run(cls):
         (
             TaskStoreService.all()
             .filter(lambda t: t.is_to_run)
             .subscribe(lambda t: t.run())
         )
+
+    @classmethod
+    def cycle():
+        TaskRunService.submit()
+        TaskRunService.run()
+
+    @classmethod
+    def launch_deamon(cls, interval=10):
+        Observable
 
     @classmethod
     def mark_as_finish(self, id_or_task):

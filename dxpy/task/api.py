@@ -1,6 +1,4 @@
 """ Export APIs for task service. """
-from flask_restful import Resource
-
 from dxpy.task.service import create_datebase
 from dxpy.task.service import TaskStoreService
 from dxpy.task.templates import TaskTemplates
@@ -17,7 +15,7 @@ class TaskSerivce:
     #. get(id):
         Get task object by id.
 
-    #. get_all(filter_function):
+    #. all(filter_func):
         Get all tasks satisfies filter_function.
     """
     @classmethod
@@ -43,10 +41,6 @@ class TaskSerivce:
         return TaskStoreService.all(filter_func)
 
 
-class TaskResource:
-    pass
 
-class TasksResource:
-    def get(self):
-        all_tasks = TaskSerivce.all().subscribe
+
 

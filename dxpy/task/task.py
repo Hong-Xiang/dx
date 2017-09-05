@@ -100,9 +100,6 @@ class TaskState(yaml.YAMLObject):
         return self.lock == self.LockState.Locked
 
 
-from threading import current_thread
-
-
 class Task(yaml.YAMLObject):
     yaml_tag = '!task'
     yaml_flow_style = False
