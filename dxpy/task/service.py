@@ -286,13 +286,14 @@ class TaskRunService:
         )
 
     @classmethod
-    def cycle():
+    def cycle(cls):
         TaskRunService.submit()
         TaskRunService.run()
 
     @classmethod
-    def launch_deamon(cls, interval=10):
-        Observable
+    def launch_deamon(cls, interval=60000):
+        Observable.interval(interval).start_with(0).subscribe(
+            on_next=lambda t: TaskRunService.cycle(), on_error=lambda e: print(e))
 
     @classmethod
     def mark_as_finish(self, id_or_task):

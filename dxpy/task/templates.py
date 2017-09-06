@@ -9,13 +9,13 @@ class UnknownTemplateNameError(Exception):
 
 class TaskTemplates:
     @staticmethod
-    def sleep(path, name):
+    def sleep(path, name, *args, **kwargs):
         command = 'echo TaskSleep.{name}.start && sleep 1 && echo TaskSleep.{name}.end'
         tid = TaskStoreService.create(TaskCommand, path, name, command=command)
         return tid
 
     @staticmethod
-    def sleep_chain(path, name):
+    def sleep_chain(path, name, *args, **kwargs):
         nb_chain = 3
         tsks = []
         for i in range(nb_chain):
@@ -30,11 +30,14 @@ class TaskTemplates:
         return tid
 
     @staticmethod
-    def sbatch(path, name, sfile):
+    def sbatch(path, name, sfile, *args, **kwargs):
         return TaskStoreService.create(TaskSbatch, path, name, sfile=sfile)
 
 
 def create(tpl_name, *args, **kwargs):
+    print('DEEEEEBUG')
+    print(args)
+    print(kwargs)
     if not hasattr(TaskTemplates, tpl_name):
         raise UnknownTemplateNameError(tpl_name)
     return getattr(TaskTemplates, tpl_name)(*args, **kwargs)
