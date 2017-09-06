@@ -109,5 +109,5 @@ class TasksResource(Resource):
 
 
 def add_web_api(api, api_root, name='task'):
-    api.add_resource(TaskResource, api_root + '{name}/<int:tid>'.format(name))
-    api.add_resource(TasksResource, api_root + '{name}s'.format(name))
+    api.add_resource(TaskResource, api_root + '{name}/<int:tid>'.format(name=name))
+    api.add_resource(TasksResource, api_root + '{name}s'.format(name=name))
