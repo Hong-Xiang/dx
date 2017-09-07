@@ -11,7 +11,7 @@ class TaskTemplates:
     @staticmethod
     def sleep(path, name, *args, **kwargs):
         command = 'echo TaskSleep.{name}.start && sleep 1 && echo TaskSleep.{name}.end'
-        tid = TaskStoreService.create(TaskCommand, path, name, command=command)
+        tid = TaskStoreService.create(TaskCommand, path, name, *args, command=command, **kwargs)
         return tid
 
     @staticmethod
@@ -23,7 +23,7 @@ class TaskTemplates:
             command = 'echo {tn}.start && sleep 1 && echo {tn}.end'.format(
                 tn=tname)
             tid = TaskStoreService.create(
-                TaskCommand, path, name, command=command)
+                TaskCommand, path, name, command=command, *args, **kwargs)
             if len(tsks) > 0:
                 TaskStoreService.get(tid).wait(TaskStoreService.get(tsks[-1]))
             tsks.append(tid)
@@ -31,7 +31,7 @@ class TaskTemplates:
 
     @staticmethod
     def sbatch(path, name, sfile, *args, **kwargs):
-        return TaskStoreService.create(TaskSbatch, path, name, sfile=sfile)
+        return TaskStoreService.create(TaskSbatch, path, name, *args, **kwargs, sfile=sfile)
 
 
 def create(tpl_name, *args, **kwargs):

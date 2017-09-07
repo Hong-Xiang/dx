@@ -107,7 +107,7 @@ class Task(yaml.YAMLObject):
     def __init__(self, tid, name=None, workdir=None, state=None, *, time_stamp=None, desc=None, sub_tasks=None, is_lock=False):
         self.id = tid
         self.name = name or Tags.undifined
-        self.workdir = workdir or self._default_workdir()
+        self.workdir = Path(workdir) or self._default_workdir()
         self.desc = desc or Tags.undifined
         self.time = time_stamp or TimeStamp()
         self.pre = []
@@ -265,12 +265,12 @@ class TaskSbatch(Task):
         self.cmd += ' && sbatch {file}'.format(file=self.sfile)
 
     def _run_kernel(self):
-        result = os.popen(self.cmd).read()
+        result = os.popen(self.cmd).read()        
         return TaskSbatch.Slurm().get_id(result)
 
-    def check_complete(self):
+    def check_complete(self):        
         for info in TaskSbatch.Slurm().sinfo():
-            if info.id == self.sid:
+            if int(info.id) == int(self.sid):
                 return None
         self.finish()
 
