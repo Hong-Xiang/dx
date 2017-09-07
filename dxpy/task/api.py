@@ -103,7 +103,9 @@ class TasksResource(Resource):
                 .first()), 200
 
     def post(self):
-        kwargs = {k: request.values[k] for k in request.values}
+        kwargs = {k: request.values[k] for k in request.values}        
+        if not kwargs:
+            kwargs = request.json        
         tid = TaskService.create_from_template(**kwargs)
         return {'tid': tid}, 201
 
