@@ -57,11 +57,14 @@ def jsonable(task):
 
     data = {
         'id': task.id,
-        'name': task.name,
-        'workdir': task.workdir.abs,
+        'name': task.name,    
         'pre': task.pre,
         'state': task.state.format()
     }
+    if isinstance(task.workdir, str):
+        data.update({'workdir': task.workdir})
+    else:
+        data.update({'workdir': task.workdir.abs})
 
     def task_command_to_dict(task):
         return {
@@ -77,7 +80,7 @@ def jsonable(task):
     if isinstance(task, TaskCommand):
         data.update(task_command_to_dict(task))
     elif isinstance(task, TaskSbatch):
-        data.update(task_sbatch_to_dict)
+        data.update(task_sbatch_to_dict(task))
     return data
 
 
@@ -86,9 +89,13 @@ class TaskResource(Resource):
         return jsonable(TaskService.get(tid))
 
     def put(self, tid):
-        task = request.values['task']
+        print('PUT Called.')
+        task = request.values.get('task')
+        if not task:
+            task = request.json.get('task')
         if task == 'submit':
             TaskService.submit(tid)
+        return 'OK', 200
 
     def delete(self, tid):
         TaskService.delete(tid)

@@ -26,6 +26,8 @@ class Slurm:
 
     def sinfo(self):
         self._sinfo_kernel()
+        if self._sinfo_buffer is None:
+            self._sinfo_buffer = []
         return self._sinfo_buffer
 
     def get_id(self, state):
