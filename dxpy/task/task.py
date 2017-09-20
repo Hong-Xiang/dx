@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 pool_scheduler = ThreadPoolScheduler(NB_THREADS)
 
 
+
+
+
 class TaskState(yaml.YAMLObject):
     yaml_tag = '!task_state'
 
@@ -32,6 +35,10 @@ class TaskState(yaml.YAMLObject):
     class LockState(Enum):
         Free = 0x0000
         Locked = 0x0010
+
+    class FileState(Enum):
+        Normal = 0x0000
+        Missing = 0x0100
 
     @staticmethod
     def _normalize_value(value):

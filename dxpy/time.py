@@ -17,7 +17,6 @@ import json
 import yaml
 import datetime
 import re
-from flask_restful import Resource
 from dxpy.utils import Tags
 
 
@@ -34,6 +33,16 @@ def _parse_time_delta(s):
 
 def now():
     return datetime.datetime.now()
+
+class TimeStamps:
+    """ A dict of time stamps
+    """
+    def __init__(self, time_stamps=None):
+        if not isinstance(time_stamps, dict):
+            raise TypeError("time_stamps must be a dict, not {}.".format(type(time_stamps)))
+        for k in time_stamps:
+            if not isinstance()
+        self.time_stamps = time_stamps   
 
 
 class TimeStamp(yaml.YAMLObject):

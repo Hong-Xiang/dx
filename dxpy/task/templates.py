@@ -6,7 +6,6 @@ from dxpy.task.task import TaskCommand, TaskSbatch
 class UnknownTemplateNameError(Exception):
     pass
 
-
 class TaskTemplates:
     @staticmethod
     def sleep(path, name, *args, **kwargs):
@@ -34,10 +33,7 @@ class TaskTemplates:
         return TaskStoreService.create(TaskSbatch, path, name, *args, **kwargs, sfile=sfile)
 
 
-def create(tpl_name, *args, **kwargs):
-    print('DEEEEEBUG')
-    print(args)
-    print(kwargs)
+def create(tpl_name, *args, **kwargs):    
     if not hasattr(TaskTemplates, tpl_name):
         raise UnknownTemplateNameError(tpl_name)
     return getattr(TaskTemplates, tpl_name)(*args, **kwargs)
