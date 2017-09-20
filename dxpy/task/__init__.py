@@ -3,23 +3,86 @@
 Task system design
 ==================
 
-User
-====
+Serivices
+=========
+TaskService:
+    High level API.
+    Dependency: 
+        - StoreService (TaskPy, call)
+        - RunService (TaskPy, call)            
+    Output:
+        TaskPy, TaskJSON
 
-TaskAPI
-=======
-Functions:
-----------
-#. create(TaskTemplate, args, kwargs) ->
-#. get(id)
+TaskServiceWeb:
+    A RESTful API warper on TaskService.
+    Dependency:
+        - TaskService (TaskJSON, call)
+    Output:
+        TaskJSON
+
+StoreService:
+    Dependency:
+        - DatabaseWebService (TaskJSON)
+    Output:
+        TaskPy
+
+RunService:
+    Dependency:
+        - DatabaseWebService (TaskJSON)
+    Output:
+        TaskPy
+        
+        
+
+
+Layers:
 
 
 
-Task
-====
+
+
+0:  Database
+    Interface representations:
+        TaskJSON
+    Internal Representations:
+        TaskDB, TaskJSON
+    Features:
+        Managing Serilization of Tasks
+
+    
+
+
+
+
+
+
+Task Representations
+====================
+Overview:        
+    All representations have full information.
+Representations:
+    TaskPy
+        Python Object. Properties are objects ready to use
+    TaskYAML
+        Supports easy dump/load to TaskPython.
+        Main serilization format of Tasks.
+    TaskJSON
+        JSON i/o. For simple communication only.
+        Details are stored in filed 'body' as YAML.
+    TaskDB
+        Not really a representation, true resource of tasks. The only mutable representation.
+Transform:
+    TaskPy <=> TaskYAML
+    TaskPy => TaskJSON    
+    TaskJSON => TaskYAML
+    TaskJSON <=> TaskDB
+
 
 Overview
 --------
+There are four kinds of task objects in dxpy.task.
+#. TaskDBModel
+    Task resource
 Task object is a *representation* of a logical task, which is designed to be:
 #. 
 #. 

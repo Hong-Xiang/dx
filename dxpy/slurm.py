@@ -6,7 +6,6 @@ import os
 SINFO = namedtuple('SINFO', ('id', 'part', 'cmd', 'usr',
                              'stat', 'time', 'nodes', 'node_name'))
 
-
 class Slurm:
     def __init__(self):
         self._sinfo_buffer = None

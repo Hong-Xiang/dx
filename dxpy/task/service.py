@@ -277,7 +277,7 @@ class TaskRunService:
         )
 
     @classmethod
-    def submit(cls):        
+    def submit(cls):
         (
             TaskStoreService.all()
             .filter(lambda t: t.state.run == t.state.RunState.Pending)
@@ -285,8 +285,6 @@ class TaskRunService:
             .flat_map(lambda t: t.dependence())
             .filter(lambda t: t.state.is_waiting_to_submit)
             .subscribe(lambda t: t.submit())
-
-
         )
 
     @classmethod
