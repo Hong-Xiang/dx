@@ -20,7 +20,7 @@ def port():
 
 
 def task_url():
-    return '/api/v{version}/{name}/<int:id>'.format(
+    return '/api/v{version}/{name}'.format(
         version=WEB_API_VERSION, name=TASK_URL_NAME)
 
 

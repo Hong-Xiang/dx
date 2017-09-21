@@ -1,12 +1,20 @@
 import json
+import yaml
 import rx
+from rx.concurrency import ThreadPoolScheduler as TPS
 from dxpy.task.database.model import DBSession, TaskDB
 from dxpy.time.utils import strf, strp
 session = DBSession()
 
 
 class TaskNotFoundError(Exception):
-    pass
+    def __init__(self, tid=None):
+        super(TaskNotFoundError, self).__init__(
+            "Task with id: {tid} not found.".format(tid=tid))
+
+
+def dbs2json(tasks_db):
+    return json.dumps([json.loads(db2json(task_db)) for task_db in tasks_db])
 
 
 def db2json(task):
@@ -15,6 +23,7 @@ def db2json(task):
         'desc': task.desc,
         'body': task.body,
         'dependency': (rx.Observable.just(task.dependency)
+                       .subscribe_on(TPS())
                        .flat_map(lambda x: x.split(' '))
                        .filter(lambda x: x.isdigit())
                        .map(lambda x: int(x))
@@ -24,7 +33,8 @@ def db2json(task):
     })
 
 
-def create_new_task_db(task_json):
+def json2db_new(task_json):
+    task_json = json.loads(task_json)
     return TaskDB(desc=task_json['desc'],
                   body=task_json['body'],
                   state=task_json['state'],
@@ -32,26 +42,25 @@ def create_new_task_db(task_json):
                   depens=' '.join(task_json['dependency']))
 
 
-def update_db_by_json(task_json, session):
+def json2db_update(task_json, session):
     task_json = json.loads(task_json)
     taskdb = session.query(TaskDB).get(task_json['id'])
     if taskdb is None:
-        raise TaskNotFoundError(
-            "Task with id: {tid} not found.".format(tid=task_json['id']))
-    taskdb.desc = task_json['desc'],
-    taskdb.body = task_json['body'],
-    taskdb.state = task_json['state'],
+        raise TaskNotFoundError(task_json['id'])
+    taskdb.desc = task_json['desc']
+    taskdb.body = task_json['body']
+    taskdb.state = task_json['state']
     taskdb.time_create = strp(task_json['time_create'])
-    taskdb.depens = ' '.join(task_json['dependency'])
+    taskdb.dependency = ' '.join(task_json['dependency'])
     return taskdb
 
 
-def json2db(task_json, session=None):
-    task_json = json.loads(task_json)
-    if task_json['id'] is not None:
-        return update_db_by_json(task_json, session)
-    else:
-        return create_new_task_db(task_json)
+# def json2db(task_json, session=None):
+#     task_json = json.loads(task_json)
+#     if task_json['id'] is not None:
+#         return update_db_by_json(task_json, session)
+#     else:
+#         return create_new_task_db(task_json)
 
 
 class Service:
@@ -61,28 +70,61 @@ class Service:
         Inputs:
             task: taskJSON
         """
-        task_db = json2db(task_json)
+        task_db = json2db_new(task_json)
         session.add(task_db)
+        session.commit()
+        task_db = session.query(TaskDB).get(task_db.id)
+        tpy = yaml.load(task_db.body)
+        tpy.id = task_db.id
+        task_db.body = yaml.dump(tpy)
         session.commit()
         return task_db.id
 
     @staticmethod
     def read(tid=None):
-        if tid is None:
-            return [db2json(t) for t in session.query(TaskDB).all()]
+        """
+        Returns JSON serilized query result.
+        """
+        task_db = session.query(TaskDB).get(tid)
+        if task_db is None:
+            raise TaskNotFoundError(tid)
         else:
-            task_db = session.query(TaskDB).get(tid)
-            if task_db is None:
-                return None
-            else:
-                return db2json(task_db)
+            return db2json(task_db)
+
+    @staticmethod
+    def read_all(filter_func=None):
+        """
+        Returns JSON serilized query results; In "[{task1},{task2}]" format.
+        Returns:
+            str: JSON loadable. Would be "[]" if no task in database.
+        Exception:
+            None
+        """
+        if filter_func is None:
+            def filter_func(x): return True
+        return (rx.Observable.from_(session.query(TaskDB).all())
+                .subscribe_on(TPS())
+                .filter(filter_func)
+                .map(db2json)
+                .map(json.loads)
+                .to_list()
+                .map(json.dumps)
+                .to_blocking()
+                .first())
+        # res = session.query(TaskDB).all()
+        # if res is None:
+        #     res = json.dumps([])
+        # return dbs2json(res)
 
     @staticmethod
     def update(task_json):
-        json2db(task_json, session)
+        json2db_update(task_json, session)
         session.commit()
 
     @staticmethod
     def delete(tid):
-        session.delete(session.query(TaskDB).get(tid))
+        task_db = session.query(TaskDB).get(tid)
+        if task_db is None:
+            raise TaskNotFoundError
+        session.delete(task_db)
         session.commit()

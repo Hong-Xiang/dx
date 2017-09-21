@@ -45,10 +45,10 @@ class TaskDB(Base):
 
 def create_datebase(is_overwrite=False):
     """ Helper function to create new engine """
-    from pathlib import Path
-    db_file = Path(path_database())
-    if is_overwrite and db_file.exists:
-        db_file.unlink()
+    # from pathlib import Path
+    # db_file = Path(path_database())
+    # if is_overwrite and db_file.exists:
+    #     db_file.unlink()
     Base.metadata.create_all(engine)
 
 

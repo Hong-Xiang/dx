@@ -1,4 +1,5 @@
 *.pyc
 
 dxpy.egg-info
+/docs/_*/
 

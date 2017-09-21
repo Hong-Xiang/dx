@@ -8,4 +8,8 @@ setup(name='dxpy',
       author_email='hx.hongxiang@gmail.com',
       license='MIT',
       packages=[],
+      install_requires=[
+          'rx',
+          'flask_restful',          
+      ],
       zip_safe=False)

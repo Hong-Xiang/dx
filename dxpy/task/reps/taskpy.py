@@ -7,6 +7,7 @@ No action is allowed.
 """
 import json
 import yaml
+import copy
 from dxpy.file_system.path import Path
 from dxpy.time.utils import strf
 from dxpy.task.misc import TaskState
@@ -49,11 +50,33 @@ def py2json(task):
         'state': task.state.name,
     })
 
+
 def json2yml(task):
     return json.loads(task)['body']
+
 
 def json2py(task):
     return yml2py(json2yml(task))
 
+
 def yml2py(task):
     return yaml.load(task)
+
+
+def submit(task):
+    task = copy.copy(task)
+    task.state = TaskState.Pending
+    return task
+
+
+def run(task):
+    task = copy.copy(task)
+    task.state = TaskState.Runing
+    return task
+
+
+def complete(task):
+    task = copy.copy(task)
+    task.state = TaskState.Complete
+    return task
+
