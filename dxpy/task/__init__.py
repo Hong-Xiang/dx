@@ -8,15 +8,14 @@ Serivices
 TaskService:
     High level API.
     Dependency: 
-        - StoreService (TaskPy, call)
-        - RunService (TaskPy, call)            
+        - StoreService (TaskJSON)        
     Output:
-        TaskPy, TaskJSON
+        TaskJSON
 
 TaskServiceWeb:
     A RESTful API warper on TaskService.
     Dependency:
-        - TaskService (TaskJSON, call)
+        - TaskService (TaskJSON)
     Output:
         TaskJSON
 
@@ -24,15 +23,19 @@ StoreService:
     Dependency:
         - DatabaseWebService (TaskJSON)
     Output:
-        TaskPy
+        TaskPy, TaskJSON
 
 RunService:
     Dependency:
-        - DatabaseWebService (TaskJSON)
+        - TaskStoreService (TaskPy)
     Output:
         TaskPy
         
-        
+FactoryService:
+    Dependency:
+        - TaskStoreService (TaskPy)
+    Output:
+        TaskPy
 
 
 Layers:

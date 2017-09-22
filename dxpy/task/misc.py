@@ -25,6 +25,9 @@ add_yaml_support(WorkerType, '!worker_type')
 
 
 class Workers:
-    def __init__(self, worker_type, nb_workers=1):
-        self.worker_type = worker_type
+    def __init__(self, worker_type=None, nb_workers=1, info=None):
+        if worker_type is None:
+            worker_type = WorkerType.MultiProcessing
+        self.type = worker_type
         self.nb_workers = nb_workers
+        self.info = info

@@ -30,6 +30,7 @@ def db2json(task):
                        .to_list().to_blocking().first()),
         'time_create': strf(task.time_create),
         'state': task.state,
+        'is_root': task.is_root
     })
 
 
@@ -39,7 +40,8 @@ def json2db_new(task_json):
                   body=task_json['body'],
                   state=task_json['state'],
                   time_create=strp(task_json['time_create']),
-                  depens=' '.join(task_json['dependency']))
+                  depens=' '.join(task_json['dependency']),
+                  is_root=task_json['is_root'])
 
 
 def json2db_update(task_json, session):
@@ -52,6 +54,7 @@ def json2db_update(task_json, session):
     taskdb.state = task_json['state']
     taskdb.time_create = strp(task_json['time_create'])
     taskdb.dependency = ' '.join(task_json['dependency'])
+    taskdb.is_root = task_json['is_root']
     return taskdb
 
 

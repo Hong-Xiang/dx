@@ -6,11 +6,12 @@ from sqlalchemy import create_engine
 from dxpy.file_system.path import Path
 from dxpy.time.utils import now
 from dxpy.task.misc import TaskState
-from dxpy.task.database.config import path_database
+from .config import c
 
+# TODO: change to mutable engine and DBSession
 
 Base = declarative_base()
-engine = create_engine(path_database())
+engine = create_engine(c.path)
 DBSession = sessionmaker(bind=engine)
 
 
@@ -22,8 +23,9 @@ class TaskDB(Base):
     dependency = Column(String)
     time_create = Column(DateTime)
     state = Column(String)
+    is_root = Column(Boolean)
 
-    def __init__(self, desc, body, state=None, time_create=None, depens=None):
+    def __init__(self, desc, body, state=None, time_create=None, depens=None, is_root=True):
         """
             workdir: path
         """
@@ -38,6 +40,7 @@ class TaskDB(Base):
         if depens is None:
             depens = ''
         self.dependency = depens
+        self.is_root = is_root
 
     def __repr__(self):
         return '<Task {:d}>'.format(self.id)

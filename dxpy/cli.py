@@ -1,6 +1,7 @@
 import click
 from dxpy.task.cli import task
 
+
 @click.group()
 def dxl():
     pass

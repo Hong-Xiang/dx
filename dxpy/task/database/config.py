@@ -1,29 +1,31 @@
-PATH_DATEBASE_FILE = '/home/hongxwing/Workspace/databases/tasksv2.db'
-PATH_DATABASE_ROOT = 'sqlite:///'
+class Configs:
+    def __init__(self):
+        self.file = '/home/hongxwing/Workspace/databases/tasksv2.db'
+        self.root = 'sqlite:///'
+        self.ip = '127.0.0.1'
+        self.port = 23301
+        self.version = 0.1
+        self.name = 'task'
+        self.debug = False
 
-TASK_DATABASE_IP = '127.0.0.1'
-TASK_DATABASE_PORT = 23301
-WEB_API_VERSION = 0.1
-TASK_URL_NAME = 'task'
+    @property
+    def path(self):
+        return self.root + self.file
+
+    @property
+    def task_url(self):
+        return '/api/v{version}/{name}'.format(
+            version=self.version, name=self.name)
+
+    @property
+    def tasks_url(self):
+        return '/api/v{version}/{name}s'.format(
+            version=self.version, name=self.name)
 
 
-def path_database():
-    return PATH_DATABASE_ROOT + PATH_DATEBASE_FILE
+def get_config(config_yml=None):
+    if config_yml is None:
+        return Configs()
 
 
-def ip():
-    return TASK_DATABASE_IP
-
-
-def port():
-    return TASK_DATABASE_PORT
-
-
-def task_url():
-    return '/api/v{version}/{name}'.format(
-        version=WEB_API_VERSION, name=TASK_URL_NAME)
-
-
-def tasks_url():
-    return '/api/v{version}/{name}s'.format(
-        version=WEB_API_VERSION, name=TASK_URL_NAME)
+c = get_config()

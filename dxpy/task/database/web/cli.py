@@ -1,5 +1,5 @@
 import click
-from dxpy.task.database.web import lauch_database_server
+from .resource import lauch_database_server
 @click.group()
 def db():
     pass

@@ -2,4 +2,5 @@
 
 dxpy.egg-info
 /docs/_*/
-
+.vs
+*.pyproj
