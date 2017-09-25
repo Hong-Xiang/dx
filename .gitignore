@@ -2,5 +2,6 @@
 
 dxpy.egg-info
 /docs/_*/
+/docs/make.bat
 .vs
 *.pyproj
