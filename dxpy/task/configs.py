@@ -9,6 +9,7 @@ class DatabaseConfigs:
         self.root = root or 'sqlite:///'
         self.ip = ip or '127.0.0.1'
         self.port = port or 23301
+        self.echo = False
         self.version = version or 0.1
         self.name = name or 'task'
         self.use_web_api = use_web_api
@@ -40,9 +41,9 @@ CONFIGS_CLS = {
 def name_check(func):
     @wraps(func)
     def wrapper(name, *args, **kwargs):
-        if name not in CONFIGS:
+        if name is not None and name not in CONFIGS:
             raise UnknownConfigName(name)
-        return func(*args, **kwargs)
+        return func(name, *args, **kwargs)
     return wrapper
 
 
@@ -69,9 +70,13 @@ def set_config(name, yml_file=None, config=None):
 @name_check
 def set_config_by_name_key(name, key, value):
     c = get_config(name)
-    c.key = value
+    setattr(c, key, value)
 
 
 @name_check
 def clear_config(name):
-    CONFIGS[name] = None
+    if name.upper() == 'ALL':
+        for k in CONFIGS:
+            CONFIGS[k] = None
+    else:
+        CONFIGS[name] = None

@@ -4,11 +4,11 @@ import rx
 from rx.concurrency import ThreadPoolScheduler as TPS
 from dxpy.time.utils import strf, strp
 from ..exceptions import TaskNotFoundError
-from .model import TaskDB
+from .model import Database, TaskDB
 
 
-def dbs2json(tasks_db):
-    return json.dumps([json.loads(db2json(task_db)) for task_db in tasks_db])
+# def dbs2json(tasks_db):
+#     return json.dumps([json.loads(db2json(task_db)) for task_db in tasks_db])
 
 
 def db2json(task):
@@ -38,29 +38,30 @@ def json2db_new(task_json):
                   is_root=task_json['is_root'])
 
 
+import pdb
+
+
 class Service:
     session = None
-    path = None
 
     @classmethod
-    def create_session(cls, path):
+    def try_add(cls):
+        t = TaskDB('test', 'test')
+        cls.session.add(t)
+        cls.session.commit()
+
+    @classmethod
+    def create_session(cls):
         # TODO: tear down existed session
-        from .model import session_maker
-        cls.session = session_maker(path)()
-        cls.path = path
-
-    @classmethod
-    def is_session_need_create(cls, path):
-        if cls.session is None:
-            return True
-        if path is not None and cls.path != path:
-            return True
-        return False
+        cls.session = Database.session()
+        cls.session.query(TaskDB).all()
+        cls.try_add()
+        # pdb.set_trace()
 
     @classmethod
     def get_or_create_session(cls, path=None):
-        if cls.session is None or (path is not None and cls.path != path):
-            cls.create_session(path)
+        if cls.session is None:
+            cls.create_session()
         return cls.session
 
     @classmethod
@@ -71,7 +72,7 @@ class Service:
         task_db = json2db_new(task_json)
         cls.get_or_create_session().add(task_db)
         cls.get_or_create_session().commit()
-        task_db = session.query(TaskDB).get(task_db.id)
+        task_db = cls.get_or_create_session().query(TaskDB).get(task_db.id)
         tpy = yaml.load(task_db.body)
         tpy.id = task_db.id
         task_db.body = yaml.dump(tpy)
@@ -80,7 +81,7 @@ class Service:
 
     @classmethod
     def read_taskdb(cls, tid):
-        task_db = session.query(TaskDB).get(tid)
+        task_db = cls.get_or_create_session().query(TaskDB).get(tid)
         if task_db is None:
             raise TaskNotFoundError(tid)
         else:
@@ -154,12 +155,12 @@ class Service:
         taskdb.is_root = task_json['is_root']
         return taskdb
 
-    @staticmethod
-    def update(task_json):
-        json2db_update(task_json, session)
-        session.commit()
+    @classmethod
+    def update(cls, task_json):
+        cls.json2db_update(task_json, cls.get_or_create_session())
+        cls.get_or_create_session().commit()
 
-    @staticmethod
-    def delete(tid):
-        session.delete(cls.read_taskdb(tid))
-        session.commit()
+    @classmethod
+    def delete(cls, tid):
+        cls.get_or_create_session().delete(cls.read_taskdb(tid))
+        cls.get_or_create_session().commit()

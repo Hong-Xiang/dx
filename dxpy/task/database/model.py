@@ -11,19 +11,40 @@ from dxpy.task.misc import TaskState
 Base = declarative_base()
 
 
-def engine(path=None):
-    from ..import provider
-    config_service = provider.get_or_create_service('config')
-    if path is not None:
-        c = config_service.get_config('database')
-    else:
-        c = config_service.get_config_cls('database')()
-        c.file = path
-    return create_engine(c.path)
+class Database:
+    engine = None
 
+    @classmethod
+    def create_engine(cls):
+        from ..import provider
+        c = provider.get_or_create_service('config').get_config('database')
+        cls.engine = create_engine(c.path, echo=c.echo)
 
-def session_maker(path=None):
-    return sessionmaker(bind=engine(path))
+    @classmethod
+    def get_or_create_engine(cls):
+        if cls.engine is None:
+            cls.create_engine()
+        return cls.engine
+
+    @classmethod
+    def session_maker(cls):
+        return sessionmaker(bind=cls.get_or_create_engine())
+
+    @classmethod
+    def create(cls):
+        Base.metadata.create_all(cls.get_or_create_engine())
+
+    @classmethod
+    def drop(cls):
+        TaskDB.__table__.drop(cls.get_or_create_engine())
+
+    @classmethod
+    def clear(cls):
+        cls.engine = None
+
+    @classmethod
+    def session(cls):
+        return cls.session_maker()()
 
 
 class TaskDB(Base):
@@ -55,11 +76,3 @@ class TaskDB(Base):
 
     def __repr__(self):
         return '<Task {:d}>'.format(self.id)
-
-
-def create_datebase(path=None):
-    Base.metadata.create_all(engine(path))
-
-
-def drop_database(path=None):
-    TaskDB.__table__.drop(engine(path))
