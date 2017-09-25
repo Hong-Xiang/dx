@@ -7,6 +7,9 @@ def get_default_service(key):
     if key == 'config':
         from . import configs as config_service
         return config_service
+    elif key == 'database':
+        from .database.service import Service as service
+        return service
     raise ServiceNotFound(key)
 
 
@@ -22,4 +25,3 @@ def get_or_create_service(key):
     if key not in services:
         create_service(key)
     return services[key]
-    

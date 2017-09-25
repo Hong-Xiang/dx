@@ -4,6 +4,7 @@ Task templates of frequently used ones.
 import rx
 from dxpy.file_system.path import Path
 from .taskpy import TaskPy
+from ..exceptions import UnknownTemplateNameError
 
 
 class TaskCommand(TaskPy):
@@ -87,15 +88,10 @@ class TaskPyFunc(TaskPy):
 
 TEMPLATE_NAME_MAP = {
     'TASK': TaskPy,
+    'SCRIPT': TaskScript,
     'COMMAND': TaskCommand,
     'PYFUNC': TaskPyFunc
 }
-
-
-class UnknownTemplateNameError(Exception):
-    def __init__(self, ukn_name):
-        super(__class__, self).__init__("Unknown task template name {name}, suppoted names are {supp}.".format(
-            name=ukn_name, supp=[k for k in TEMPLATE_NAME_MAP.keys()]))
 
 
 def template_class(name):

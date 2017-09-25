@@ -8,13 +8,17 @@ import copy
 import rx
 import json
 import rx
-from .provider import Provider
+from . import provider
 from .representation import TaskPy
 from . import representation as reps
 
 
+def db():
+    return provider.get_or_create_service('database')
+
+
 def create(task: TaskPy) -> int:
-    return db.create(task.to_json())
+    return db().create(task.to_json())
 
 
 def parse_json(s: 'json string'):
@@ -22,19 +26,11 @@ def parse_json(s: 'json string'):
 
 
 def read(tid: int) -> 'TaskPy':
-    return parse_json(db.read(tid))
-
-
-def json_list_to_observale(observable_jsons):
-    return (rx.Observable.just(observable_jsons)
-            .map(json.loads)
-            .flat_map(lambda x: rx.Observable.from_(x))
-            .map(json.dumps))
+    return parse_json(db().read(tid))
 
 
 def read_all() -> 'Observable<TaskPy>':
-    return (rx.Observable.just(db.read_all())
-            .flat_map(json_list_to_observale)
+    return (db().read_all()
             .map(parse_json))
 
 
@@ -47,20 +43,20 @@ def dependencies(task: TaskPy) -> 'Observable<TaskPy>':
 
 
 def update(task: TaskPy) -> None:
-    db.update(task.to_json())
+    db().update(task.to_json())
 
 
-def mark_submit(task: TaskPy) -> None:
-    update(reps.submit(task))
+def mark_submit(tid) -> None:
+    update(reps.submit(read(tid)))
 
 
-def mark_start(task: TaskPy) -> None:
-    update(reps.start(task))
+def mark_start(tid) -> None:
+    update(reps.start(read(tid)))
 
 
-def mark_complete(task: TaskPy) -> None:
-    update(reps.complete(task))
+def mark_complete(tid) -> None:
+    update(reps.complete(read(tid)))
 
 
 def delete(tid: int) -> None:
-    db.delete(tid)
+    db().delete(tid)
