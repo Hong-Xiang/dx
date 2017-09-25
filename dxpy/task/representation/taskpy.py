@@ -9,7 +9,7 @@ import copy
 from dxpy.file_system.path import Path
 from dxpy.time.timestamps import Start
 from dxpy.time.utils import strf
-from dxpy.task.misc import TaskState
+from ..misc import TaskState, Workers
 
 
 class TaskPy:
@@ -45,7 +45,7 @@ class TaskPy:
     def is_complete(self):
         return self.state == TaskState.Complete
 
-    def run(self):
+    def plan(self, i_worker=None) -> 'rx.Observable<result>':
         raise NotImplementedError
 
     @classmethod
@@ -70,6 +70,13 @@ class TaskPy:
 
     def to_yml(self):
         return yaml.dump(self)
+
+    def __str__(self):
+        return self.to_yml()
+
+    def __eq__(self, task):
+        # TODO: add safer compare
+        return self.id == task.id
 
 
 def py2json(task):

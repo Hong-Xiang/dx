@@ -35,7 +35,7 @@ class TaskResource(Resource):
 
 class TasksResource(Resource):
     def get(self):
-        return Response(sv.read_all(), 200, mimetype="application/json")
+        return Response(sv.read_all_old(), 200, mimetype="application/json")
 
     def post(self):
         task = request.form['task']
@@ -48,4 +48,4 @@ api.add_resource(TasksResource, c.tasks_url)
 
 
 def lauch_database_server():
-    app.run(host=c.host, port=c.port, debug=c.debug)
+    app.run(host=c.ip, port=c.port, debug=c.debug)

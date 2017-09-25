@@ -2,15 +2,9 @@ import json
 import yaml
 import rx
 from rx.concurrency import ThreadPoolScheduler as TPS
-from dxpy.task.database.model import DBSession, TaskDB
 from dxpy.time.utils import strf, strp
-session = DBSession()
-
-
-class TaskNotFoundError(Exception):
-    def __init__(self, tid=None):
-        super(TaskNotFoundError, self).__init__(
-            "Task with id: {tid} not found.".format(tid=tid))
+from ..exceptions import TaskNotFoundError
+from .model import TaskDB
 
 
 def dbs2json(tasks_db):
@@ -44,68 +38,97 @@ def json2db_new(task_json):
                   is_root=task_json['is_root'])
 
 
-def json2db_update(task_json, session):
-    task_json = json.loads(task_json)
-    taskdb = session.query(TaskDB).get(task_json['id'])
-    if taskdb is None:
-        raise TaskNotFoundError(task_json['id'])
-    taskdb.desc = task_json['desc']
-    taskdb.body = task_json['body']
-    taskdb.state = task_json['state']
-    taskdb.time_create = strp(task_json['time_create'])
-    taskdb.dependency = ' '.join(task_json['dependency'])
-    taskdb.is_root = task_json['is_root']
-    return taskdb
-
-
-# def json2db(task_json, session=None):
-#     task_json = json.loads(task_json)
-#     if task_json['id'] is not None:
-#         return update_db_by_json(task_json, session)
-#     else:
-#         return create_new_task_db(task_json)
-
-
 class Service:
-    @staticmethod
-    def create(task_json):
+    session = None
+    path = None
+
+    @classmethod
+    def create_session(cls, path):
+        # TODO: tear down existed session
+        from .model import session_maker
+        cls.session = session_maker(path)()
+        cls.path = path
+
+    @classmethod
+    def is_session_need_create(cls, path):
+        if cls.session is None:
+            return True
+        if path is not None and cls.path != path:
+            return True
+        return False
+
+    @classmethod
+    def get_or_create_session(cls, path=None):
+        if cls.session is None or (path is not None and cls.path != path):
+            cls.create_session(path)
+        return cls.session
+
+    @classmethod
+    def create(cls, task_json: str) -> int:
         """
-        Inputs:
-            task: taskJSON
+        Create a task record in database.
         """
         task_db = json2db_new(task_json)
-        session.add(task_db)
-        session.commit()
+        cls.get_or_create_session().add(task_db)
+        cls.get_or_create_session().commit()
         task_db = session.query(TaskDB).get(task_db.id)
         tpy = yaml.load(task_db.body)
         tpy.id = task_db.id
         task_db.body = yaml.dump(tpy)
-        session.commit()
+        cls.get_or_create_session().commit()
         return task_db.id
 
-    @staticmethod
-    def read(tid=None):
-        """
-        Returns JSON serilized query result.
-        """
+    @classmethod
+    def read_taskdb(cls, tid):
         task_db = session.query(TaskDB).get(tid)
         if task_db is None:
             raise TaskNotFoundError(tid)
         else:
-            return db2json(task_db)
+            return task_db
 
-    @staticmethod
-    def read_all(filter_func=None):
+    @classmethod
+    def read(cls, tid=None):
         """
-        Returns JSON serilized query results; In "[{task1},{task2}]" format.
+        Raises:
+        - `TaskNotFoundError`
+        """
+        return db2json(cls.read_taskdb(tid))
+
+    @classmethod
+    def read_all(cls, filter_func=None) -> 'rx.Observable<json str>':
+        """
+        Returns JSON serilized query results;
+
         Returns:
-            str: JSON loadable. Would be "[]" if no task in database.
-        Exception:
-            None
+        - `str`: JSON loadable observalbe
+
+        Raises:
+        - None
         """
         if filter_func is None:
             def filter_func(x): return True
-        return (rx.Observable.from_(session.query(TaskDB).all())
+        return (rx.Observable
+                .from_(cls.get_or_create_session().query(TaskDB).all())
+                .filter(filter_func)
+                .map(db2json))
+
+    @classmethod
+    def read_all_old(cls, filter_func=None):
+        import warnings
+        """
+        Returns JSON serilized query results; In `"[{task1},{task2}]"` format.
+
+        Returns:
+        - `str`: JSON loadable. Would be `"[]"` if no task in database.
+
+        Raises:
+        - None
+        """
+        warnings.warn("there is a new read_all method.", DeprecationWarning)
+        if filter_func is None:
+            def filter_func(x): return True
+        return (rx.Observable
+                .from_(cls.get_or_create_session().query(TaskDB).all())
                 .subscribe_on(TPS())
                 .filter(filter_func)
                 .map(db2json)
@@ -119,6 +142,18 @@ class Service:
         #     res = json.dumps([])
         # return dbs2json(res)
 
+    @classmethod
+    def json2db_update(cls, task_json, session):
+        task_json = json.loads(task_json)
+        taskdb = cls.read_taskdb(task_json['id'])
+        taskdb.desc = task_json['desc']
+        taskdb.body = task_json['body']
+        taskdb.state = task_json['state']
+        taskdb.time_create = strp(task_json['time_create'])
+        taskdb.dependency = ' '.join(task_json['dependency'])
+        taskdb.is_root = task_json['is_root']
+        return taskdb
+
     @staticmethod
     def update(task_json):
         json2db_update(task_json, session)
@@ -126,8 +161,5 @@ class Service:
 
     @staticmethod
     def delete(tid):
-        task_db = session.query(TaskDB).get(tid)
-        if task_db is None:
-            raise TaskNotFoundError
-        session.delete(task_db)
+        session.delete(cls.read_taskdb(tid))
         session.commit()

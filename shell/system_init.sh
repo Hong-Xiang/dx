@@ -1,7 +1,6 @@
 cd ~
 mkdir Workspace
 mkdir Softwares
-
 # Add zsh
 sudo apt-get install zsh
 sudo apt-get install curl

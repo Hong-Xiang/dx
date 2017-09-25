@@ -3,16 +3,27 @@ from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
+
 from dxpy.file_system.path import Path
 from dxpy.time.utils import now
 from dxpy.task.misc import TaskState
-from .config import c
-
-# TODO: change to mutable engine and DBSession
 
 Base = declarative_base()
-engine = create_engine(c.path)
-DBSession = sessionmaker(bind=engine)
+
+
+def engine(path=None):
+    from ..import provider
+    config_service = provider.get_or_create_service('config')
+    if path is not None:
+        c = config_service.get_config('database')
+    else:
+        c = config_service.get_config_cls('database')()
+        c.file = path
+    return create_engine(c.path)
+
+
+def session_maker(path=None):
+    return sessionmaker(bind=engine(path))
 
 
 class TaskDB(Base):
@@ -46,18 +57,9 @@ class TaskDB(Base):
         return '<Task {:d}>'.format(self.id)
 
 
-def create_datebase(is_overwrite=False):
-    """ Helper function to create new engine """
-    # from pathlib import Path
-    # db_file = Path(path_database())
-    # if is_overwrite and db_file.exists:
-    #     db_file.unlink()
-    Base.metadata.create_all(engine)
+def create_datebase(path=None):
+    Base.metadata.create_all(engine(path))
 
 
-# def db2yaml(task):
-#     return task.body
-
-
-# def db2py(task):
-#     return yaml.load(db2yaml(task))
+def drop_database(path=None):
+    TaskDB.__table__.drop(engine(path))

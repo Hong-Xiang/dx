@@ -10,6 +10,8 @@ setup(name='dxpy',
       packages=[],
       install_requires=[
           'rx',
-          'flask_restful',          
+          'flask_restful',
+          'flask_sqlalchemy',
+          'graphviz'
       ],
       zip_safe=False)

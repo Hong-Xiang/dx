@@ -2,17 +2,11 @@ from functools import wraps
 import json
 import requests
 from dxpy.utils import urlf
+from ..exceptions import TaskNotFoundError, TaskDatabaseConnectionError
+
 from .config import c
 
 
-class TaskNotExistError(Exception):
-    def __init__(self, tid=None):
-        super(__class__, self).__init__(
-            "Task with id: {tid} not found.".format(tid=tid))
-
-
-class TaskDatabaseConnectionError(Exception):
-    pass
 
 
 def task_full_url(tid):

@@ -1,16 +1,10 @@
-import yaml
-import rx
-import logging
+"""
+Add yaml support for generic classes.
+Currently support:
+- subcless of Enum
+"""
+
 from enum import Enum
-logger = logging.getLogger(name=__name__)
-
-
-class Tags:
-    undifined = '<undifined>'
-
-
-def with_default(x, default=None):
-    return x if x is not None else default
 
 
 def add_yaml_support_enum(cls, tag):
@@ -34,20 +28,3 @@ def add_yaml_support_enum(cls, tag):
 def add_yaml_support(cls, tag):
     if issubclass(cls, Enum):
         add_yaml_support_enum(cls, tag)
-
-
-def notebook_logging_support():
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler(sys.stderr)
-    logger.handlers = [handler]
-    logger.info('test')
-
-
-def urlf(host, port, url, method="http"):
-    return "{method}://{host}:{port}{url}".format(method=method, host=host, port=port, url=url)
-
-
-def rx_block(o):
-    return (o.suscribe_on(rx.concurrency.ThreadPoolScheduler())
-            .to_blocking().first())

@@ -1,12 +1,13 @@
 """
-    
+Examples of how to construct TaskPy objects.
 """
 import rx
+import yaml
 from dxpy.file_system.path import Path
 from dxpy.time.timestamps import Start
-import dxpy.task.misc as misc
-from .templates import create
-import yaml
+from . import misc
+from .representation.factory import create
+from .representation.templates import TaskCommand
 
 
 def sleep(workdir, duration, workers=None, desc='sleep task', depens=None):
@@ -43,9 +44,9 @@ def sleep_chain(workdir, duration, creator, nb_chain=3, workers=None, desc='slee
                            command='sleep {:d}'.format(duration))
 
     result = rx.Observable.just((0, []))
-    for i in range(nb_chain):
+    for i in range(nb_chain - 1):
         result = (result
                   .map(lambda x: (x[0], slp(descn(x[0]), x[1])))
                   .map(lambda x: (x[0], creator(x[1])))
                   .map(lambda x: (x[0] + 1, [x[1]])))
-    return result
+    return result.map(lambda x: slp(descn(x[0]), x[1]))
