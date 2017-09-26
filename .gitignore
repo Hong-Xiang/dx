@@ -5,3 +5,4 @@ dxpy.egg-info
 /docs/make.bat
 .vs
 *.pyproj
+.cache

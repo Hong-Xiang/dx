@@ -20,22 +20,56 @@ def create(template_class_or_name, *args, **kwargs):
         return create_by_cls(template_class_or_name, *args, **kwargs)
 
 
-def create_task_graph(template_list, args_list, kwargs_list, depends):
-    assert_same_length((template_list, args_list, kwargs_list,
-                        depends), 'template_names', 'args_list', 'kwargs_list', 'depens')
-    tasks = [t create(tcls, a, kw) for tcls, a, kw in zip(template_list, args_list, kwargs_list)]
-    return DenpensGraph(tasks, depends)
+def create_task_graph(tasks, depens):
+    assert_same_length((tasks, depens), ('tasks', 'depens'))
+
+    depens_tasks = []
+    for i, ds in enumerate(depens):
+        if ds is None:
+            depens_tasks.append([None])
+        elif isinstance(ds, int):
+            depens_tasks.append([tasks[ds]])
+        else:
+            depens_tasks.append([tasks[d] for d in ds])
+    return DenpensGraph(tasks, depens_tasks)
 
 
-def create_observable(task):
-    return rx.Observable.just(task)
+# def create_observable(task):
+#     return rx.Observable.just(task)
 
 
-def create_observable_graph(g, creator):
-    done = []
-    done_ob = rx.Observable.just(done).repeate()
+# def try_create_task_db_record(task, g, creator):
+#     def create_task(task, creator)
+#         task.id = creator(task)
+#         return task
 
-    def add_done(t, d):
-        d.append(t)
+#     def update_dependency(task):
+#         task.dependency = [t.id for t in g.depends(task)]
+#         return task
 
-    nodes = rx.Observable.from_(g.nodes()).repeat(len(g.nodes()))
+#     def all_depens_added(task):
+#         return all([t in done for t in g.depens(task)])
+
+#     return (task
+#             .filter(all_depens_added)
+#             .map(update_dependency).map(create_task))
+
+
+# def update_done(task_ob, done_ob):
+#     def add_elm(e, d):
+#         if not e in d:
+#             done.append(e)
+#         return done
+#     return task_ob.zip(done_ob, add_elm)
+
+
+# def create_observable_graph(g, creator):
+#     nb_elm = len(g)
+#     done = []
+#     source = g.nodes()
+#     done_ob = rx.Observable.just(done).do_while(lambda t: len(done) < nb_elm)
+#     sor_ob = rx.Observable.from_(source).repeat()
+#     tasks_not_added = sor_ob.zip_array(done_ob).filter(
+#         lambda x: not x[0] in x[1]).map(lambda x: x[0])
+#     tasks_added = try_create_task_db_record(tasks_not_added, g, creator)
+#     return update_done(tasks_added, done_ob)

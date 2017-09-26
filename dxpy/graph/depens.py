@@ -20,7 +20,7 @@ class DenpensGraph:
         self.g.remove_node(n)
 
     def add_depens(self, node, depens):
-        if depens is None:
+        if depens is None or depens == [None]:
             return
         if not isinstance(depens, (list, tuple)):
             self.g.add_edge(node, depens)

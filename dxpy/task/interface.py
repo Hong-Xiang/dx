@@ -21,6 +21,22 @@ def create(task: TaskPy) -> int:
     return db().create(task.to_json())
 
 
+def create_graph(task_graph) -> 'list<int>':
+    done = []
+    for t in task_graph:
+        t.id = None
+
+    def all_dependency_added(task):
+        return all([t in done for t in task_graph.depens(task)])
+
+    while len(done) < len(task_graph):
+        (rx.Observable.from_(task_graph.nodes())
+         .filter(lambda t: not t in done)
+         .filter(all_dependency_added)
+         .map(lambda t: t.id=create(t))
+         .subscribe())
+
+
 def parse_json(s: 'json string'):
     return TaskPy.from_json(s)
 

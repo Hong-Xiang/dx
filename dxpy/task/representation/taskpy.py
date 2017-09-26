@@ -74,9 +74,12 @@ class TaskPy:
     def __str__(self):
         return self.to_yml()
 
-    def __eq__(self, task):
-        # TODO: add safer compare
-        return self.id == task.id
+    # def __eq__(self, task):
+    #     # TODO: add safer compare
+    #     return self.id == task.id
+
+    def __hash__(self):
+        return id(self)
 
 
 def py2json(task):
