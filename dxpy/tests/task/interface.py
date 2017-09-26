@@ -87,3 +87,9 @@ class TestInterface(unittest.TestCase):
         interface.delete(tid)
         with self.assertRaises(TaskNotFoundError):
             interface.read(tid)
+
+
+    def test_add_graph(self):
+        tasks = [factory.create('Task') for _ in range(3)]
+        g = factory.create_task_graph(tasks, depens=[None, 0, 1])
+        interface.create_graph

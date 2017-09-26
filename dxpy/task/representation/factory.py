@@ -22,11 +22,13 @@ def create(template_class_or_name, *args, **kwargs):
 
 def create_task_graph(tasks, depens):
     assert_same_length((tasks, depens), ('tasks', 'depens'))
-
+    for t in tasks:
+        t.is_root = False
     depens_tasks = []
     for i, ds in enumerate(depens):
         if ds is None:
             depens_tasks.append([None])
+            tasks[i].is_root = True
         elif isinstance(ds, int):
             depens_tasks.append([tasks[ds]])
         else:

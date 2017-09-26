@@ -13,3 +13,4 @@ class TestFactory(unittest.TestCase):
         g = factory.create_task_graph(tasks, [None, 0, 1])
         self.assertTrue(g.is_depens_on(tasks[1], tasks[0]))
         self.assertFalse(g.is_depens_on(tasks[0], tasks[1]))
+        self.assertTrue(tasks[0].is_root)
