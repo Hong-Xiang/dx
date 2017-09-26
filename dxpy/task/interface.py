@@ -58,16 +58,14 @@ def parse_json(s: 'json string'):
 
 
 def read(tid: int) -> 'TaskPy':
+    if not isinstance(tid, int):
+        raise TypeError("read only accept tid of int type: {!r}".format(tid))
     return parse_json(db().read(tid))
 
 
 def read_all() -> 'Observable<TaskPy>':
     return (db().read_all()
             .map(parse_json))
-
-
-def read_all_running() -> 'Observable<TaskPy>':
-    return read_all().filter(lambda t: t.is_running)
 
 
 def dependencies(task: TaskPy) -> 'Observable<TaskPy>':

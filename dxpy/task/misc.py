@@ -14,7 +14,7 @@ add_yaml_support(TaskState, '!task_state')
 
 
 class WorkerType(Enum):
-    Local = 0,
+    NoAction = 0,
     MultiThreading = 1,
     # MultiProcessing = 2,
     # Dask = 3,

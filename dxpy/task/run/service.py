@@ -1,16 +1,15 @@
 import sys
 import rx
 from rx.concurrency import ThreadPoolScheduler
-from ..representation import submit, start, complete
-from ..interface import read, read_all, update, dependencies
-from .. import interface as ti
-from .workers import Workers, Slurm
+from .. import interface
+from . import workers
 
-SUPPORTED_WORKERS = [Slurm]
+SUPPORTED_WORKERS = []
 
 
 def read_complete_tasks_on_worker(worker) -> 'rx.Observable<Task>':
-    return (ti.read_all_running()
+    return (interface.read_all()
+            .filter(lambda t: t.is_running)
             .filter(w.on_this_worker)
             .filter(w.is_complete))
 
@@ -18,28 +17,38 @@ def read_complete_tasks_on_worker(worker) -> 'rx.Observable<Task>':
 def auto_complete():
     for w in SUPPORTED_WORKERS:
         tasks = (read_complete_tasks_on_worker(w)
-                 .map(ti.mark_complete)
-                 .subscribe())
+                 .map(lambda t: t.id)
+                 .subscribe(interface.mark_complete))
 
 
-def auto_submit():
-    (read_all()
+def auto_submit_root():
+    (interface.read_all()
+     .filter(lambda t: t.is_before_submit)
+     .filter(lambda t: t.is_root)
+     .map(lambda t: t.id)
+     .subscribe(interface.mark_submit))
+
+
+def auto_submit_chain():
+    (interface.read_all()
      .filter(lambda t: t.is_pending)
      .flat_map(dependencies)
      .filter(lambda t: t.is_before_submit)
-     .map(ti.mark_submit)
-     .subscribe())
+     .map(lambda t: t.id)
+     .subscribe(interface.mark_submit))
 
 
-def all_dependencies_complete(task):
-    return (store.dependencies(task)
+def is_dependencies_complete(task):
+    return (interface.dependencies(task)
             .all(lambda t: t.is_complete))
 
-
+def start(task):
+    
 def auto_start():
-    task_pending = read_all().filter(lambda t: t.is_pending)
-    task_run_flag = task_pending.flat_map(all_dependencies_complete)
-    (task_pending.zip(task_run_flag)
-     .filter(x: x[1])
-     .map(ti.mark_start)
-     .subscribe())
+    tasks = (interface.read_all()
+             .filter(lambda t: t.is_pending))
+    (rx.Observable.zip_array(tasks,
+                             tasks.flat_map(is_dependencies_complete))
+     .filter(lambda x: x[1])
+     .map(lambda t: t.id)
+     .subscribe(interface.mark_start))

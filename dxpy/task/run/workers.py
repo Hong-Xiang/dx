@@ -1,11 +1,11 @@
+from collections import namedtuple
 import copy
 import rx
-from collections import namedtuple
+import dask
 import dxpy.slurm as slurm
 from .. import misc
-from ..representation.templates import TaskScript, TaskCommand
-from .service import update, update_complete
-import dask
+from ..representation import templates
+from .. import interface
 
 
 class Workers:
@@ -24,6 +24,16 @@ class Workers:
     @classmethod
     def run(cls, task):
         cls.plan(task).subscribe()
+
+
+class NoAction(Workers):
+    WorkerType = misc.WorkerType.NoAction
+
+    @classmethod
+    def plan(cls, task):
+        return (rx.Observable.just(task)
+                .map(lambda t: t.id)
+                .map(interface.mark_complete))
 
 
 class Slurm(Workers):
@@ -46,6 +56,15 @@ class Slurm(Workers):
                 .map(slurm.sid_from_submit)
                 .map(add_sid)
                 .map(update))
+
+
+WORKERS = [NoAction, Slurm]
+
+
+def get_workers(task):
+    for w in WORKERS:
+        if w.on_this_worker(task):
+            return w
 
 
 NB_THREADS = 5
