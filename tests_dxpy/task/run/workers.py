@@ -35,9 +35,14 @@ class TestWorkers(unittest.TestCase):
             quick_create(state=misc.TaskState.Runing)))
 
     def test_on_this_worker(self):
-        task_prot = factory.create(
-            'Task', workers=misc.Workers(misc.WorkerType.NoAction))
-        tid = interface.create(task_prot)
-        task = interface.read(tid)
+        task = quick_create(misc.WorkerType.NoAction)
         self.assertTrue(workers.NoAction.on_this_worker(task))
         self.assertFalse(workers.Slurm.on_this_worker(task))
+
+    def test_no_action_complete(self):
+        task = quick_create(misc.WorkerType.NoAction,
+                            misc.TaskState.Pending)
+        self.assertEqual(task.state, misc.TaskState.Pending)
+        workers.NoAction.run(task)
+        self.assertEqual(interface.read(task.id).state,
+                         misc.TaskState.Complete)

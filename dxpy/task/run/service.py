@@ -43,7 +43,7 @@ def is_dependencies_complete(task):
             .all(lambda t: t.is_complete))
 
 def start(task):
-    
+    w = workers.
 def auto_start():
     tasks = (interface.read_all()
              .filter(lambda t: t.is_pending))
