@@ -76,16 +76,16 @@ def update(task: TaskPy) -> None:
     db().update(task.to_json())
 
 
-def mark_submit(tid) -> None:
-    update(reps.submit(read(tid)))
+def mark_submit(task) -> None:
+    update(reps.submit(task))
 
 
-def mark_start(tid) -> None:
-    update(reps.start(read(tid)))
+def mark_start(task) -> None:
+    update(reps.start(task))
 
 
-def mark_complete(tid) -> None:
-    update(reps.complete(read(tid)))
+def mark_complete(task) -> None:
+    update(reps.complete(task))
 
 
 def delete(tid: int) -> None:

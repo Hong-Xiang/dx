@@ -32,7 +32,6 @@ class NoAction(Workers):
     @classmethod
     def plan(cls, task):
         return (rx.Observable.just(task)
-                .map(lambda t: t.id)
                 .map(interface.mark_complete))
 
 

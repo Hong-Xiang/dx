@@ -68,17 +68,17 @@ class TestInterface(unittest.TestCase):
 
     def test_submit(self):
         tid = interface.create(factory.create('Task'))
-        interface.mark_submit(tid)
+        interface.mark_submit(interface.read(tid))
         self.assertEqual(interface.read(tid).state, misc.TaskState.Pending)
 
     def test_start(self):
         tid = interface.create(factory.create('Task'))
-        interface.mark_start(tid)
+        interface.mark_start(interface.read(tid))
         self.assertEqual(interface.read(tid).state, misc.TaskState.Runing)
 
     def test_complete(self):
         tid = interface.create(factory.create('Task'))
-        interface.mark_complete(tid)
+        interface.mark_complete(interface.read(tid))
         self.assertEqual(interface.read(tid).state, misc.TaskState.Complete)
 
     def test_delete(self):

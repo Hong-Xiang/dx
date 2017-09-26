@@ -28,26 +28,26 @@ def quick_create_chain(states):
         interface.update(t)
 
 
+def get_task(id_dict, key, index=None):
+    tid = id_dict[key]
+    if index is not None:
+        tid = tid[index]
+    return interface.read(tid)
+
+
 class TestService(unittest.TestCase):
     def setUp(self):
         configs.set_config_by_name_key('database', 'file', ':memory:')
         Database.create()
         self.tids = {
             'before_submit': quick_create(S.BeforeSubmit),
-            'chain_1': quick_create_chain([S.BeforeSubmit, S.Pending])
-            'chain_1': quick_create_chain([S.Complete, S.Pending])
-            'chain_1': quick_create_chain([S.Complete, S.Pending])
-            'task_chain': quick_create(S.BeforeSubmit),
             'pending': quick_create(S.Pending),
             'running': quick_create(S.Runing),
             'complete': quick_create(S.Complete),
+            'chain_1': quick_create_chain([S.BeforeSubmit, S.Pending])
+            'chain_2': quick_create_chain([S.Complete, S.Pending])
+            'chain_3': quick_create_chain([S.Runing, S.Pending])
         }
-        t = interface.read(self.tids['task_root'])
-        t.dependency = [self.tids['task_chain']]
-        interface.update(t)
-        t = interface.read(self.tids['task_chain'])
-        t.is_root = False
-        interface.update(t)
 
     def tearDown(self):
         Database.drop()
@@ -60,8 +60,15 @@ class TestService(unittest.TestCase):
     #     serv.update_complete.assert_has_calls(calls)
 
     def test_auto_submit_root(self):
-        self.assertEqual(interface.read(
-            self.tids['before_submit']).state, TaskState.BeforeSubmit)
+        self.assertEqual(get_task(self.tids, 'before_submit').state,
+                         S.BeforeSubmit)
         service.auto_submit_root()
-        self.assertEqual(interface.read(
-            self.tids['before_submit']).state, TaskState.Pending)
+        self.assertEqual(get_task(self.tids, 'before_submit').state,
+                         S.Pending)
+
+    def test_auto_submit_chain(self):
+        self.assertEqual(get_task(self.tids, 'chain_1', 0).state,
+                         S.BeforeSubmit)
+        service.auto_submit_chain()
+        self.assertEqual(get_task(self.tids, 'chain_1', 0).state,
+                         S.Pending)
