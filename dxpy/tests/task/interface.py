@@ -92,4 +92,6 @@ class TestInterface(unittest.TestCase):
     def test_add_graph(self):
         tasks = [factory.create('Task') for _ in range(3)]
         g = factory.create_task_graph(tasks, depens=[None, 0, 1])
-        interface.create_graph
+        tids = interface.create_graph(g)
+        self.assertEqual(len(tids), 3)
+        

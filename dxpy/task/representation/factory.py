@@ -22,18 +22,19 @@ def create(template_class_or_name, *args, **kwargs):
 
 def create_task_graph(tasks, depens):
     assert_same_length((tasks, depens), ('tasks', 'depens'))
-    for t in tasks:
-        t.is_root = False
+    
     depens_tasks = []
     for i, ds in enumerate(depens):
         if ds is None:
-            depens_tasks.append([None])
-            tasks[i].is_root = True
+            depens_tasks.append([None])            
         elif isinstance(ds, int):
             depens_tasks.append([tasks[ds]])
         else:
             depens_tasks.append([tasks[d] for d in ds])
-    return DenpensGraph(tasks, depens_tasks)
+    g = DenpensGraph(tasks, depens_tasks)
+    for t in g.nodes():
+        t.is_root = g.is_root(t)
+    return g
 
 
 # def create_observable(task):

@@ -50,6 +50,8 @@ def create_graph(task_graph) -> 'list<int>':
          .map(add_to_done)
          .subscribe())
 
+    return [t.id for t in done]
+
 
 def parse_json(s: 'json string'):
     return TaskPy.from_json(s)
