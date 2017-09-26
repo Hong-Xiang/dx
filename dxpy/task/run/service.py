@@ -4,27 +4,26 @@ from rx.concurrency import ThreadPoolScheduler
 from .. import interface
 from . import workers
 
-SUPPORTED_WORKERS = []
+SUPPORTED_WORKERS = [workers.Slurm]
 
 
 def read_complete_tasks_on_worker(worker) -> 'rx.Observable<Task>':
     return (interface.read_all()
             .filter(lambda t: t.is_running)
-            .filter(w.on_this_worker)
-            .filter(w.is_complete))
+            .filter(worker.on_this_worker)
+            .filter(worker.is_complete))
 
 
 def auto_complete():
     for w in SUPPORTED_WORKERS:
         tasks = (read_complete_tasks_on_worker(w)
-                 .map(lambda t: t.id)
                  .subscribe(interface.mark_complete))
 
 
 def auto_submit_root():
     (interface.read_all()
      .filter(lambda t: t.is_before_submit)
-     .filter(lambda t: t.is_root)     
+     .filter(lambda t: t.is_root)
      .subscribe(interface.mark_submit))
 
 
@@ -32,7 +31,7 @@ def auto_submit_chain():
     (interface.read_all()
      .filter(lambda t: t.is_pending)
      .flat_map(interface.dependencies)
-     .filter(lambda t: t.is_before_submit)     
+     .filter(lambda t: t.is_before_submit)
      .subscribe(interface.mark_submit))
 
 
@@ -42,6 +41,8 @@ def is_dependencies_complete(task):
 
 # def start(task):
 #     w = workers.
+
+
 def auto_start():
     tasks = (interface.read_all()
              .filter(lambda t: t.is_pending))

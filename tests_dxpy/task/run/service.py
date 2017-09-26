@@ -2,18 +2,18 @@ import unittest
 import rx
 from dxpy.task.exceptions import TaskNotFoundError
 from unittest.mock import Mock, call
-from dxpy.task import configs
+from dxpy.task import configs, interface
 from dxpy.task.representation import factory
-from dxpy.task import interface
 from dxpy.task.misc import Workers, WorkerType
 from dxpy.task.misc import TaskState as S
-from dxpy.task.run import service
+from dxpy.task.run import service, workers
 from dxpy.task.database.model import Database
 
 
-def quick_create(state):
-    return interface.create(factory.create('Task', state=state,
-                                           workers=Workers(worker_type=WorkerType.NoAction)))
+def quick_create(state, wks=None):
+    if wks is None:
+        wks = Workers(worker_type=WorkerType.NoAction)
+    return interface.create(factory.create('Task', state=state, workers=wks))
 
 
 def quick_create_chain(states):
@@ -48,6 +48,7 @@ class TestService(unittest.TestCase):
             'chain_1': quick_create_chain([S.BeforeSubmit, S.Pending]),
             'chain_2': quick_create_chain([S.Complete, S.Pending]),
             'chain_3': quick_create_chain([S.Runing, S.Pending]),
+            'slurm': quick_create(S.Runing, Workers(WorkerType.Slurm))
         }
 
     def tearDown(self):
@@ -73,3 +74,9 @@ class TestService(unittest.TestCase):
         service.auto_submit_chain()
         self.assertEqual(get_task(self.tids, 'chain_1', 0).state,
                          S.Pending)
+
+    def test_auto_complete(self):
+        self.assertEqual(get_task(self.tids, 'slurm').state, S.Runing)
+        workers.Slurm.is_complete = Mock(return_value=True)
+        service.auto_complete()
+        self.assertEqual(get_task(self.tids, 'slurm').state, S.Complete)

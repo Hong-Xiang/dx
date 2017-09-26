@@ -42,6 +42,10 @@ class TaskPy:
         return self.state == TaskState.BeforeSubmit
 
     @property
+    def is_running(self):
+        return self.state == TaskState.Runing
+
+    @property
     def is_complete(self):
         return self.state == TaskState.Complete
 

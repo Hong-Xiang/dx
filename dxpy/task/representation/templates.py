@@ -2,6 +2,7 @@
 Task templates of frequently used ones.
 """
 import rx
+import os
 from dxpy.file_system.path import Path
 from .taskpy import TaskPy
 from ..exceptions import UnknownTemplateNameError
