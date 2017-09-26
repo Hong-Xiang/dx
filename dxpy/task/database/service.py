@@ -58,6 +58,12 @@ class Service:
         return cls.session
 
     @classmethod
+    def clear_session(cls):
+        if cls.session is not None:
+            cls.session.close()
+        cls.session = None
+
+    @classmethod
     def create(cls, task_json: str) -> int:
         """
         Create a task record in database.

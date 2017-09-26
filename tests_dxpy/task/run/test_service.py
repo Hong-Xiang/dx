@@ -40,6 +40,8 @@ class TestService(unittest.TestCase):
     def setUp(self):
         configs.set_config_by_name_key('database', 'file', ':memory:')
         Database.create()
+        Database.drop()
+        print(interface.read_all())
         self.tids = {
             'before_submit': quick_create(S.BeforeSubmit),
             'pending': quick_create(S.Pending),

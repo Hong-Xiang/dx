@@ -36,8 +36,12 @@ class Database:
 
     @classmethod
     def drop(cls):
-        TaskDB.__table__.drop(cls.get_or_create_engine())
-        cls.create()
+        # TaskDB.__table__.drop(cls.get_or_create_engine())
+        # cls.engine = None
+        sess = cls.session_maker()()
+        records = sess.query(TaskDB).delete()
+        sess.commit()
+        # cls.create()
 
     @classmethod
     def clear(cls):

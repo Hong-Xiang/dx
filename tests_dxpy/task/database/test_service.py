@@ -18,7 +18,8 @@ class TestDataBase(unittest.TestCase):
         self.delete_id = service.create(self.dummpy_json)
 
     def tearDown(self):
-        # Database.drop()
+        service.clear_session()
+        Database.drop()
         # Database.clear()
         pass
 
