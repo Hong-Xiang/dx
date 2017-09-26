@@ -26,6 +26,7 @@ def quick_create_chain(states):
         if i > 0:
             t.dependency = [tids[i - 1]]
         interface.update(t)
+    return tids
 
 
 def get_task(id_dict, key, index=None):
@@ -44,9 +45,9 @@ class TestService(unittest.TestCase):
             'pending': quick_create(S.Pending),
             'running': quick_create(S.Runing),
             'complete': quick_create(S.Complete),
-            'chain_1': quick_create_chain([S.BeforeSubmit, S.Pending])
-            'chain_2': quick_create_chain([S.Complete, S.Pending])
-            'chain_3': quick_create_chain([S.Runing, S.Pending])
+            'chain_1': quick_create_chain([S.BeforeSubmit, S.Pending]),
+            'chain_2': quick_create_chain([S.Complete, S.Pending]),
+            'chain_3': quick_create_chain([S.Runing, S.Pending]),
         }
 
     def tearDown(self):

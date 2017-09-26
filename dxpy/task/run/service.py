@@ -24,17 +24,15 @@ def auto_complete():
 def auto_submit_root():
     (interface.read_all()
      .filter(lambda t: t.is_before_submit)
-     .filter(lambda t: t.is_root)
-     .map(lambda t: t.id)
+     .filter(lambda t: t.is_root)     
      .subscribe(interface.mark_submit))
 
 
 def auto_submit_chain():
     (interface.read_all()
      .filter(lambda t: t.is_pending)
-     .flat_map(dependencies)
-     .filter(lambda t: t.is_before_submit)
-     .map(lambda t: t.id)
+     .flat_map(interface.dependencies)
+     .filter(lambda t: t.is_before_submit)     
      .subscribe(interface.mark_submit))
 
 
@@ -42,8 +40,8 @@ def is_dependencies_complete(task):
     return (interface.dependencies(task)
             .all(lambda t: t.is_complete))
 
-def start(task):
-    w = workers.
+# def start(task):
+#     w = workers.
 def auto_start():
     tasks = (interface.read_all()
              .filter(lambda t: t.is_pending))
