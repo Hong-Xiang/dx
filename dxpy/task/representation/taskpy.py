@@ -25,7 +25,7 @@ class TaskPy:
             time_stamps = Start()
         self.time_stampes = time_stamps
         if dependency is None:
-            dependency = tuple()
+            dependency = []
         self.dependency = dependency
         if state is None:
             state = TaskState.BeforeSubmit

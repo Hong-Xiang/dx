@@ -45,17 +45,10 @@ class Service:
     session = None
 
     @classmethod
-    def try_add(cls):
-        t = TaskDB('test', 'test')
-        cls.session.add(t)
-        cls.session.commit()
-
-    @classmethod
     def create_session(cls):
         # TODO: tear down existed session
         cls.session = Database.session()
         cls.session.query(TaskDB).all()
-        cls.try_add()
         # pdb.set_trace()
 
     @classmethod

@@ -23,17 +23,31 @@ def create(task: TaskPy) -> int:
 
 def create_graph(task_graph) -> 'list<int>':
     done = []
-    for t in task_graph:
+    for t in task_graph.nodes():
         t.id = None
 
     def all_dependency_added(task):
-        return all([t in done for t in task_graph.depens(task)])
+        return all([t in done for t in task_graph.dependencies(task)])
+
+    def update_dependency(task):
+        task.dependency = [t.id for t in task_graph.dependencies(task)]
+        return task
+
+    def add_to_done(task):
+        done.append(task)
+        return task
+
+    def create_and_update_id(task):
+        task.id = create(task)
+        return task
 
     while len(done) < len(task_graph):
         (rx.Observable.from_(task_graph.nodes())
          .filter(lambda t: not t in done)
          .filter(all_dependency_added)
-         .map(lambda t: t.id=create(t))
+         .map(update_dependency)
+         .map(create_and_update_id)
+         .map(add_to_done)
          .subscribe())
 
 

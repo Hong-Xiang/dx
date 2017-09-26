@@ -37,6 +37,7 @@ class Database:
     @classmethod
     def drop(cls):
         TaskDB.__table__.drop(cls.get_or_create_engine())
+        cls.create()
 
     @classmethod
     def clear(cls):
