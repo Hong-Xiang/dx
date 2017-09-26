@@ -2,5 +2,6 @@
   "dxpy/tests/task/test_configs.py::TestDatabaseConfig::()::test_path_config": true,
   "dxpy/tests/test_file_system/test_file.py::test_directory_to_json_header": true,
   "dxpy/tests/test_file_system/test_filesystem.py": true,
-  "dxpy/tests/test_file_system/test_filesystem.py::FileSystemTestCase::test_fs_create_directory": true
+  "dxpy/tests/test_file_system/test_filesystem.py::FileSystemTestCase::test_fs_create_directory": true,
+  "tests_dxpy/task/representation/templates.py::TestTemplates::test_slurm": true
 }

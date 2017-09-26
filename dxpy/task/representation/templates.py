@@ -13,62 +13,27 @@ class TaskCommand(TaskPy):
         super(__class__, self).__init__(*args, **kwargs)
         self.command = command
 
-    def plan(self, i_worker=None, pre_cmd=None, post_cmd=None):
-        def add_pre(x):
-            if pre_cmd is not None:
-                return '{pre} && {cmd}'.format(pre=pre_cmd, cmd=x)
-            else:
-                return x
+    def plan(self, command_func=None):
+        if command_func is None:
+            command = 'cd {0} && {1}'.format(self.workdir.abs, self.command)
+        else:
+            command = command_func(workdir=self.workdir, command=self.command)
 
-        def add_chdir(x):
-            return 'cd {dir} && {cmd}'.format(dir=self.workdir.abs, cmd=x)
-
-        def add_post(x):
-            if pre_cmd is not None:
-                return '{cmd} && {post}'.format(post=post_cmd, cmd=x)
-            else:
-                return x
-
-        def sub_i_worker(x):
-            if i_worker is None:
-                return x
-            else:
-                return x.format(i_worker=i_worker)
-
-        return (rx.Observable.just(self.command)
-                .map(sub_i_worker)
-                .map(add_pre)
-                .map(add_chdir)
-                .map(add_post)
-                .map(os.popen))
+        return (rx.Observable.just(command).map(os.popen))
 
 
 class TaskScript(TaskPy):
     def __init__(self, file,  *args, **kwargs):
         super(__class__, self).__init__(*args, **kwargs)
-        self.file = Path(file).abs
+        self.file = Path(file)
 
-    def plan(self, i_worker=None, interp=None):
-        def add_chdir(x):
-            return 'cd {dir} && {cmd}'.format(dir=self.workdir.abs, cmd=x)
+    def plan(self, command_func=None):
+        if command_func is None:
+            command = 'cd {0} && {1}'.format(self.workdir.abs, self.file.abs)
+        else:
+            command = command_func(workdir=self.workdir, file=self.file)
 
-        def add_interp(x):
-            if interp is not None:
-                return '{interp} {file}'.format(interp=interp, file=x)
-            else:
-                return x
-
-        def sub_i_worker(x):
-            if i_worker is None:
-                return x
-            else:
-                return x.format(i_worker=i_worker)
-
-        return (rx.Observable.just(self.file)
-                .map(sub_i_worker)
-                .map(add_interp)
-                .map(add_chdir)
-                .map(os.popen))
+        return (rx.Observable.just(command).map(os.popen))
 
 
 class TaskPyFunc(TaskPy):
