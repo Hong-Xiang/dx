@@ -56,18 +56,31 @@ class Slurm(Workers):
         return slurm.is_complete(task.workers.info)
 
     @classmethod
-    def plan(cls, task):
-        def add_sid(sid):
-            t = copy.deepcopy(task)
-            t.workers.info = {'sid': sid}
+    def plan(cls, task, *args):
+        # why?
+        # TODO: FIX
+        # print(args)
+        # raise ValueError('task {0}, args: {1}'.format(task, args))
+        # def srun_command(workdir, command):
+        #     return 'cd {0} && srun {1}'.format(workdir, command)
 
-        assert isinstance(
-            task, TaskScript), 'Only TaskScript is supported: {!r}'.format(task)
-
-        return (task.plan(interp='sbatch')
-                .map(slurm.sid_from_submit)
-                .map(add_sid)
-                .map(update))
+        def sbatch_command(workdir, script_file):
+            return 'cd {0} && sbatch {1}'.format(workdir, script_file)
+        task = interface.mark_start(task)
+        # if isinstance(task, templates.TaskCommand):
+        #     command = task.command(srun_command)
+        if not isinstance(task, templates.TaskScript):
+            raise TypeError(
+                'Slurm worker only support TaskScript tasks, got: {!r}.'.format(task))
+        command = task.plan(sbatch_command)
+        print('COMMAND', command)
+        with os.popen(command) as fin:
+            result = fin.readlines()
+            print(result)
+        sid = slurm.sid_from_submit(result)
+        task.workers.info = {'sid': sid}
+        interface.update(task)
+        return result
 
 
 WORKERS = [NoAction, Slurm]

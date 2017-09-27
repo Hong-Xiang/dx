@@ -31,7 +31,7 @@ class TaskScript(TaskPy):
         if command_func is None:
             command = 'cd {0} && {1}'.format(self.workdir.abs, self.file.abs)
         else:
-            command = command_func(workdir=self.workdir, file=self.file)
+            command = command_func(workdir=self.workdir.abs, script_file=self.file.abs)
 
         return command
 

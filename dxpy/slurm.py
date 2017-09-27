@@ -31,6 +31,14 @@ class Slurm:
             self._sinfo_buffer = []
         return self._sinfo_buffer
 
+    # def srun(command):
+    #     with os.popen(command) as fin:
+    #         return fin.readlines()
+
+    # def sbatch(command):
+    #     with os.popen(command) as fin:
+    #         return fin.readlines()[0]
+
     def get_id(self, state):
         return int(re.sub('\s+', ' ', state).strip().split(' ')[3])
 
