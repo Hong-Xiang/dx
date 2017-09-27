@@ -8,16 +8,19 @@ from dxpy.task.misc import Workers, WorkerType
 from dxpy.task.misc import TaskState as S
 from dxpy.task.run import service, workers
 from dxpy.task.database.model import Database
+import sys
 
 
-def quick_create(state, wks=None):
+def quick_create(tid_buffer, state, wks=None):
     if wks is None:
         wks = Workers(worker_type=WorkerType.NoAction)
-    return interface.create(factory.create('Task', state=state, workers=wks))
+    tid = interface.create(factory.create('Task', state=state, workers=wks))
+    tid_buffer.append(tid)
+    return tid
 
 
-def quick_create_chain(states):
-    tids = [quick_create(s) for s in states]
+def quick_create_chain(tid_buffer, states):
+    tids = [quick_create(tid_buffer, s) for s in states]
     for i in range(len(tids)):
         t = interface.read(tids[i])
         t.is_root = False
@@ -38,30 +41,33 @@ def get_task(id_dict, key, index=None):
 
 class TestService(unittest.TestCase):
     def setUp(self):
-        configs.set_config_by_name_key('database', 'file', ':memory:')
-        Database.create()
-        Database.drop()
-        print(interface.read_all())
+        self.tidcs = []
+        configs.set_config_by_name_key('database', 'use_web_api', True)
+        # Database.create()
+        # Database.drop()
         self.tids = {
-            'before_submit': quick_create(S.BeforeSubmit),
-            'pending': quick_create(S.Pending),
-            'running': quick_create(S.Runing),
-            'complete': quick_create(S.Complete),
-            'chain_1': quick_create_chain([S.BeforeSubmit, S.Pending]),
-            'chain_2': quick_create_chain([S.Complete, S.Pending]),
-            'chain_3': quick_create_chain([S.Runing, S.Pending]),
-            'slurm': quick_create(S.Runing, Workers(WorkerType.Slurm))
+            'before_submit': quick_create(self.tidcs, S.BeforeSubmit),
+            'pending': quick_create(self.tidcs, S.Pending),
+            'running': quick_create(self.tidcs, S.Runing),
+            'complete': quick_create(self.tidcs, S.Complete),
+            'chain_1': quick_create_chain(self.tidcs, [S.BeforeSubmit, S.Pending]),
+            'chain_2': quick_create_chain(self.tidcs, [S.Complete, S.Pending]),
+            'chain_3': quick_create_chain(self.tidcs, [S.Runing, S.Pending]),
+            'slurm': quick_create(self.tidcs, S.Runing, Workers(WorkerType.Slurm))
         }
 
     def tearDown(self):
-        Database.drop()
 
-    # def test_auto_complete(self):
-    #     serv.read_complete_tasks_on_worker = Mock(
-    #         return_value=rx.Observable.from_(list(range(3))))
-    #     serv.update_complete = Mock()
-    #     calls = [call(0), call(1), call(2)]
-    #     serv.update_complete.assert_has_calls(calls)
+        for tid in self.tidcs:
+            interface.delete(tid)
+        # Database.drop()
+
+        # def test_auto_complete(self):
+        #     serv.read_complete_tasks_on_worker = Mock(
+        #         return_value=rx.Observable.from_(list(range(3))))
+        #     serv.update_complete = Mock()
+        #     calls = [call(0), call(1), call(2)]
+        #     serv.update_complete.assert_has_calls(calls)
 
     def test_auto_submit_root(self):
         self.assertEqual(get_task(self.tids, 'before_submit').state,
@@ -82,3 +88,8 @@ class TestService(unittest.TestCase):
         workers.Slurm.is_complete = Mock(return_value=True)
         service.auto_complete()
         self.assertEqual(get_task(self.tids, 'slurm').state, S.Complete)
+
+    def test_auto_start(self):
+        self.assertEqual(get_task(self.tids, 'pending').state, S.Pending)
+        service.auto_start()
+        self.assertEqual(get_task(self.tids, 'pending').state, S.Runing)

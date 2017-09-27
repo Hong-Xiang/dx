@@ -3,8 +3,13 @@ import rx
 from rx.concurrency import ThreadPoolScheduler
 from .. import interface
 from . import workers
+from .. import provider
 
 SUPPORTED_WORKERS = [workers.Slurm]
+
+
+def start(task):
+    workers.get_workers(task).run(task)
 
 
 def read_complete_tasks_on_worker(worker) -> 'rx.Observable<Task>':
@@ -49,5 +54,20 @@ def auto_start():
     (rx.Observable.zip_array(tasks,
                              tasks.flat_map(is_dependencies_complete))
      .filter(lambda x: x[1])
-     .map(lambda t: t.id)
-     .subscribe(interface.mark_start))
+     .map(lambda x: x[0])
+     .subscribe(start))
+
+
+def cycle():
+    auto_complete()
+    auto_submit_root()
+    auto_submit_chain()
+    auto_start()
+    print('Cycle.')
+
+
+def launch_deamon(interval=1000):
+    configs = provider.get_or_create_service('config')
+    configs.set_config_by_name_key('database', 'use_web_api', True)
+    rx.Observable.interval(interval).start_with(0).subscribe(
+        on_next=lambda t: cycle(), on_error=lambda e: print(e))

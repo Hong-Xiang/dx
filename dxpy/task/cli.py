@@ -1,6 +1,6 @@
 import click
 from .database.web.cli import db
-
+from .run.cli import run
 
 @click.group()
 def task():
@@ -8,3 +8,4 @@ def task():
 
 
 task.add_command(db)
+task.add_command(run)

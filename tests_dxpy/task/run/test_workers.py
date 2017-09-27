@@ -6,7 +6,7 @@ from dxpy.task.representation import factory
 from dxpy.task.run import workers
 from dxpy.task.database.model import Database
 from dxpy.task.database.web.resource import lauch_database_server
-
+from time import sleep
 
 def quick_create(tid_buffer, workers_type=None, state=None):
     if workers_type is None:
@@ -56,7 +56,9 @@ class TestWorkers(unittest.TestCase):
     def test_no_action_complete(self):
         task = quick_create(self.tid_buffer, misc.WorkerType.NoAction,
                             misc.TaskState.Pending)
+        interface.read(task.id)
         self.assertEqual(task.state, misc.TaskState.Pending)
         workers.NoAction.run(task)
+        sleep(0.1)
         self.assertEqual(interface.read(task.id).state,
                          misc.TaskState.Complete)
