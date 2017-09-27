@@ -28,6 +28,7 @@ class Workers:
 
     @classmethod
     def run(cls, task, stdout=None, stderr=None):
+        print("RUN CALLED.")
         if stdout is None:
             stdout = sys.stdout
         if stderr is None:
@@ -73,10 +74,8 @@ class Slurm(Workers):
             raise TypeError(
                 'Slurm worker only support TaskScript tasks, got: {!r}.'.format(task))
         command = task.plan(sbatch_command)
-        print('COMMAND', command)
         with os.popen(command) as fin:
-            result = fin.readlines()
-            print(result)
+            result = fin.readlines()[0]
         sid = slurm.sid_from_submit(result)
         task.workers.info = {'sid': sid}
         interface.update(task)

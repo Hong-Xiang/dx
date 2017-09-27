@@ -3,5 +3,7 @@
   "dxpy/tests/test_file_system/test_file.py::test_directory_to_json_header": true,
   "dxpy/tests/test_file_system/test_filesystem.py": true,
   "dxpy/tests/test_file_system/test_filesystem.py::FileSystemTestCase::test_fs_create_directory": true,
-  "tests_dxpy/task/representation/templates.py::TestTemplates::test_slurm": true
+  "tests_dxpy/task/representation/templates.py::TestTemplates::test_slurm": true,
+  "tests_dxpy/test_file_system/test_file.py": true,
+  "tests_dxpy/test_tasks/test_task.py": true
 }
