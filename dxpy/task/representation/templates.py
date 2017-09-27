@@ -19,7 +19,7 @@ class TaskCommand(TaskPy):
         else:
             command = command_func(workdir=self.workdir, command=self.command)
 
-        return (rx.Observable.just(command).map(os.popen))
+        return command
 
 
 class TaskScript(TaskPy):
@@ -33,7 +33,7 @@ class TaskScript(TaskPy):
         else:
             command = command_func(workdir=self.workdir, file=self.file)
 
-        return (rx.Observable.just(command).map(os.popen))
+        return command
 
 
 class TaskPyFunc(TaskPy):
