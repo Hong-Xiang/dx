@@ -2,10 +2,15 @@ from collections import namedtuple
 import copy
 import rx
 import dask
+import sys
+import os
 import dxpy.slurm as slurm
 from .. import misc
 from ..representation import templates
 from .. import interface
+
+NB_THREADS = 5
+THREAD_POOL = rx.concurrency.ThreadPoolScheduler(NB_THREADS)
 
 
 class Workers:
@@ -22,8 +27,15 @@ class Workers:
         raise NotImplementedError
 
     @classmethod
-    def run(cls, task):
-        cls.plan(task).subscribe()
+    def run(cls, task, stdout=None, stderr=None):
+        if stdout is None:
+            stdout = sys.stdout
+        if stderr is None:
+            stderr = sys.stderr
+        (rx.Observable.just(task)
+         .map(cls.plan)
+         .subscribe(on_next=lambda r: print(r, file=stdout),
+                    on_error=lambda e: print(e, file=stderr)))
 
 
 class NoAction(Workers):
@@ -31,8 +43,9 @@ class NoAction(Workers):
 
     @classmethod
     def plan(cls, task):
-        return (rx.Observable.just(task)
-                .map(interface.mark_complete))
+        task = interface.mark_start(task)
+        task = interface.mark_complete(task)
+        return 'NoAction of task id: {} done.'.format(task.id)
 
 
 class Slurm(Workers):
@@ -66,21 +79,15 @@ def get_workers(task):
             return w
 
 
-NB_THREADS = 5
-THREAD_POOL = rx.concurrency.ThreadPoolScheduler(NB_THREADS)
-
-
 class MultiThreding(Workers):
     WorkerType = misc.WorkerType.MultiThreading
 
     @classmethod
     def plan(cls, task):
         # TRT = namedtuple('TaskResultTuple', ('task', 'res'))
-        (rx.Observable.just(task)
-         .subscribe_on(THREAD_POOL)
-         .map(lambda t: t.run())
-         .map(lambda r: r.subscribe())
-         .map(lambda r: update_complete(task)))
+        with os.popen(task.command()) as fin:
+            result = fin.readlines()
+        return task, result
 
 
 # class Dask(Workers):

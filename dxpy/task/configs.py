@@ -13,6 +13,7 @@ class DatabaseConfigs:
         self.version = version or 0.1
         self.name = name or 'task'
         self.use_web_api = use_web_api
+        self.debug = True
 
     @property
     def path(self):

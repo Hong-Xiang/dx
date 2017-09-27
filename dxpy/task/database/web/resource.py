@@ -4,7 +4,7 @@ from functools import wraps
 from flask import Flask, make_response, request, Response
 from flask_restful import Resource, reqparse, Api
 
-from ..config import c
+from ... import provider
 from ..service import Service as sv
 from ..service import TaskNotFoundError
 
@@ -35,7 +35,9 @@ class TaskResource(Resource):
 
 class TasksResource(Resource):
     def get(self):
-        return Response(sv.read_all_old(), 200, mimetype="application/json")
+        task_jsons = []
+        sv.read_all().subscribe(lambda t: task_jsons.append(t))
+        return Response(json.dumps(task_jsons), 200, mimetype="application/json")
 
     def post(self):
         task = request.form['task']
@@ -43,9 +45,12 @@ class TasksResource(Resource):
         return Response(json.dumps({'id': res}), 201, mimetype="application/json")
 
 
-api.add_resource(TaskResource, c.task_url + '/<int:id>')
-api.add_resource(TasksResource, c.tasks_url)
+api.add_resource(TaskResource, provider.get_or_create_service(
+    'config').get_config('database').task_url + '/<int:id>')
+api.add_resource(TasksResource, provider.get_or_create_service(
+    'config').get_config('database').tasks_url)
 
 
 def lauch_database_server():
+    c = provider.get_or_create_service('config').get_config('database')
     app.run(host=c.ip, port=c.port, debug=c.debug)

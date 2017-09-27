@@ -1,20 +1,21 @@
 from functools import wraps
 import json
 import requests
+import rx
 from dxpy.utils import urlf
 from ..exceptions import TaskNotFoundError, TaskDatabaseConnectionError
+from ..representation import TaskPy
+from .. import provider
 
-from .config import c
-
-
+config_service = provider.get_or_create_service('config')
 
 
 def task_full_url(tid):
-    return urlf(c.ip, c.port, "{base}/{tid}".format(base=c.task_url, tid=tid))
+    return urlf(config_service.get_config('database').ip, config_service.get_config('database').port, "{base}/{tid}".format(base=config_service.get_config('database').task_url, tid=tid))
 
 
 def tasks_full_url():
-    return urlf(c.ip, c.port, c.tasks_url)
+    return urlf(config_service.get_config('database').ip, config_service.get_config('database').port, config_service.get_config('database').tasks_url)
 
 
 def connection_error_handle(func):
@@ -45,13 +46,14 @@ def read(tid=None):
 
 @connection_error_handle
 def read_all():
-    return requests.get(tasks_full_url()).text
+    return rx.Observable.from_(json.loads(requests.get(tasks_full_url()).text))
 
 
 @connection_error_handle
 def update(task_json):
     task_json_dct = json.loads(task_json)
-    r = requests.put(task_url(task_json_dct['id']), data={'task': task_json})
+    r = requests.put(task_full_url(
+        task_json_dct['id']), data={'task': task_json})
     if r.status_code == 404:
         raise TaskNotExistError(task_json_dct['id'])
 

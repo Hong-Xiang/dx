@@ -74,18 +74,19 @@ def dependencies(task: TaskPy) -> 'Observable<TaskPy>':
 
 def update(task: TaskPy) -> None:
     db().update(task.to_json())
+    return task
 
 
 def mark_submit(task) -> None:
-    update(reps.submit(task))
+    return update(reps.submit(task))
 
 
 def mark_start(task) -> None:
-    update(reps.start(task))
+    return update(reps.start(task))
 
 
 def mark_complete(task) -> None:
-    update(reps.complete(task))
+    return update(reps.complete(task))
 
 
 def delete(tid: int) -> None:

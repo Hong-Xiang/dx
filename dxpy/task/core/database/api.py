@@ -7,8 +7,6 @@ from ..exceptions import TaskNotFoundError, TaskDatabaseConnectionError
 from .config import c
 
 
-
-
 def task_full_url(tid):
     return urlf(c.ip, c.port, "{base}/{tid}".format(base=c.task_url, tid=tid))
 
