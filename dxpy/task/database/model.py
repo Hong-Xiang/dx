@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 
 from dxpy.file_system.path import Path
 from dxpy.time.utils import now
-from dxpy.task.misc import TaskState
+from ..representation.task import State
 
 Base = declarative_base()
 
@@ -57,16 +57,13 @@ class TaskDB(Base):
     is_root = Column(Boolean)
 
     def __init__(self, desc, data, state=None, time_create=None, time_start=None, time_end=None, is_root=True):
-        """
-            workdir: path
-        """
         self.desc = desc
-        self.body = body
+        self.data = data
         if time_create is None:
             time_create = now()
         self.time_create = time_create
         if state is None:
-            state = TaskState.BeforeSubmit.name
+            state = State.BeforeSubmit.name
         self.state = state
         self.is_root = is_root
 

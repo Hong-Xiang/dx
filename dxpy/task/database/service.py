@@ -24,14 +24,13 @@ def db2json(task):
     })
 
 
-def json2db_new(task_json):
-    task_json = json.loads(task_json)
-    return TaskDB(desc=task_json['desc'],
-                  body=task_json['body'],
-                  state=task_json['state'],
-                  time_create=strp(task_json['time_create']),
-                  depens=' '.join(task_json['dependency']),
-                  is_root=task_json['is_root'])
+def json2db_new(s):
+    dct = json.loads(s)
+    return TaskDB(desc=dct['desc'],
+                  data=dct['data'],
+                  state=dct['state'],
+                  time_create=strp(dct['time_create']),
+                  is_root=dct['is_root'])
 
 
 class Service:
@@ -39,10 +38,7 @@ class Service:
 
     @classmethod
     def create_session(cls):
-        # TODO: tear down existed session
         cls.session = Database.session()
-        cls.session.query(TaskDB).all()
-        # pdb.set_trace()
 
     @classmethod
     def get_or_create_session(cls, path=None):
@@ -65,10 +61,6 @@ class Service:
         cls.get_or_create_session().add(task_db)
         cls.get_or_create_session().commit()
         task_db = cls.get_or_create_session().query(TaskDB).get(task_db.id)
-        tpy = yaml.load(task_db.body)
-        tpy.id = task_db.id
-        task_db.body = yaml.dump(tpy)
-        cls.get_or_create_session().commit()
         return task_db.id
 
     @classmethod
@@ -106,45 +98,16 @@ class Service:
                 .map(db2json))
 
     @classmethod
-    def read_all_old(cls, filter_func=None):
-        import warnings
-        """
-        Returns JSON serilized query results; In `"[{task1},{task2}]"` format.
-
-        Returns:
-        - `str`: JSON loadable. Would be `"[]"` if no task in database.
-
-        Raises:
-        - None
-        """
-        warnings.warn("there is a new read_all method.", DeprecationWarning)
-        if filter_func is None:
-            def filter_func(x): return True
-        return (rx.Observable
-                .from_(cls.get_or_create_session().query(TaskDB).all())
-                .subscribe_on(TPS())
-                .filter(filter_func)
-                .map(db2json)
-                .map(json.loads)
-                .to_list()
-                .map(json.dumps)
-                .to_blocking()
-                .first())
-        # res = session.query(TaskDB).all()
-        # if res is None:
-        #     res = json.dumps([])
-        # return dbs2json(res)
-
-    @classmethod
-    def json2db_update(cls, task_json, session):
-        task_json = json.loads(task_json)
-        taskdb = cls.read_taskdb(task_json['id'])
-        taskdb.desc = task_json['desc']
-        taskdb.body = task_json['body']
-        taskdb.state = task_json['state']
-        taskdb.time_create = strp(task_json['time_create'])
-        taskdb.dependency = ' '.join(task_json['dependency'])
-        taskdb.is_root = task_json['is_root']
+    def json2db_update(cls, s):
+        dct = json.loads(s)
+        taskdb = cls.read_taskdb(dct['id'])
+        taskdb.desc = dct['desc']
+        taskdb.data = dct['data']
+        taskdb.state = dct['state']
+        taskdb.time_create = strp(dct['time_create'])
+        taskdb.time_start = strp(dct['time_start'])
+        taskdb.time_end = strp(dct['time_end'])
+        taskdb.is_root = dct['is_root']
         return taskdb
 
     @classmethod
