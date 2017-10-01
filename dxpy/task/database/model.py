@@ -35,17 +35,10 @@ class Database:
         Base.metadata.create_all(cls.get_or_create_engine())
 
     @classmethod
-    def drop(cls):
-        # TaskDB.__table__.drop(cls.get_or_create_engine())
-        # cls.engine = None
+    def clear(cls):
         sess = cls.session_maker()()
         records = sess.query(TaskDB).delete()
         sess.commit()
-        # cls.create()
-
-    @classmethod
-    def clear(cls):
-        cls.engine = None
 
     @classmethod
     def session(cls):

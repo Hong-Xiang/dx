@@ -38,9 +38,6 @@ def json2db_new(task_json):
                   is_root=task_json['is_root'])
 
 
-import pdb
-
-
 class Service:
     session = None
 
