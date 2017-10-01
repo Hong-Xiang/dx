@@ -28,12 +28,14 @@ class Workers:
 
     @classmethod
     def run(cls, task, stdout=None, stderr=None):
+        print("RUN CALLED.")
         if stdout is None:
             stdout = sys.stdout
         if stderr is None:
             stderr = sys.stderr
         (rx.Observable.just(task)
          .map(cls.plan)
+         .subscribe_on(THREAD_POOL)
          .subscribe(on_next=lambda r: print(r, file=stdout),
                     on_error=lambda e: print(e, file=stderr)))
 
@@ -53,7 +55,7 @@ class Slurm(Workers):
 
     @classmethod
     def is_complete(cls, task):
-        return slurm.is_complete(task.workers.info)
+        return slurm.is_complete(task.workers.info['sid'])
 
     @classmethod
     def plan(cls, task, *args):
@@ -73,23 +75,12 @@ class Slurm(Workers):
             raise TypeError(
                 'Slurm worker only support TaskScript tasks, got: {!r}.'.format(task))
         command = task.plan(sbatch_command)
-        print('COMMAND', command)
         with os.popen(command) as fin:
-            result = fin.readlines()
-            print(result)
+            result = fin.readlines()[0]
         sid = slurm.sid_from_submit(result)
         task.workers.info = {'sid': sid}
         interface.update(task)
         return result
-
-
-WORKERS = [NoAction, Slurm]
-
-
-def get_workers(task):
-    for w in WORKERS:
-        if w.on_this_worker(task):
-            return w
 
 
 class MultiThreding(Workers):
@@ -102,6 +93,14 @@ class MultiThreding(Workers):
             result = fin.readlines()
         return task, result
 
+
+WORKERS = [NoAction, MultiThreding, Slurm]
+
+
+def get_workers(task):
+    for w in WORKERS:
+        if w.on_this_worker(task):
+            return w
 
 # class Dask(Workers):
 #     WorkerType = misc.WorkerType.Dask

@@ -20,7 +20,7 @@ class TestTemplates(unittest.TestCase):
         p = Path('/tmp/test')
         task = templates.TaskScript(file=p / 'run.sh', workdir=p)
 
-        def sbatch_command(workdir, file):
-            return 'cd {0} && sbatch {1}'.format(workdir.abs, file.abs)
+        def sbatch_command(workdir, script_file):
+            return 'cd {0} && sbatch {1}'.format(workdir, script_file)
         self.assertEqual(task.plan(sbatch_command),
                          'cd /tmp/test && sbatch /tmp/test/run.sh')

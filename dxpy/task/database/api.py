@@ -41,7 +41,7 @@ def read(tid=None):
     if r.status_code == 200:
         return r.text
     else:
-        raise TaskNotExistError(tid)
+        raise TaskNotFoundError(tid)
 
 
 @connection_error_handle
@@ -55,11 +55,11 @@ def update(task_json):
     r = requests.put(task_full_url(
         task_json_dct['id']), data={'task': task_json})
     if r.status_code == 404:
-        raise TaskNotExistError(task_json_dct['id'])
+        raise TaskNotFoundError(task_json_dct['id'])
 
 
 @connection_error_handle
 def delete(tid):
     r = requests.delete(task_full_url(tid))
     if r.status_code == 404:
-        raise TaskNotExistError(tid)
+        raise TaskNotFoundError(tid)
