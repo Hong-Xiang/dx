@@ -19,9 +19,10 @@ class State(Enum):
 
 class Worker(Enum):
     NoAction = 0,
-    MultiThreading = 1,
-    MultiProcessing = 2,
-    Slurm = 3
+    Local = 1,
+    MultiThreading = 2,
+    MultiProcessing = 3,
+    Slurm = 4
 
 
 class Type(Enum):

@@ -1,18 +1,25 @@
 from dxpy.file_system.path import Path
 from ..representation.factory import create_task_graph
-from ..representation.templates import TaskCommand
+from ..representation.task import Worker
+from ..representation.templates import TaskCommand, TaskScript
 from ..interface import create_graph
 
 
 class GateSplit:
-    def __init__(self, workdir=None):
-        self.workdir = Path(workdir)        
+    def __init__(self, rootdir=None, workdirs=None, files=None, merge_command=None):
+        self.rootdir = rootdir
+        self.workdirs = [Path(w) for w in workdirs]
+        self.files = files
+        self.merge_command = merge_command
 
     def create(self):
-        cmd = 'sleep {0} && hostname'
-        t1 = TaskCommand(cmd.format(self.duration, 1), workdir=self.workdir)
-        t2 = TaskCommand(cmd.format(self.duration, 2), workdir=self.workdir)
-        t3 = TaskCommand(cmd.format(self.duration, 3), workdir=self.workdir)
+        cmd = 'cd {0} && sbatch {1}'
+        sbatch_tasks = []
+        for w, f in zip(self.workdirs, self.files):
+            sbatch_tasks.append(TaskScript(
+                workdir=w, file=f, worker=Worker.Slurm))
+        dependencies = [None]*len(sbatch_tasks)
+        merge_task = TaskCommand(self.merge_command, workdir=)
         g = create_task_graph([t1, t2, t3], [None, 0, 1])
         return g
 
