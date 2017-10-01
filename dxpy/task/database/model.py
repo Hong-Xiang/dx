@@ -49,13 +49,14 @@ class TaskDB(Base):
     __tablename__ = 'task'
     id = Column(Integer, primary_key=True)
     desc = Column(String)
-    body = Column(String)
-    dependency = Column(String)
+    data = Column(String)
     time_create = Column(DateTime)
+    time_start = Column(DateTime)
+    time_end = Column(DateTime)
     state = Column(String)
     is_root = Column(Boolean)
 
-    def __init__(self, desc, body, state=None, time_create=None, depens=None, is_root=True):
+    def __init__(self, desc, data, state=None, time_create=None, time_start=None, time_end=None, is_root=True):
         """
             workdir: path
         """
@@ -67,9 +68,6 @@ class TaskDB(Base):
         if state is None:
             state = TaskState.BeforeSubmit.name
         self.state = state
-        if depens is None:
-            depens = ''
-        self.dependency = depens
         self.is_root = is_root
 
     def __repr__(self):

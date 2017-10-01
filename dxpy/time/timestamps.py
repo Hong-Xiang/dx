@@ -1,4 +1,5 @@
-from dxpy.time.utils import now, delta
+import json
+from dxpy.time.utils import now, delta, strf, strp
 
 
 class TimeStamps:
@@ -63,3 +64,41 @@ class Progress(Duration, Run):
     @property
     def progress(self):
         return self.run / self.length
+
+
+class TaskStamp(TimeStamps):
+    def __init__(self, create=None, start=None, end=None):
+        super(__class__, self).__init__({
+            'create': create,
+            'start': start,
+            'end': end
+        })
+
+    @property
+    def create(self):
+        return self.time_stamps['create']
+
+    @property
+    def start(self):
+        return self.time_stamps['start']
+
+    @property
+    def end(self):
+        return self.time_stamps['end']
+
+    def to_json(self):
+        dct = {
+            'create': strf(self.create),
+            'start': strf(self.start),
+            'end': strf(self.end)
+        }
+        return json.dumps(dct)
+
+    @classmethod
+    def from_json(cls, s):
+        dct = json.loads(s)
+        return cls(create=strp(dct['create']), start=dct['start'], end=dct['end'])
+
+    @classmethod
+    def create_now(cls):
+        return cls(create=now(), start=None, end=None)

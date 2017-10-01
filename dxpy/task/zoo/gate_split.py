@@ -6,21 +6,26 @@ from ..interface import create_graph
 
 
 class GateSplit:
-    def __init__(self, rootdir=None, workdirs=None, files=None, merge_command=None):
-        self.rootdir = rootdir
-        self.workdirs = [Path(w) for w in workdirs]
-        self.files = files
-        self.merge_command = merge_command
+    def __init__(self, target=None, post_sh=None, subdirs=None, run_sh=None):
+        self.target = Path(target)
+        self.subdirs = [Path(d) for d in subdirs]
+        self.run_sh = run_sh
+        self.post_sh = post_sh
 
     def create(self):
         cmd = 'cd {0} && sbatch {1}'
-        sbatch_tasks = []
-        for w, f in zip(self.workdirs, self.files):
-            sbatch_tasks.append(TaskScript(
-                workdir=w, file=f, worker=Worker.Slurm))
-        dependencies = [None]*len(sbatch_tasks)
-        merge_task = TaskCommand(self.merge_command, workdir=)
-        g = create_task_graph([t1, t2, t3], [None, 0, 1])
+        tasks = []
+        for w in self.subdirs:
+            tasks.append(TaskScript(workdir=w,
+                                    file=self.run_sh,
+                                    worker=Worker.Slurm))
+        dependencies = [None] * len(sbatch_tasks)
+        merge_task = TaskScript(workdir=self.target,
+                                file=self.post_sh,
+                                worker=Worker.Slurm)
+        tasks.append(merge_task)
+        dependencies.append(list(range(len(dependencies))))
+        g = create_task_graph(tasks, dependencies)
         return g
 
 

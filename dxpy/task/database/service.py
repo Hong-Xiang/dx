@@ -15,14 +15,10 @@ def db2json(task):
     return json.dumps({
         'id': task.id,
         'desc': task.desc,
-        'body': task.body,
-        'dependency': (rx.Observable.just(task.dependency)
-                       .subscribe_on(TPS())
-                       .flat_map(lambda x: x.split(' '))
-                       .filter(lambda x: x.isdigit())
-                       .map(lambda x: int(x))
-                       .to_list().to_blocking().first()),
+        'data': task.data,
         'time_create': strf(task.time_create),
+        'time_start': strf(task.time_start),
+        'time_end': strf(task.time_end)
         'state': task.state,
         'is_root': task.is_root
     })
