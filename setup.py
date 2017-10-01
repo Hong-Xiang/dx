@@ -12,6 +12,7 @@ setup(name='dxpy',
           'rx',
           'flask_restful',
           'flask_sqlalchemy',
-          'graphviz'
+          'graphviz',
+          'fs'
       ],
       zip_safe=False)

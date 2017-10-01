@@ -39,9 +39,6 @@ class Slurm:
         with os.popen('cd {dir} && sbatch {file}'.format(dir=workdir, file=script_file)) as fin:
             return sid_from_submit(fin.readlines()[0])
 
-    def get_id(self, state):
-        return int(re.sub('\s+', ' ', state).strip().split(' ')[3])
-
     def sid_from_submit(s):
         return int(re.sub('\s+', ' ', s).strip().split(' ')[3])
 
