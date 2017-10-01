@@ -31,34 +31,31 @@ class Slurm:
             self._sinfo_buffer = []
         return self._sinfo_buffer
 
-    # def srun(command):
-    #     with os.popen(command) as fin:
-    #         return fin.readlines()
+    def srun(command):
+        with os.popen(command) as fin:
+            return fin.readlines()
 
-    # def sbatch(command):
-    #     with os.popen(command) as fin:
-    #         return fin.readlines()[0]
+    def sbatch(workdir, script_file):
+        with os.popen('cd {dir} && sbatch {file}'.format(dir=workdir, file=script_file)) as fin:
+            return sid_from_submit(fin.readlines()[0])
 
     def get_id(self, state):
         return int(re.sub('\s+', ' ', state).strip().split(' ')[3])
 
+    def sid_from_submit(s):
+        return int(re.sub('\s+', ' ', s).strip().split(' ')[3])
 
-def sid_from_submit(s):
-    return int(re.sub('\s+', ' ', s).strip().split(' ')[3])
+    def squeue():
+        return (Observable.from_(os.popen('squeue').readlines())
+                .map(lambda l: re.sub('\s+', ' ', l).strip())
+                .map(lambda l: l.split(' '))
+                .filter(lambda l: l[0].isdigit())
+                .map(lambda s: [int(s[0])] + s[1:])
+                .map(lambda s: SINFO(*s)))
 
-
-def squeue():
-    return (Observable.from_(os.popen('squeue').readlines())
-            .map(lambda l: re.sub('\s+', ' ', l).strip())
-            .map(lambda l: l.split(' '))
-            .filter(lambda l: l[0].isdigit())
-            .map(lambda s: [int(s[0])] + s[1:])
-            .map(lambda s: SINFO(*s)))
-
-
-def is_complete(sid):
-    return (squeue()
-            .filter(lambda tinfo: tinfo.id == sid)
-            .count()
-            .subscribe_on(rx.concurrency.ThreadPoolScheduler())
-            .to_blocking().first()) == 0
+    def is_complete(sid):
+        return (squeue()
+                .filter(lambda tinfo: tinfo.id == sid)
+                .count()
+                .subscribe_on(rx.concurrency.ThreadPoolScheduler())
+                .to_blocking().first()) == 0
