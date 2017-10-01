@@ -12,29 +12,37 @@ class TestDataBase(unittest.TestCase):
     def setUp(self):
         configs.set_config_by_name_key('database', 'file', ':memory:')
         Database.create()
-        self.dummpy_json = r"""{"id": 1, "desc": "sleep task", "body": "!!python/object:dxpy.task.representation.templates.TaskCommand\nactivity: true\ncommand: sleep 10\ndependency: []\ndesc: sleep task\nid: 1\nis_root: true\nstate: !task_state 'BeforeSubmit'\ntime_stampes: !!python/object:dxpy.time.timestamps.Start\n  time_stamps: {start: !!timestamp '2017-09-22 12:57:44.036185'}\nworkdir: !path '/home/hongxwing/Workspace/jpyn'\nworkers: !!python/object:dxpy.task.misc.Workers {info: null, nb_workers: 1, type: !worker_type 'MultiThreading'}\n", "dependency": [], "time_create": "2017-09-22 12:57:44.036185", "state": "BeforeSubmit", "is_root": true}"""
-        self.dummpy_id = service.create(self.dummpy_json)
-        self.modify_id = service.create(self.dummpy_json)
-        self.delete_id = service.create(self.dummpy_json)
+        self.dummy_dct = {
+            'id': 1,
+            'desc': 'dummpy task',
+            'data': '',
+            'time_create':  "2017-09-22 12:57:44.036185",
+            'time_start': None,
+            'time_end': None,
+            'is_root': True,
+            'state': 'BeforeSubmit'
+        }
+        self.dummy_json = json.dumps(self.dummy_dct)
+        self.dummy_id = service.create(self.dummy_json)
+        self.modify_id = service.create(self.dummy_json)
+        self.delete_id = service.create(self.dummy_json)
 
     def tearDown(self):
         service.clear_session()
-        Database.drop()
-        # Database.clear()
-        pass
+        Database.clear()
 
     def test_create(self):
-        tid = service.create(self.dummpy_json)
+        tid = service.create(self.dummy_json)
         self.assertIsInstance(tid, int)
 
     def test_read(self):
         # TODO: add desired output json
-        t = service.read(self.dummpy_id)
+        t = service.read(self.dummy_id)
         self.assertIsInstance(t, str)
         # self.assertEqual(t, self.dummpy_json)
 
     def test_read_invalid_tid(self):
-        invalid_tid = self.dummpy_id + 1000
+        invalid_tid = self.dummy_id + 1000
         with self.assertRaises(TaskNotFoundError):
             t = service.read(invalid_tid)
 
@@ -48,16 +56,9 @@ class TestDataBase(unittest.TestCase):
         self.assertIsInstance(t_list, list)
 
     def test_update(self):
-        new_dummpy_json = json.dumps({
-            "id": self.modify_id,
-            "desc": "modified",
-            "body": "dummy body",
-            "dependency": "",
-            "time_create": "2017-09-22 12:57:44.036185",
-            "state": "BeforeSubmit",
-            "is_root": True
-        })
-        service.update(new_dummpy_json)
+        new_dct = json.loads(service.read(self.modify_id))
+        new_dct['desc'] = 'modified'
+        service.update(json.dumps(new_dct))
         data = json.loads(service.read(self.modify_id))
         self.assertEqual(data['desc'], "modified")
 

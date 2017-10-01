@@ -18,7 +18,7 @@ def db2json(task):
         'data': task.data,
         'time_create': strf(task.time_create),
         'time_start': strf(task.time_start),
-        'time_end': strf(task.time_end)
+        'time_end': strf(task.time_end),
         'state': task.state,
         'is_root': task.is_root
     })
@@ -112,7 +112,7 @@ class Service:
 
     @classmethod
     def update(cls, task_json):
-        cls.json2db_update(task_json, cls.get_or_create_session())
+        cls.json2db_update(task_json)
         cls.get_or_create_session().commit()
 
     @classmethod
