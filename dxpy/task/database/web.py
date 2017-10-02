@@ -42,7 +42,7 @@ class TasksResource(Resource):
         return Response(json.dumps({'id': res}), 201, mimetype="application/json")
 
 
-def lauch_database_server():
+def launch_database_server():
     c = provider.get_or_create_service('config').get_config('database')
     app = Flask(__name__)
     api = Api(app)

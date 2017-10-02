@@ -5,8 +5,8 @@ import dask
 import sys
 import os
 import dxpy.slurm as slurm
-from .. import misc
-from ..representation import templates
+from ..representation import task as taskpy
+from ..representation import creators
 from .. import interface
 
 NB_THREADS = 5
@@ -16,11 +16,11 @@ THREAD_POOL = rx.concurrency.ThreadPoolScheduler(NB_THREADS)
 class Workers:
     @classmethod
     def is_complete(cls, task):
-        return task.state == misc.TaskState.Complete
+        return task.state == taskpy.State.Complete
 
     @classmethod
     def on_this_worker(cls, task):
-        return task.workers.type == cls.WorkerType
+        return task.worker == cls.WorkerType
 
     @classmethod
     def plan(cls, task):
@@ -41,17 +41,17 @@ class Workers:
 
 
 class NoAction(Workers):
-    WorkerType = misc.WorkerType.NoAction
+    WorkerType = taskpy.Worker.NoAction
 
     @classmethod
-    def plan(cls, task):
-        task = interface.mark_start(task)
-        task = interface.mark_complete(task)
-        return 'NoAction of task id: {} done.'.format(task.id)
+    def plan(cls, t):
+        t = interface.mark_start(t)
+        t = interface.mark_complete(t)
+        return 'NoAction of task id: {} done.'.format(t.id)
 
 
 class Slurm(Workers):
-    WorkerType = misc.WorkerType.Slurm
+    WorkerType = taskpy.Worker.Slurm
 
     @classmethod
     def is_complete(cls, task):
@@ -84,7 +84,7 @@ class Slurm(Workers):
 
 
 class MultiThreding(Workers):
-    WorkerType = misc.WorkerType.MultiThreading
+    WorkerType = taskpy.Worker.MultiThreading
 
     @classmethod
     def plan(cls, task):
@@ -103,7 +103,7 @@ def get_workers(task):
             return w
 
 # class Dask(Workers):
-#     WorkerType = misc.WorkerType.Dask
+#     WorkerType = taskpy.Worker.Dask
 #     NB_PROCESSES = 5
 
 #     @classmethod

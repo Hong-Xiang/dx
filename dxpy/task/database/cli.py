@@ -1,12 +1,19 @@
 import click
-from dxpy.task.database.web import lauch_database_server
+from dxpy.task.database import web
+
+
 @click.group()
 def db():
     pass
 
+
 @click.command()
 def start():
     """ start task database web service """
-    lauch_database_server()
+    web.launch_database_server()
+
 
 db.add_command(start)
+
+if __name__ == "__main__":
+    db()

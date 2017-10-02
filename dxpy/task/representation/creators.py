@@ -6,7 +6,7 @@ import os
 from dxpy.file_system.path import Path
 from dxpy.graph.depens import DenpensGraph
 from dxpy.exceptions.checks import assert_same_length
-from .task import Task, Worker
+from . import task
 
 
 def task_graph(tasks, depens):
@@ -26,21 +26,18 @@ def task_graph(tasks, depens):
 
 
 def task_command(command, *args, **kwargs):
-    return Task(*args, **kwargs, data={
-        'type': 'command',
+    return task.Task(*args, **kwargs, ttype=task.Type.Command, data={
         'command': command
     })
 
 
 def task_script(file, *args, **kwargs):
-    return Task(*args, **kwargs, data={
-        'type': 'script',
-        'file': file
+    return task.Task(*args, **kwargs, ttype=task.Type.Script, data={
+        'file': (Path(kwargs['workdir']) / file).abs
     })
 
 
 def task_slurm(file, *args, **kwargs):
-    return Task(*args, **kwargs, worker=Worker.Slurm, data={
-        'type': 'script',
-        'file': file
+    return task.Task(*args, **kwargs, worker=task.Worker.Slurm, ttype=task.Type.Script, data={
+        'file': (Path(kwargs['workdir']) / file).abs
     })

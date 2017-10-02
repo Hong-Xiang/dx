@@ -13,6 +13,7 @@ from .model import Database, TaskDB
 
 def db2json(task):
     return json.dumps({
+        '__task__': True,
         'id': task.id,
         'desc': task.desc,
         'data': task.data,
@@ -31,8 +32,10 @@ def db2json(task):
 
 def json2db_new(s):
     dct = json.loads(s)
+    s = json.dumps(dct)
+    dct = json.loads(s)
     return TaskDB(desc=dct['desc'],
-                  data=dct['data'],
+                  data=json.dumps(dct['data']),
                   state=dct['state'],
                   workdir=dct['workdir'],
                   worker=dct['worker'],

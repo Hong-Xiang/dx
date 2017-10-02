@@ -13,6 +13,7 @@ class TestDataBase(unittest.TestCase):
         configs.set_config_by_name_key('database', 'file', ':memory:')
         Database.create()
         self.dummy_dct = {
+            '__task__': True,
             'id': 1,
             'desc': 'dummpy task',
             'data': '',
@@ -25,7 +26,7 @@ class TestDataBase(unittest.TestCase):
             'state': 'BeforeSubmit',
             'workdir': '/tmp/test',
             'worker': 'Slurm',
-            'dependency': '[]',
+            'dependency': [],
             'type': 'Regular'
         }
         self.dummy_json = json.dumps(self.dummy_dct)
@@ -41,11 +42,28 @@ class TestDataBase(unittest.TestCase):
         tid = service.create(self.dummy_json)
         self.assertIsInstance(tid, int)
 
+    def test_creat_json(self):
+        dct = {"__task__": True,
+               "id": 1,
+               "desc": "test",
+               "workdir": "/home/hongxwing/Workspace/dxl/tests_dxpy/task",
+               "worker": "NoAction",
+               "type": "Regular",
+               "state": "BeforeSubmit",
+               "dependency": [],
+               "time_stamp": {"create": "2017-10-02 05:15:56.349184", "start": None, "end": None},
+               "is_root": False,
+               "data": {}}
+        s = json.dumps(dct)
+
+        tid = service.create(s)
+
     def test_read(self):
         # TODO: add desired output json
         t = service.read(self.dummy_id)
         self.assertIsInstance(t, str)
-        # self.assertEqual(t, self.dummpy_json)
+        dct = json.loads(t)
+        self.assertTrue(dct['__task__'])
 
     def test_read_invalid_tid(self):
         invalid_tid = self.dummy_id + 1000
