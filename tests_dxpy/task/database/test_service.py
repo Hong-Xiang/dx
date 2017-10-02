@@ -16,11 +16,17 @@ class TestDataBase(unittest.TestCase):
             'id': 1,
             'desc': 'dummpy task',
             'data': '',
-            'time_create':  "2017-09-22 12:57:44.036185",
-            'time_start': None,
-            'time_end': None,
+            'time_stamp': {
+                'create': "2017-09-22 12:57:44.036185",
+                'start': None,
+                'end': None,
+            },
             'is_root': True,
-            'state': 'BeforeSubmit'
+            'state': 'BeforeSubmit',
+            'workdir': '/tmp/test',
+            'worker': 'Slurm',
+            'dependency': '[]',
+            'type': 'Regular'
         }
         self.dummy_json = json.dumps(self.dummy_dct)
         self.dummy_id = service.create(self.dummy_json)

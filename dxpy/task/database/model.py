@@ -55,8 +55,12 @@ class TaskDB(Base):
     time_end = Column(DateTime)
     state = Column(String)
     is_root = Column(Boolean)
+    ttype = Column(String)
+    workdir = Column(String)
+    worker = Column(String)
+    dependency = Column(String)
 
-    def __init__(self, desc, data, state=None, time_create=None, time_start=None, time_end=None, is_root=True):
+    def __init__(self, desc, data, state=None, workdir=None, worker=None, ttype=None, dependency=None, time_create=None, time_start=None, time_end=None, is_root=True):
         self.desc = desc
         self.data = data
         if time_create is None:
@@ -65,6 +69,10 @@ class TaskDB(Base):
         if state is None:
             state = State.BeforeSubmit.name
         self.state = state
+        self.worker = worker
+        self.workdir = workdir
+        self.ttype = ttype
+        self.dependency = dependency
         self.is_root = is_root
 
     def __repr__(self):

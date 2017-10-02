@@ -9,16 +9,12 @@ import rx
 import json
 import rx
 from . import provider
-from .representation import TaskPy
-from . import representation as reps
+from . import database as db
+from .representation import task as ts
 
 
-def db():
-    return provider.get_or_create_service('database')
-
-
-def create(task: TaskPy) -> int:
-    return db().create(task.to_json())
+def create(task) -> int:
+    return db.create(task.to_json())
 
 
 def create_graph(task_graph) -> 'list<int>':
@@ -54,40 +50,40 @@ def create_graph(task_graph) -> 'list<int>':
 
 
 def parse_json(s: 'json string'):
-    return TaskPy.from_json(s)
+    return ts.Task.from_json(s)
 
 
-def read(tid: int) -> 'TaskPy':
+def read(tid: int):
     if not isinstance(tid, int):
         raise TypeError("read only accept tid of int type: {!r}".format(tid))
-    return parse_json(db().read(tid))
+    return parse_json(db.read(tid))
 
 
 def read_all() -> 'Observable<TaskPy>':
-    return (db().read_all()
+    return (db.read_all()
             .map(parse_json))
 
 
-def dependencies(task: TaskPy) -> 'Observable<TaskPy>':
+def dependencies(task) -> 'Observable<TaskPy>':
     return rx.Observable.from_(task.dependency).map(read)
 
 
-def update(task: TaskPy) -> None:
-    db().update(task.to_json())
+def update(task) -> None:
+    db.update(task.to_json())
     return task
 
 
 def mark_submit(task) -> None:
-    return update(reps.submit(task))
+    return update(ts.submit(task))
 
 
 def mark_start(task) -> None:
-    return update(reps.start(task))
+    return update(ts.start(task))
 
 
 def mark_complete(task) -> None:
-    return update(reps.complete(task))
+    return update(ts.complete(task))
 
 
 def delete(tid: int) -> None:
-    db().delete(tid)
+    db.delete(tid)

@@ -6,8 +6,7 @@ import os
 from dxpy.file_system.path import Path
 from dxpy.graph.depens import DenpensGraph
 from dxpy.exceptions.checks import assert_same_length
-from .task import Task
-from ..exceptions import UnknownTemplateNameError
+from .task import Task, Worker
 
 
 def task_graph(tasks, depens):
@@ -35,6 +34,13 @@ def task_command(command, *args, **kwargs):
 
 def task_script(file, *args, **kwargs):
     return Task(*args, **kwargs, data={
+        'type': 'script',
+        'file': file
+    })
+
+
+def task_slurm(file, *args, **kwargs):
+    return Task(*args, **kwargs, worker=Worker.Slurm, data={
         'type': 'script',
         'file': file
     })

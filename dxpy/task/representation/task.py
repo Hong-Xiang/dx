@@ -2,12 +2,24 @@
 A **Representation** of task
 Since it is only a representation, it is not mutable, it has only properties.
 No action is allowed.
+
+Task fields:
+    id,
+    desc,
+    workdir,
+    worker,
+    ttype,
+    dependency,
+    time_stamp,
+    state,
+    is_root,
+    data
 """
 import json
 from enum import Enum
 from dxpy.file_system.path import Path
 from dxpy.time.timestamps import TaskStamp
-from dxpy.time.utils import strf, now
+from dxpy.time.utils import strf, strp, now
 
 
 class State(Enum):
@@ -84,9 +96,16 @@ class Task:
     @classmethod
     def from_json(cls, s):
         return json.loads(s, object_hook=cls.deserialization)
-
-    def to_json(self):
-        return json.dumps(self.serialization(self))
+        # return Task(tid=dct['id'],
+        #             desc=dct['desc'],
+        #             workdir=dct['workdir'],
+        #             worker=dct['worker'],
+        #             ttype=dct['type'],
+        #             state=dct['state'],
+        #             time_stamp=dct['time_stamp'],
+        #             dependency=dct['dependency'],
+        #             is_root=dct['is_root'],
+        #             data=dct['data'])
 
     @classmethod
     def serialization(cls, obj):
@@ -96,13 +115,16 @@ class Task:
                     'desc': obj.desc,
                     'workdir': obj.workdir,
                     'worker': obj.worker.name,
-                    'ttype': obj.type.name,
+                    'type': obj.type.name,
                     'state': obj.state.name,
-                    'time_stamp': obj.time_stamp.to_json(),
-                    'dependency': json.dumps(obj.dependency),
+                    'dependency': obj.dependency,
+                    'time_stamp': {
+                        'create': strf(obj.time_stamp.create),
+                        'start': strf(obj.time_stamp.start),
+                        'end': strf(obj.time_stamp.end)
+                    },
                     'is_root': obj.is_root,
-                    'data': obj.data
-                    }
+                    'data': obj.data, }
         raise TypeError(repr(obj) + " is not JSON serializable")
 
     @classmethod
@@ -112,13 +134,15 @@ class Task:
                         desc=dct['desc'],
                         workdir=dct['workdir'],
                         worker=Worker[dct['worker']],
-                        ttype=Type[dct['ttype']],
+                        ttype=Type[dct['type']],
                         state=State[dct['state']],
-                        time_stamp=TaskStamp.from_json(dct['time_stamp']),
-                        dependency=json.loads(dct['dependency']),
+                        time_stamp=TaskStamp(
+                            create=strp(dct['time_stamp']['create']),
+                            start=strp(dct['time_stamp']['start']),
+                            end=strp(dct['time_stamp']['end'])),
+                        dependency=dct['dependency'],
                         is_root=dct['is_root'],
                         data=dct['data'])
-
         return dct
 
     def __str__(self):

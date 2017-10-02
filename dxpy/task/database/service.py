@@ -16,9 +16,14 @@ def db2json(task):
         'id': task.id,
         'desc': task.desc,
         'data': task.data,
-        'time_create': strf(task.time_create),
-        'time_start': strf(task.time_start),
-        'time_end': strf(task.time_end),
+        'worker': task.worker,
+        'type': task.ttype,
+        'workdir': task.workdir,
+        'dependency': json.loads(task.dependency),
+        'time_stamp': {
+            'create': strf(task.time_create),
+            'start': strf(task.time_start),
+            'end': strf(task.time_end)},
         'state': task.state,
         'is_root': task.is_root
     })
@@ -29,8 +34,20 @@ def json2db_new(s):
     return TaskDB(desc=dct['desc'],
                   data=dct['data'],
                   state=dct['state'],
-                  time_create=strp(dct['time_create']),
+                  workdir=dct['workdir'],
+                  worker=dct['worker'],
+                  ttype=dct['type'],
+                  dependency=json.dumps(dct['dependency']),
+                  time_create=strp(dct['time_stamp']['create']),
                   is_root=dct['is_root'])
+
+
+def jsonit2db(s):
+    dct = json.loads(s)
+
+
+def jsondb2it(s):
+    pass
 
 
 class Service:
@@ -104,9 +121,13 @@ class Service:
         taskdb.desc = dct['desc']
         taskdb.data = dct['data']
         taskdb.state = dct['state']
-        taskdb.time_create = strp(dct['time_create'])
-        taskdb.time_start = strp(dct['time_start'])
-        taskdb.time_end = strp(dct['time_end'])
+        taskdb.worker = dct['worker']
+        taskdb.workdir = dct['workdir']
+        taskdb.ttype = dct['type']
+        taskdb.dependency = json.dumps(dct['dependency'])
+        taskdb.time_create = strp(dct['time_stamp']['create'])
+        taskdb.time_start = strp(dct['time_stamp']['start'])
+        taskdb.time_end = strp(dct['time_stamp']['end'])
         taskdb.is_root = dct['is_root']
         return taskdb
 

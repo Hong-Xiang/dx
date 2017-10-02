@@ -1,5 +1,5 @@
 import click
-from .database.web.cli import db
+from .database.cli import db
 from .run.cli import run
 
 @click.group()

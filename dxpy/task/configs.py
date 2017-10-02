@@ -11,13 +11,32 @@ class DatabaseConfigs:
         self.port = port or 23301
         self.echo = False
         self.version = version or 0.1
-        self.name = name or 'task'
+        self.name = name or 'taskdb'
         self.use_web_api = use_web_api
         self.debug = True
 
     @property
     def path(self):
         return self.root + self.file
+
+    @property
+    def task_url(self):
+        return '/api/v{version}/{name}'.format(
+            version=self.version, name=self.name)
+
+    @property
+    def tasks_url(self):
+        return '/api/v{version}/{name}s'.format(
+            version=self.version, name=self.name)
+
+
+class InterfaceConfigs:
+    def __init__(self, ip=None, port=None, name=None):
+        self.ip = ip or '127.0.0.1'
+        self.port = port or 23300
+        self.name = name or 'task'
+        self.version = 0.1
+        self.debug = True
 
     @property
     def task_url(self):
