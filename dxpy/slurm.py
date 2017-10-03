@@ -8,6 +8,26 @@ SINFO = namedtuple('SINFO', ('id', 'part', 'cmd', 'usr',
                              'stat', 'time', 'nodes', 'node_name'))
 
 
+class TaskInfo:
+    def __init__(self, tid, part, cmd, usr, stat, time, nodes, node_name, *args):
+        self.id = int(tid)
+        self.part = part
+        self.cmd = cmd
+        self.usr = usr
+        self.stat = stat
+        self.time = time
+        self.nodes = nodes
+        self.node_name = node_name
+
+    @classmethod
+    def from_squeue(cls, l):
+        s = re.sub('\s+', ' ', l).strip()
+        items = s.split()
+        if not items[0].isdigit():
+            return None
+        else:
+            return cls(*items)
+
 # class Slurm:
 #     def __init__(self):
 #         self._sinfo_buffer = None
@@ -44,15 +64,12 @@ def sid_from_submit(s):
 
 def squeue():
     return (Observable.from_(os.popen('squeue').readlines())
-            .map(lambda l: re.sub('\s+', ' ', l).strip())
-            .map(lambda l: l.split(' '))
-            .filter(lambda l: l[0].isdigit())
-            .map(lambda s: [int(s[0])] + s[1:])
-            .map(lambda s: SINFO(*s)))
+            .map(lambda l: TaskInfo.from_squeue(l))
+            .filter(lambda l: l is not None))
 
 def is_complete(sid):
     return (squeue()
+            .subscribe_on(rx.concurrency.ThreadPoolScheduler())
             .filter(lambda tinfo: tinfo.id == sid)
             .count()
-            .subscribe_on(rx.concurrency.ThreadPoolScheduler())
             .to_blocking().first()) == 0

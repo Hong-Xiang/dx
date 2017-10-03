@@ -15,7 +15,7 @@ THREAD_POOL = rx.concurrency.ThreadPoolScheduler(NB_THREADS)
 
 class Workers:
     @classmethod
-    def is_complete(cls, task):
+    def is_complete(cls, task, *args):
         return task.state == taskpy.State.Complete
 
     @classmethod
@@ -61,7 +61,7 @@ class Slurm(Workers):
     WorkerType = taskpy.Worker.Slurm
 
     @classmethod
-    def is_complete(cls, task):
+    def is_complete(cls, task, *args):
         return slurm.is_complete(task.data['sid'])
 
     @classmethod

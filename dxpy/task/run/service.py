@@ -16,7 +16,7 @@ def read_complete_tasks_on_worker(worker) -> 'rx.Observable<Task>':
     return (interface.read_all()
             .filter(lambda t: t.is_running)
             .filter(worker.on_this_worker)
-            .filter(worker.is_complete))
+            .filter(worker.is_complete), )[0]
 
 
 def auto_complete():
