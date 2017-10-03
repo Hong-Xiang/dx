@@ -8,6 +8,8 @@ import copy
 import rx
 import json
 import rx
+from dxpy.time.utils import now
+from dxpy.time.timestamps import TaskStamp
 from . import provider
 from . import database as db
 from .representation import task as ts
@@ -78,10 +80,18 @@ def mark_submit(task) -> None:
 
 
 def mark_start(task) -> None:
+    if task.time_stamp.start is None:
+        task.time_stamp = TaskStamp(create=task.time_stamp.create,
+                                    start=now(),
+                                    end=task.time_stamp.end)
     return update(ts.start(task))
 
 
 def mark_complete(task) -> None:
+    if task.time_stamp.end is None:
+        task.time_stamp = TaskStamp(create=task.time_stamp.create,
+                                    start=task.time_stamp.start,
+                                    end=now())
     return update(ts.complete(task))
 
 

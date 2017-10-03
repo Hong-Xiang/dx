@@ -28,14 +28,13 @@ class Workers:
 
     @classmethod
     def run(cls, task, stdout=None, stderr=None):
-        print("RUN CALLED.")
         if stdout is None:
             stdout = sys.stdout
         if stderr is None:
             stderr = sys.stderr
-        (rx.Observable.just(task)
-         .map(cls.plan)
+        (rx.Observable.from_([task])
          .subscribe_on(THREAD_POOL)
+         .map(cls.plan)
          .subscribe(on_next=lambda r: print(r, file=stdout),
                     on_error=lambda e: print(e, file=stderr)))
 
@@ -44,10 +43,18 @@ class NoAction(Workers):
     WorkerType = taskpy.Worker.NoAction
 
     @classmethod
-    def plan(cls, t):
+    def plan(cls, t, *args):
         t = interface.mark_start(t)
         t = interface.mark_complete(t)
         return 'NoAction of task id: {} done.'.format(t.id)
+
+
+def sbatch_command(workdir, file):
+    return 'cd {0} && sbatch {1}'.format(workdir, file)
+
+
+def normal_command(workdir, command):
+    return 'cd {0} && {1}'.format(workdir, command)
 
 
 class Slurm(Workers):
@@ -55,7 +62,7 @@ class Slurm(Workers):
 
     @classmethod
     def is_complete(cls, task):
-        return slurm.is_complete(task.workers.info['sid'])
+        return slurm.is_complete(task.data['sid'])
 
     @classmethod
     def plan(cls, task, *args):
@@ -66,19 +73,18 @@ class Slurm(Workers):
         # def srun_command(workdir, command):
         #     return 'cd {0} && srun {1}'.format(workdir, command)
 
-        def sbatch_command(workdir, script_file):
-            return 'cd {0} && sbatch {1}'.format(workdir, script_file)
         task = interface.mark_start(task)
+
         # if isinstance(task, templates.TaskCommand):
         #     command = task.command(srun_command)
-        if not isinstance(task, templates.TaskScript):
+        if not task.type == taskpy.Type.Script:
             raise TypeError(
                 'Slurm worker only support TaskScript tasks, got: {!r}.'.format(task))
-        command = task.plan(sbatch_command)
+        command = sbatch_command(task.workdir, task.data['file'])
         with os.popen(command) as fin:
             result = fin.readlines()[0]
         sid = slurm.sid_from_submit(result)
-        task.workers.info = {'sid': sid}
+        task.data.update({'sid': sid})
         interface.update(task)
         return result
 
@@ -89,9 +95,12 @@ class MultiThreding(Workers):
     @classmethod
     def plan(cls, task):
         # TRT = namedtuple('TaskResultTuple', ('task', 'res'))
-        with os.popen(task.command()) as fin:
-            result = fin.readlines()
-        return task, result
+        task = interface.mark_start(task)
+        if task.type == taskpy.Type.Command:
+            with os.popen(normal_command(task.workdir, task.data['command'])) as fin:
+                result = fin.readlines()
+        task = interface.mark_complete(task)
+        return result
 
 
 WORKERS = [NoAction, MultiThreding, Slurm]

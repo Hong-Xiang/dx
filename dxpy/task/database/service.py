@@ -16,7 +16,7 @@ def db2json(task):
         '__task__': True,
         'id': task.id,
         'desc': task.desc,
-        'data': task.data,
+        'data': json.loads(task.data),
         'worker': task.worker,
         'type': task.ttype,
         'workdir': task.workdir,
@@ -31,8 +31,6 @@ def db2json(task):
 
 
 def json2db_new(s):
-    dct = json.loads(s)
-    s = json.dumps(dct)
     dct = json.loads(s)
     return TaskDB(desc=dct['desc'],
                   data=json.dumps(dct['data']),
@@ -122,7 +120,7 @@ class Service:
         dct = json.loads(s)
         taskdb = cls.read_taskdb(dct['id'])
         taskdb.desc = dct['desc']
-        taskdb.data = dct['data']
+        taskdb.data = json.dumps(dct['data'])
         taskdb.state = dct['state']
         taskdb.worker = dct['worker']
         taskdb.workdir = dct['workdir']

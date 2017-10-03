@@ -16,7 +16,7 @@ class TestDataBase(unittest.TestCase):
             '__task__': True,
             'id': 1,
             'desc': 'dummpy task',
-            'data': '',
+            'data': {},
             'time_stamp': {
                 'create': "2017-09-22 12:57:44.036185",
                 'start': None,
@@ -64,6 +64,7 @@ class TestDataBase(unittest.TestCase):
         self.assertIsInstance(t, str)
         dct = json.loads(t)
         self.assertTrue(dct['__task__'])
+        self.assertIsInstance(dct['data'], dict)
 
     def test_read_invalid_tid(self):
         invalid_tid = self.dummy_id + 1000
@@ -91,3 +92,4 @@ class TestDataBase(unittest.TestCase):
         service.delete(self.delete_id)
         with self.assertRaises(TaskNotFoundError):
             service.read(self.delete_id)
+

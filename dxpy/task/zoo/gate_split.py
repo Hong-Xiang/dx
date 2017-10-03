@@ -1,8 +1,7 @@
 from dxpy.file_system.path import Path
-from ..representation.factory import create_task_graph
-from ..representation.task import Worker
-from ..representation.templates import TaskCommand, TaskScript
-from ..interface import create_graph
+from dxpy.task.representation import creators, task
+from dxpy.task.interface import create_graph
+
 
 
 class GateSplit:

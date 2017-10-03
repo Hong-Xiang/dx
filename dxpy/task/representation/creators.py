@@ -25,8 +25,10 @@ def task_graph(tasks, depens):
     return g
 
 
-def task_command(command, *args, **kwargs):
-    return task.Task(*args, **kwargs, ttype=task.Type.Command, data={
+def task_command(command, worker=None, *args, **kwargs):
+    if worker is None:
+        worker = task.Worker.MultiThreading
+    return task.Task(*args, **kwargs, worker=worker, ttype=task.Type.Command, data={
         'command': command
     })
 
