@@ -12,7 +12,7 @@ from . import provider
 class TaskResource(Resource):
     def get(self, id):
         try:
-            return Response(interface.read(id), 200, mimetype="application/json")
+            return Response(interface.read(id).to_json(), 200, mimetype="application/json")
         except TaskNotFoundError as e:
             return str(e), 404
 
@@ -32,7 +32,10 @@ class TaskResource(Resource):
 
 class TasksResource(Resource):
     def get(self):
-        return Response(interface.read_all(), 200, mimetype="application/json")
+        tasks = []
+        interface.read_all().subscribe(lambda t: tasks.append(t))        
+        ts = '[\n'+',\n'.join([t.to_json() for t in tasks]) + '\n]'
+        return Response(ts, 200, mimetype="application/json")
 
     def post(self):
         t = task.Task.from_json(request.form['task'])
@@ -41,7 +44,7 @@ class TasksResource(Resource):
 
 
 def lauch_database_server():
-    c = provider.get_or_create_interface('config').get_config('database')
+    c = provider.get_or_create_service('config').get_config('interface')
     app = Flask(__name__)
     api = Api(app)
     api.add_resource(TaskResource, c.task_url + '/<int:id>')

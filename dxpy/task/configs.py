@@ -35,7 +35,7 @@ class DatabaseConfigs:
 class InterfaceConfigs:
     def __init__(self, ip=None, port=None, name=None):
         self.ip = ip or '0.0.0.0'
-        self.port = port or 23300
+        self.port = port or 23302
         self.name = name or 'task'
         self.version = VERSION
         self.debug = True
@@ -53,10 +53,12 @@ class InterfaceConfigs:
 
 CONFIGS = {
     'database': None,
+    'interface': None,
 }
 
 CONFIGS_CLS = {
     'database': DatabaseConfigs,
+    'interface': InterfaceConfigs,
 }
 
 
