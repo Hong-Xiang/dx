@@ -92,4 +92,3 @@ class TestDataBase(unittest.TestCase):
         service.delete(self.delete_id)
         with self.assertRaises(TaskNotFoundError):
             service.read(self.delete_id)
-

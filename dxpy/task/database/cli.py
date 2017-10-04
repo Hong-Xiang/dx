@@ -1,5 +1,5 @@
 import click
-from dxpy.task.database import web
+from . import web
 
 
 @click.group()
@@ -14,6 +14,3 @@ def start():
 
 
 db.add_command(start)
-
-if __name__ == "__main__":
-    db()

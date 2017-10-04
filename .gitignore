@@ -6,3 +6,4 @@ dxpy.egg-info
 .vs
 *.pyproj
 .cache
+.vscode

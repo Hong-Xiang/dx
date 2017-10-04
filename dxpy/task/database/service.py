@@ -3,13 +3,12 @@ import yaml
 import rx
 from rx.concurrency import ThreadPoolScheduler as TPS
 from dxpy.time.utils import strf, strp
-from ..exceptions import TaskNotFoundError
+from ..exceptions import TaskNotFoundError, InvalidJSONForTask
 from .model import Database, TaskDB
 
 
 # def dbs2json(tasks_db):
 #     return json.dumps([json.loads(db2json(task_db)) for task_db in tasks_db])
-
 
 def db2json(task):
     return json.dumps({
@@ -30,8 +29,41 @@ def db2json(task):
     })
 
 
-def json2db_new(s):
+def check_json(s, is_with_id=False):
     dct = json.loads(s)
+    if not dct.get('__task__'):
+        raise InvalidJSONForTask(
+            "'__task__' not found or is False for JSON: {}".format(s))
+
+    def check_key(dct, key, value_type=None):
+        if not key in dct:
+            raise InvalidJSONForTask(
+                "Required key: {key} is not found in JSON string: {s}".format(key=key, s=s))
+        if value_type is not None:
+            if not isinstance(dct[key], value_type):
+                raise InvalidJSONForTask(
+                    "Wrong type for key: {k} with value: {v}".format(k=key, v=dct[k]))
+
+    if is_with_id:
+        check_key(dct, 'id', int)
+    check_key(dct, 'desc', str)
+    check_key(dct, 'data', dict)
+    check_key(dct, 'time_stamp', dict)
+    check_key(dct['time_stamp'], 'create', (str, type(None)))
+    check_key(dct['time_stamp'], 'start', (str, type(None)))
+    check_key(dct['time_stamp'], 'end', (str, type(None)))
+    check_key(dct, 'state', str)
+    check_key(dct, 'is_root', bool)
+    check_key(dct, 'worker', str)
+    check_key(dct, 'type', str)
+    check_key(dct, 'workdir', str)
+    check_key(dct, 'dependency', list)
+
+
+def json2db_new(s):
+    check_json(s)
+    dct = json.loads(s)
+
     return TaskDB(desc=dct['desc'],
                   data=json.dumps(dct['data']),
                   state=dct['state'],
@@ -117,6 +149,7 @@ class Service:
 
     @classmethod
     def json2db_update(cls, s):
+        check_json(s, is_with_id=True)
         dct = json.loads(s)
         taskdb = cls.read_taskdb(dct['id'])
         taskdb.desc = dct['desc']

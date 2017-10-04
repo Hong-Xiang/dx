@@ -46,5 +46,4 @@ def lauch_database_server():
     api = Api(app)
     api.add_resource(TaskResource, c.task_url + '/<int:id>')
     api.add_resource(TasksResource, c.tasks_url)
-
     app.run(host=c.ip, port=c.port, debug=c.debug)
