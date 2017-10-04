@@ -3,12 +3,13 @@ import yaml
 import rx
 from rx.concurrency import ThreadPoolScheduler as TPS
 from dxpy.time.utils import strf, strp
-from ..exceptions import TaskNotFoundError, InvalidJSONForTask
+from ..exceptions import TaskNotFoundError
 from .model import Database, TaskDB
-
+from ..jsonserial import check_json
 
 # def dbs2json(tasks_db):
 #     return json.dumps([json.loads(db2json(task_db)) for task_db in tasks_db])
+
 
 def db2json(task):
     return json.dumps({
@@ -27,37 +28,6 @@ def db2json(task):
         'state': task.state,
         'is_root': task.is_root
     })
-
-
-def check_json(s, is_with_id=False):
-    dct = json.loads(s)
-    if not dct.get('__task__'):
-        raise InvalidJSONForTask(
-            "'__task__' not found or is False for JSON: {}".format(s))
-
-    def check_key(dct, key, value_type=None):
-        if not key in dct:
-            raise InvalidJSONForTask(
-                "Required key: {key} is not found in JSON string: {s}".format(key=key, s=s))
-        if value_type is not None:
-            if not isinstance(dct[key], value_type):
-                raise InvalidJSONForTask(
-                    "Wrong type for key: {k} with value: {v}".format(k=key, v=dct[k]))
-
-    if is_with_id:
-        check_key(dct, 'id', int)
-    check_key(dct, 'desc', str)
-    check_key(dct, 'data', dict)
-    check_key(dct, 'time_stamp', dict)
-    check_key(dct['time_stamp'], 'create', (str, type(None)))
-    check_key(dct['time_stamp'], 'start', (str, type(None)))
-    check_key(dct['time_stamp'], 'end', (str, type(None)))
-    check_key(dct, 'state', str)
-    check_key(dct, 'is_root', bool)
-    check_key(dct, 'worker', str)
-    check_key(dct, 'type', str)
-    check_key(dct, 'workdir', str)
-    check_key(dct, 'dependency', list)
 
 
 def json2db_new(s):
@@ -172,5 +142,7 @@ class Service:
 
     @classmethod
     def delete(cls, tid):
-        cls.get_or_create_session().delete(cls.read_taskdb(tid))
-        cls.get_or_create_session().commit()
+        t = cls.read_taskdb(tid)
+        if t is not None:
+            cls.get_or_create_session().delete(t)
+            cls.get_or_create_session().commit()

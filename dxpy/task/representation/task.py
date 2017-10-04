@@ -20,6 +20,7 @@ from enum import Enum
 from dxpy.file_system.path import Path
 from dxpy.time.timestamps import TaskStamp
 from dxpy.time.utils import strf, strp, now
+from ..jsonserial import check_json
 
 
 class State(Enum):
@@ -95,6 +96,7 @@ class Task:
 
     @classmethod
     def from_json(cls, s):
+        check_json(s)
         return json.loads(s, object_hook=cls.deserialization)
         # return Task(tid=dct['id'],
         #             desc=dct['desc'],
@@ -174,4 +176,3 @@ def complete(task):
     task.end = now()
     task.state = State.Complete
     return task
-

@@ -2,6 +2,8 @@ import yaml
 from functools import wraps
 from .exceptions import UnknownConfigName
 
+VERSION = 0.2
+
 
 class DatabaseConfigs:
     def __init__(self, file=None, root=None, ip=None, port=None, version=None, name=None, use_web_api=False):
@@ -10,7 +12,7 @@ class DatabaseConfigs:
         self.ip = ip or '127.0.0.1'
         self.port = port or 23301
         self.echo = False
-        self.version = version or 0.1
+        self.version = version or VERSION
         self.name = name or 'taskdb'
         self.use_web_api = use_web_api
         self.debug = False
@@ -32,10 +34,10 @@ class DatabaseConfigs:
 
 class InterfaceConfigs:
     def __init__(self, ip=None, port=None, name=None):
-        self.ip = ip or '127.0.0.1'
+        self.ip = ip or '0.0.0.0'
         self.port = port or 23300
         self.name = name or 'task'
-        self.version = 0.1
+        self.version = VERSION
         self.debug = True
 
     @property
