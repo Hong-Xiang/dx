@@ -259,7 +259,7 @@ class Directory(FileAbstract):
 class NormalFile(FileAbstract):
     def __init__(self, path, file_system):
         FileAbstract.__init__(path, file_system)
-        if not self.check(self.path, self.fs)
+        if not self.check(self.path, self.fs):
             raise FileNotFoundOrWrongTypeError(self.path, self.ftype)
 
     @staticmethod

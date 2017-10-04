@@ -5,10 +5,10 @@ from .. import interface
 from . import workers
 from .. import provider
 
-SUPPORTED_WORKERS = [workers.Slurm, workers.MultiThreding]
+SUPPORTED_WORKERS = [workers.Slurm, workers.MultiThreding, workers.NoAction]
 
 
-def start(task):
+def start(task):    
     workers.get_workers(task).run(task)
 
 
@@ -44,6 +44,7 @@ def is_dependencies_complete(task):
     return (interface.dependencies(task)
             .all(lambda t: t.is_complete))
 
+
 def start(task):
     for w in SUPPORTED_WORKERS:
         if w.on_this_worker(task):
@@ -57,6 +58,7 @@ def auto_start():
                              tasks.flat_map(is_dependencies_complete))
      .filter(lambda x: x[1])
      .map(lambda x: x[0])
+    #  .subscribe(print))
      .subscribe(lambda t: start(t)))
 
 

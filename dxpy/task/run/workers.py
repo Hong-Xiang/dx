@@ -28,6 +28,8 @@ class Workers:
 
     @classmethod
     def run(cls, task, stdout=None, stderr=None):
+        print('RUN CALLED with task')
+        print(task)
         if stdout is None:
             stdout = sys.stdout
         if stderr is None:
@@ -44,6 +46,7 @@ class NoAction(Workers):
 
     @classmethod
     def plan(cls, t, *args):
+        print("NO ACTION PLAN CALLED")
         t = interface.mark_start(t)
         t = interface.mark_complete(t)
         return 'NoAction of task id: {} done.'.format(t.id)
