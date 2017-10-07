@@ -33,8 +33,8 @@ class TaskResource(Resource):
 class TasksResource(Resource):
     def get(self):
         tasks = []
-        interface.read_all().subscribe(lambda t: tasks.append(t))        
-        ts = '[\n'+',\n'.join([t.to_json() for t in tasks]) + '\n]'
+        interface.read_all().subscribe(lambda t: tasks.append(t))
+        ts = '[\n' + ',\n'.join([t.to_json() for t in tasks]) + '\n]'
         return Response(ts, 200, mimetype="application/json")
 
     def post(self):
@@ -43,10 +43,15 @@ class TasksResource(Resource):
         return Response(json.dumps({'id': res}), 201, mimetype="application/json")
 
 
-def lauch_database_server():
+def add_api(api):
     c = provider.get_or_create_service('config').get_config('interface')
-    app = Flask(__name__)
-    api = Api(app)
     api.add_resource(TaskResource, c.task_url + '/<int:id>')
     api.add_resource(TasksResource, c.tasks_url)
+
+
+def lauch_database_server():
+    app = Flask(__name__)
+    api = Api(app)
+    add_api(api)
+    c = provider.get_or_create_service('config').get_config('interface')
     app.run(host=c.ip, port=c.port, debug=c.debug)
