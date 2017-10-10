@@ -53,7 +53,10 @@ class NoAction(Workers):
 
 
 def sbatch_command(workdir, file):
-    return 'cd {0} && sbatch {1}'.format(workdir, file)
+    cmd = 'cd {0}'.format(workdir)
+    if file is not None:
+        cmd += ' && sbatch {0}'.format(file)
+    return cmd
 
 
 def normal_command(workdir, command):
@@ -65,7 +68,7 @@ class Slurm(Workers):
 
     @classmethod
     def is_complete(cls, task, *args):
-        return slurm.is_complete(task.data['sid'])
+        return slurm.is_complete(task.data.get('sid'))
 
     @classmethod
     def plan(cls, task, *args):
@@ -83,7 +86,7 @@ class Slurm(Workers):
         if not task.type == taskpy.Type.Script:
             raise TypeError(
                 'Slurm worker only support TaskScript tasks, got: {!r}.'.format(task))
-        command = sbatch_command(task.workdir, task.data['file'])
+        command = sbatch_command(task.workdir, task.data.get('file'))
         with os.popen(command) as fin:
             result = fin.readlines()[0]
         sid = slurm.sid_from_submit(result)
