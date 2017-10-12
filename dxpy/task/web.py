@@ -43,6 +43,12 @@ class TasksResource(Resource):
         return Response(json.dumps({'id': res}), 201, mimetype="application/json")
 
 
+def add_apis(api, root, name='task'):
+    root_tsk = root + '/{0}'.format(name)
+    api.add_resource(TaskResource, root_tsk + '/<int:id>')
+    api.add_resource(TasksResource, root_tsk + 's')
+
+
 def add_api(api):
     c = provider.get_or_create_service('config').get_config('interface')
     api.add_resource(TaskResource, c.task_url + '/<int:id>')
