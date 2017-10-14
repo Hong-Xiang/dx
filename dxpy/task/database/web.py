@@ -1,64 +1,51 @@
 import requests
-from flask import Flask, make_response
+import json
+from functools import wraps
+from flask import Flask, make_response, request, Response
 from flask_restful import Resource, reqparse, Api
 
-
-from dxpy.utils import urlf
-from dxpy.task.database.config import ip, port, task_url, tasks_url
-from dxpy.task.database.service import Service as sv
-
-app = Flask(__name__)
-api = Api(app)
+from .. import provider
+from .service import Service as sv
+from ..exceptions import TaskNotFoundError
 
 
 class TaskResource(Resource):
     def get(self, id):
-        pass
+        try:
+            return Response(sv.read(id), 200, mimetype="application/json")
+        except TaskNotFoundError as e:
+            return str(e), 404
 
     def put(self, id):
-        pass
+        try:
+            task = request.form['task']
+            return Response(sv.update(task), 201, mimetype="application/json")
+        except TaskNotFoundError as e:
+            return str(e), 404
+
+    def delete(self, id):
+        try:
+            return Response(sv.delete(id), 200, mimetype="application/json")
+        except TaskNotFoundError as e:
+            return str(e), 404
 
 
 class TasksResource(Resource):
     def get(self):
-        return sv.read()
+        task_jsons = []
+        sv.read_all().subscribe(lambda t: task_jsons.append(t))
+        return Response(json.dumps(task_jsons), 200, mimetype="application/json")
 
-    def post(self, task):
-        pass
-
-
-@app.route('/hello')
-def hello():
-    return 'hello', 200
-
-
-api.add_resource(TasksResource, task_url())
-api.add_resource(TaskResource, tasks_url())
+    def post(self):
+        task = request.form['task']
+        res = sv.create(task)
+        return Response(json.dumps({'id': res}), 201, mimetype="application/json")
 
 
-def lauch_database_server(host='127.0.0.1'):
-    app.run(host=host, port=port())
-
-
-def turl(tid):
-    return urlf(ip(), port(), "{base}/{tid}".format(base=task_url(), tid=tid))
-
-
-def tsurl():
-    return urlf(ip(), port(), task_url(), tid=tid)
-
-
-class Service:
-    @staticmethod
-    def create(task_json):
-        r = requests.post(tsurl, {'task': task_json})
-        return int(r.text)
-
-    def read(tid):
-        return requests.get(turl(task_json.id)).text
-
-    def update(task_json):
-        requests.put(turl(task_json.id), {'task': task_json})
-
-    def delete(tid):
-        requests.delete(turl(task_json.id))
+def launch_database_server():
+    c = provider.get_or_create_service('config').get_config('database')
+    app = Flask(__name__)
+    api = Api(app)
+    api.add_resource(TaskResource, c.task_url + '/<int:id>')
+    api.add_resource(TasksResource, c.tasks_url)
+    app.run(host=c.ip, port=c.port, debug=c.debug)

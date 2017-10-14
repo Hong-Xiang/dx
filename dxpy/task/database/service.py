@@ -1,88 +1,148 @@
 import json
+import yaml
 import rx
-from dxpy.task.database.model import DBSession, TaskDB
+from rx.concurrency import ThreadPoolScheduler as TPS
 from dxpy.time.utils import strf, strp
-session = DBSession()
+from ..exceptions import TaskNotFoundError
+from .model import Database, TaskDB
+from ..jsonserial import check_json
 
-
-class TaskNotFoundError(Exception):
-    pass
+# def dbs2json(tasks_db):
+#     return json.dumps([json.loads(db2json(task_db)) for task_db in tasks_db])
 
 
 def db2json(task):
     return json.dumps({
+        '__task__': True,
         'id': task.id,
         'desc': task.desc,
-        'body': task.body,
-        'dependency': (rx.Observable.just(task.dependency)
-                       .flat_map(lambda x: x.split(' '))
-                       .filter(lambda x: x.isdigit())
-                       .map(lambda x: int(x))
-                       .to_list().to_blocking().first()),
-        'time_create': strf(task.time_create),
+        'data': json.loads(task.data),
+        'worker': task.worker,
+        'type': task.ttype,
+        'workdir': task.workdir,
+        'dependency': json.loads(task.dependency),
+        'time_stamp': {
+            'create': strf(task.time_create),
+            'start': strf(task.time_start),
+            'end': strf(task.time_end)},
         'state': task.state,
+        'is_root': task.is_root
     })
 
 
-def create_new_task_db(task_json):
-    return TaskDB(desc=task_json['desc'],
-                  body=task_json['body'],
-                  state=task_json['state'],
-                  time_create=strp(task_json['time_create']),
-                  depens=' '.join(task_json['dependency']))
+def json2db_new(s):
+    check_json(s)
+    dct = json.loads(s)
+
+    return TaskDB(desc=dct['desc'],
+                  data=json.dumps(dct['data']),
+                  state=dct['state'],
+                  workdir=dct['workdir'],
+                  worker=dct['worker'],
+                  ttype=dct['type'],
+                  dependency=json.dumps(dct['dependency']),
+                  time_create=strp(dct['time_stamp']['create']),
+                  is_root=dct['is_root'])
 
 
-def update_db_by_json(task_json, session):
-    task_json = json.loads(task_json)
-    taskdb = session.query(TaskDB).get(task_json['id'])
-    if taskdb is None:
-        raise TaskNotFoundError(
-            "Task with id: {tid} not found.".format(tid=task_json['id']))
-    taskdb.desc = task_json['desc'],
-    taskdb.body = task_json['body'],
-    taskdb.state = task_json['state'],
-    taskdb.time_create = strp(task_json['time_create'])
-    taskdb.depens = ' '.join(task_json['dependency'])
-    return taskdb
+def jsonit2db(s):
+    dct = json.loads(s)
 
 
-def json2db(task_json, session=None):
-    task_json = json.loads(task_json)
-    if task_json['id'] is not None:
-        return update_db_by_json(task_json, session)
-    else:
-        return create_new_task_db(task_json)
+def jsondb2it(s):
+    pass
 
 
 class Service:
-    @staticmethod
-    def create(task_json):
+    session = None
+
+    @classmethod
+    def create_session(cls):
+        cls.session = Database.session()
+
+    @classmethod
+    def get_or_create_session(cls, path=None):
+        if cls.session is None:
+            cls.create_session()
+        return cls.session
+
+    @classmethod
+    def clear_session(cls):
+        if cls.session is not None:
+            cls.session.close()
+        cls.session = None
+
+    @classmethod
+    def create(cls, task_json: str) -> int:
         """
-        Inputs:
-            task: taskJSON
+        Create a task record in database.
         """
-        task_db = json2db(task_json)
-        session.add(task_db)
-        session.commit()
+        task_db = json2db_new(task_json)
+        cls.get_or_create_session().add(task_db)
+        cls.get_or_create_session().commit()
+        task_db = cls.get_or_create_session().query(TaskDB).get(task_db.id)
         return task_db.id
 
-    @staticmethod
-    def read(tid=None):
-        if tid is None:
-            return [db2json(t) for t in session.query(TaskDB).all()]
+    @classmethod
+    def read_taskdb(cls, tid):
+        task_db = cls.get_or_create_session().query(TaskDB).get(tid)
+        if task_db is None:
+            raise TaskNotFoundError(tid)
         else:
-            task_db = session.query(TaskDB).get(tid)
-            if task_db is None:
-                return None
-            else:
-                return db2json(task_db)
+            return task_db
 
-    @staticmethod
-    def update(task_json):
-        json2db(task_json, session)
-        session.commit()
+    @classmethod
+    def read(cls, tid=None):
+        """
+        Raises:
+        - `TaskNotFoundError`
+        """
+        return db2json(cls.read_taskdb(tid))
 
-    @staticmethod
-    def delete(tid):
-        session.delete(session.query(TaskDB).get(tid))
-        session.commit()
+    @classmethod
+    def read_all(cls, filter_func=None) -> 'rx.Observable<json str>':
+        """
+        Returns JSON serilized query results;
+
+        Returns:
+        - `str`: JSON loadable observalbe
+
+        Raises:
+        - None
+        """
+        if filter_func is None:
+            def filter_func(x): return True
+        return (rx.Observable
+                .from_(cls.get_or_create_session().query(TaskDB).all())
+                .filter(filter_func)
+                .map(db2json))
+
+    @classmethod
+    def json2db_update(cls, s):
+        check_json(s, is_with_id=True)
+        dct = json.loads(s)
+        taskdb = cls.read_taskdb(dct['id'])
+        taskdb.desc = dct['desc']
+        taskdb.data = json.dumps(dct['data'])
+        taskdb.state = dct['state']
+        taskdb.worker = dct['worker']
+        taskdb.workdir = dct['workdir']
+        taskdb.ttype = dct['type']
+        taskdb.dependency = json.dumps(dct['dependency'])
+        taskdb.time_create = strp(dct['time_stamp']['create'])
+        taskdb.time_start = strp(dct['time_stamp']['start'])
+        taskdb.time_end = strp(dct['time_stamp']['end'])
+        taskdb.is_root = dct['is_root']
+        return taskdb
+
+    @classmethod
+    def update(cls, task_json):
+        cls.json2db_update(task_json)
+        cls.get_or_create_session().commit()
+
+    @classmethod
+    def delete(cls, tid):
+        t = cls.read_taskdb(tid)
+        if t is not None:
+            cls.get_or_create_session().delete(t)
+            cls.get_or_create_session().commit()

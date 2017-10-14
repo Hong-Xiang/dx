@@ -1,4 +1,9 @@
 *.pyc
 
 dxpy.egg-info
-
+/docs/_*/
+/docs/make.bat
+.vs
+*.pyproj
+.cache
+.vscode

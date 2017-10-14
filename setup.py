@@ -8,4 +8,11 @@ setup(name='dxpy',
       author_email='hx.hongxiang@gmail.com',
       license='MIT',
       packages=[],
+      install_requires=[
+          'rx',
+          'flask_restful',
+          'flask_sqlalchemy',
+          'graphviz',
+          'fs'
+      ],
       zip_safe=False)

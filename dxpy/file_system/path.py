@@ -127,7 +127,7 @@ class Path(yaml.YAMLObject):
             'parts': self.parts()
         })
         return result
-    
+
     @classmethod
     def to_yaml(cls, dumper, data):
         return yaml.ScalarNode(cls.yaml_tag, data.abs)
@@ -135,6 +135,9 @@ class Path(yaml.YAMLObject):
     @classmethod
     def from_yaml(cls, loader, node):
         return Path(loader.construct_scalar(node))
+
+    def __eq__(self, path):
+        return self.abs == path.abs
 
 # def _path_representer(dumper, data):
 #     return dumper.represent_scalar('!path', data.abs)
