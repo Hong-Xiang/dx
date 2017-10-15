@@ -1,5 +1,4 @@
 import click
-from . import web
 
 
 @click.group()
@@ -9,6 +8,7 @@ def db():
 
 @click.command()
 def start():
+    from . import web
     """ start task database web service """
     web.launch_database_server()
 

@@ -1,5 +1,4 @@
-import requests
-import json
+
 from functools import wraps
 from flask import Flask, make_response, request, Response
 from flask_restful import Resource, reqparse, Api
@@ -31,15 +30,17 @@ class TaskResource(Resource):
 
 
 class TasksResource(Resource):
+    import json
+
     def get(self):
         task_jsons = []
         sv.read_all().subscribe(lambda t: task_jsons.append(t))
-        return Response(json.dumps(task_jsons), 200, mimetype="application/json")
+        return Response(self.json.dumps(task_jsons), 200, mimetype="application/json")
 
     def post(self):
         task = request.form['task']
         res = sv.create(task)
-        return Response(json.dumps({'id': res}), 201, mimetype="application/json")
+        return Response(self.json.dumps({'id': res}), 201, mimetype="application/json")
 
 
 def launch_database_server():
