@@ -119,6 +119,9 @@ class Component:
         self.path = path
         self.name = name
 
+    def _make_init(self, fs):
+        fs.touch('__init__.py')
+
     def _make_api(self, fs):
         with fs.open('api.py', 'w') as fout:
             print('from . import service', file=fout)
@@ -154,6 +157,7 @@ class Component:
                 d = fs.opendir(self.name)
             else:
                 d = fs.makedir(self.name)
+            self._make_init(d)
             self._make_api(d)
             self._make_cli(d)
             self._make_web(d)

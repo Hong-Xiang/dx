@@ -1,3 +1,9 @@
+"""
+Abstract of path object.
+Features:
+    An unified model for path, pathlib.Path, fs.path, and url encoded path.
+"""
+
 import fs.path as fp
 from fs import opener
 from urllib.parse import quote_plus as qut

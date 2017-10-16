@@ -1,7 +1,9 @@
 from .directory.model import Directory
 from .file.model import File
+from .path.model import Path
 from .directory import service as ds
 from .file import service as fs
+from fs.osfs import OSFS
 
 
 def mv(sor, tar, overwrite=True):
@@ -25,6 +27,23 @@ def rm(sor):
         fs.rm(sor)
 
 
+class EnsureFS:
+    def __init__(self, fs_or_path, default_filesystem=OSFS):
+        if isinstance(fs_or_path, str):
+            self.fs = default_filesystem(Path(fs_or_path).abs)
+            self.need_close = True
+        else:
+            self.fs = fs_or_path
+            self.need_close = False
+
+    def __enter__(self):
+        return self.fs
+
+    def __exit__(self, type, value, trackback):
+        if self.need_close:
+            self.fs.close()
+
+
 def launch_web_ui(host, port, version=0.1, debug=True):
     from flask import Flask, url_for
     from flask_cors import CORS, cross_origin
@@ -40,8 +59,9 @@ def launch_web_ui(host, port, version=0.1, debug=True):
         import json
         links = []
         for rule in app.url_map.iter_rules():
-            if rule.endpoint =='static':
+            if rule.endpoint == 'static':
                 continue
-            links.append((url_for(rule.endpoint, path='%252Ftmp%252Ftest'), rule.endpoint))
+            links.append(
+                (url_for(rule.endpoint, path='%252Ftmp%252Ftest'), rule.endpoint))
         return json.dumps(links, indent=4, separators=(',', ':'))
     app.run(host, port, debug=debug)
