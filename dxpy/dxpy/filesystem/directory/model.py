@@ -3,8 +3,12 @@ from ..exceptions import DirectoryNotFoundError
 from ..path.model import Path
 from ..file.model import File
 
+import yaml
+
 
 class Directory:
+    yaml_tag = '!path'
+
     def __init__(self, path, load_depth=0):
         self.path = Path(path)
         if load_depth > 0:
@@ -44,3 +48,16 @@ class Directory:
     def __str__(self):
         import json
         return json.dumps(self.to_serializable(), sort_keys=True, separators=(',', ':'), indent=4)
+
+
+def directory_representer(dumper, data):
+    return dumper.represent_scalar(Path.yaml_tag, data.abs)
+
+
+def directory_constructor(loader, node):
+    value = loader.construct_scalar(node)
+    return Path(value)
+
+
+yaml.add_representer(Directory, directory_representer)
+yaml.add_constructor(Directory.yaml_tag, directory_constructor)

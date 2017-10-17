@@ -9,7 +9,8 @@ from fs import opener
 from urllib.parse import quote_plus as qut
 from urllib.parse import unquote_plus as uqut
 import pathlib
-import yaml
+# import yaml
+from ruamel.yaml import YAML
 
 from ..exceptions import NonePathError, ConflictUrlSpecError
 
@@ -159,15 +160,24 @@ class Path:
     def __eq__(self, path):
         return self.path == Path(path).path
 
+    @classmethod
+    def to_yaml(cls, representer, obj):
+        return representer.represent_scalar(cls.yaml_tag, obj.abs)
 
-def path_representer(dumper, data):
-    return dumper.represent_scalar(Path.yaml_tag, data.abs)
+    @classmethod
+    def from_yaml(cls, constructor, node):
+        return Path(constructor.construct_scalar(node))
+
+yaml = YAML()
+yaml.register_class(Path)
+# def path_representer(dumper, data):
+#     return dumper.represent_scalar(Path.yaml_tag, data.abs)
 
 
-def path_constructor(loader, node):
-    value = loader.construct_scalar(node)
-    return Path(value)
+# def path_constructor(loader, node):
+#     value = loader.construct_scalar(node)
+#     return Path(value)
 
 
-yaml.add_representer(Path, path_representer)
-yaml.add_constructor(Path.yaml_tag, path_constructor)
+# yaml.add_representer(Path, path_representer)
+# yaml.add_constructor(Path.yaml_tag, path_constructor)
