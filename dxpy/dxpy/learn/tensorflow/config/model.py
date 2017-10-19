@@ -1,23 +1,60 @@
-from dxpy.filesystem.directory import Directory
-class Save:
-    def __init__(self, frequency, method):
-        self.frequency = frequency
-        self.method = method
+from dxpy.filesystem.path import Path
+from dxpy.configs.base import Configs
+from ruamel.yaml import YAML
 
 
-class Load:
-    def __init__(self, is_load, step):
-        self.is_load = is_load
-        self.step = step
+class ConfigsSave(Configs):
+    keys = ('frequency', 'method')
+    defaults = {
+        'frequency': 100,
+        'method': 'step'
+    }
 
-class ModelDir(Directory):
-    
+    def __init__(self, **kwargs):
+        super(__class__, self).__init__(**kwargs)
 
-class Serilization:
-    def __init__(self, model_dir, is_load, load_step, save_freq, save_type, ckpt_name):
-        self.model_dir = None,
-        is_load = False,
-        load_step = None,
-        save_freq = 100,
-        save_type = 'time',
-        ckpt_name = 'model.ckpt',
+
+ConfigsSave.add_yaml_support()
+
+
+class ConfigsLoad(Configs):
+    keys = ('is_load', 'step')
+    defaults = {
+        'is_load': True,
+        'step': -1
+    }
+
+    def __init__(self, **kwargs):
+        super(__class__, self).__init__(**kwargs)
+
+
+ConfigsLoad.add_yaml_support()
+
+
+class ConfigsModelFS(Configs):
+    keys = ('path_model', 'ckpt_name')
+    defaults = {
+        'path_model': './model',
+        'ckpt_name': 'save'
+    }
+
+    def __init__(self, **kwargs):
+        super(__class__, self).__init__(**kwargs)
+
+
+ConfigsModelFS.add_yaml_support()
+
+
+class ConfigsTrain(Configs):
+    keys = ('model_fs', 'load', 'save')
+    defaults = {
+        'model_fs': ConfigsModelFS().apply_defaults(),
+        'load': ConfigsLoad().apply_defaults(),
+        'save': ConfigsSave().apply_defaults()
+    }
+
+    def __init__(self, **kwargs):
+        super(__class__, self).__init__(**kwargs)
+
+
+ConfigsTrain.add_yaml_support()
