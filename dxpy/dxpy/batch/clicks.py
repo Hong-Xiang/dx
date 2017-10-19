@@ -12,7 +12,7 @@ def sum():
 
 
 @files.command()
-def cat()
+def cat():
     pass
 
 
@@ -28,4 +28,9 @@ def dirs():
 
 @dirs.command()
 def merge():
+    pass
+
+
+@dirs.command()
+def sbatch():
     pass

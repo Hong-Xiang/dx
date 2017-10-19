@@ -1,3 +1,7 @@
+"""
+Graph with dipendencies
+"""
+
 import networkx as nx
 from dxpy.exceptions.checks import assert_same_length
 

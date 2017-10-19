@@ -1,9 +1,8 @@
-# Auto generated cli.py
 import click
 
 
 class CLI(click.MultiCommand):
-    commands = {'file': None}
+    commands = {'files': None, 'dirs': None}
 
     def __init__(self):
         super(__class__, self).__init__(name='batch', help=__class__.__doc__)
@@ -12,9 +11,10 @@ class CLI(click.MultiCommand):
         return sorted(self.commands.keys())
 
     def get_command(self, ctx, name):
-        from . import 
+        from . import clicks
         if name in self.commands and self.commands[name] is None:
-            self.commands[name] = getattr(service, name)
+            self.commands[name] = getattr(clicks, name)
         return self.commands.get(name)
+
 
 batch = CLI()

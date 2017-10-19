@@ -36,25 +36,3 @@ class CLI(click.MultiCommand):
         return self.commands.get(name)
 
 code = CLI()
-
-# cli = CLIMain()
-
-
-# @click.group(cls=CLIMain)
-# def code():
-#     pass
-
-
-# @code.group()
-# def new():
-#     """
-#     Create new code files and snippets.
-#     """
-#     pass
-# @click.command(cls=CLIMain)
-# def code():
-#     pass
-
-
-# if __name__ == "__main__":
-#     code()

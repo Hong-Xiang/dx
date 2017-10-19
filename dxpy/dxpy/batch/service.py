@@ -1,18 +1,10 @@
 import rx
 
 
-def map_file(fs, filter, callback, dryrun):
-    pass
-
-
-def map_directory(fs, filter, callback, dryrun):
-    pass
-
-
 class Mapper:
-    def __init__(self, fs, filter):
+    def __init__(self, fs, filters, silent):
         self.fs = fs
-        self.filter = filter
+        self.filter = filters
 
     def ls(self, infos=None):
         # TODO convert to true observalbes
@@ -24,7 +16,21 @@ class Mapper:
                 sizes = [self.fs.getdetails(p).size for p in paths]
                 result_dct.update({'size': sizes})
         results = zip(*(result_dct[k] for k in result_dct))
-        return rx.Observable.from_(results)
+        # return rx.Observable.from_(results)
+        return results
+
+    def call(self, fs, callback):
+        paths = self.filter.get_list(fs)
+        for p in paths:
+            callback(p)
+
+    def broadcast(self, fs, dirs):
+        # TODO: Implementation
+        for d in dirs:
+            if not fs.exists(d):
+                fs.makedirs(d)
+            elif not fs.isdir(d):
+                pass
 
 
 class Reducer:
