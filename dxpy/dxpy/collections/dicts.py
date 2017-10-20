@@ -43,13 +43,21 @@ class TreeDict(PathTree):
     yaml_tag = '!treedict'
 
     def __init__(self, *args, **kwargs):
-        pass
+        super(__class__, self).__init__()
 
     def compile(self):
-        pass
+        self._push_dict()
 
-    def _push_dict(self, path, dct):
-        new_dict = self.get_data(path).apply_default(dct)
+    def _push_dict(self, path=None, dct=None):
+        if dct is None:
+            dct = DXDict()
+        if path is None:
+            path = '/'
+        if self.get_data(path) is None:
+            self.get_node(path).data = DXDict(dct)
+            new_dict = self.get_node(path).data
+        else:
+            new_dict = self.get_data(path).apply_default(dct)
         self.get_node(path).data = new_dict
         nodes = self.tree.children(path)
         for n in nodes:
@@ -57,3 +65,6 @@ class TreeDict(PathTree):
 
     def __getitem__(self, path):
         return self.get_data(path)
+
+    def add_dict(self, name, parent, dct):
+        self.create_node(name, parent, data=DXDict(dct))

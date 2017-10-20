@@ -22,6 +22,9 @@ class PathTree:
 
     def create_node(self, name=None, path_parent=None, data=None):
         path_parent, path_current = self._resolve_path(name, path_parent)
+        if path_parent is not None and self.get_node(path_parent) is None:
+            self.create_node(Path(path_parent).name,
+                             Path(path_parent).father, None)
         return self.tree.create_node(name, path_current, parent=path_parent, data=data)
 
     def get_node(self, path):

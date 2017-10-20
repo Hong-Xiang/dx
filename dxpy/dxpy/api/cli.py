@@ -12,9 +12,9 @@ class CLI(click.MultiCommand):
         return sorted(self.commands.keys())
 
     def get_command(self, ctx, name):
-        from dxpy.task.cli import task
-        from dxpy.code.cli import code
-        from dxpy.batch.cli import batch
+        from ..task.cli import task
+        from ..code.cli import code
+        from ..batch.cli import batch
         if name in self.commands:
             if self.commands[name] is None:
                 mapping = {
@@ -27,5 +27,6 @@ class CLI(click.MultiCommand):
 
 
 dxl = CLI()
+
 if __name__ == "__main__":
     dxl()
