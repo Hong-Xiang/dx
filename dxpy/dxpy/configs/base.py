@@ -1,7 +1,8 @@
 import copy
+from dxpy.collections.dicts import DXDict
 
 
-class Configs:
+class Configs(DXDict):
     """
     A configs object is a *imutable* dict like collection. elements of the collection can be one of the following:
     #. basic types (str, int, bool)
@@ -9,51 +10,24 @@ class Configs:
     #. Configs object
     #. list or dict of Configs
     """
-    keys = tuple()
-    defaults = {}
-
-    @classmethod
-    def keys(cls):
-        """ All keys of a configs class.
-        """
-        return cls.keys
-
-    @classmethod
-    def defaults(cls):
-        """
-        Note: keys not exists in cls.keys() are ignored.
-        """
-        return cls.defaults
+    _names = tuple()
+    default_configs = {}
 
     def __init__(self, **kwargs):
-        for k in kwargs:
-            self.k = kwargs[k]
+        super(__class__, self).__init__(**kwargs)
+        self.apply_default(self.default_configs)
 
-    def get(self, key):
-        if not hasattr(self, k):
-            return None
+    @classmethod
+    def names(cls):
+        """ All keys of a configs class.
+        """
+        return cls._names
+
+    def __getitem__(self, key):
+        if key in self.data:
+            return self.data[key]
         else:
-            return copy.deepcopy(self.k)
-
-    def apply_defaults(self, recursive=True):
-        results = {}
-        for k in self.keys():
-            if self.get(k) is None:
-                results.update({k: self.defaults().get(k)})
-            elif isinstance(self.k, Configs) and recursive:
-                results.update({k: self.k.apply_defaults(recursive)})
-            else:
-                results.update({k: self.k})
-        return type(self)(**results)
-
-    def append_update(self, configs, extend_keys=False):
-        results = {}
-        for k in self.keys():
-            if self.get(k) is None:
-                results.update({k: configs.get(k)})
-            else:
-                results.update({k: self.get(k)})
-        return type(self)(**results)
+            return self.default_dict[key]
 
     @classmethod
     def add_yaml_support(cls):
