@@ -15,4 +15,5 @@ setup(name='dxpy',
           'graphviz',
           'fs'
       ],
+      scripts=['bin/dxpy'],
       zip_safe=False)
