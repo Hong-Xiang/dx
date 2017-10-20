@@ -5,7 +5,7 @@ from ruamel.yaml import YAML
 
 class ConfigsSave(Configs):
     _names = ('frequency', 'method')
-    defaults = {
+    default_configs = {
         'frequency': 100,
         'method': 'step'
     }
@@ -14,12 +14,9 @@ class ConfigsSave(Configs):
         super(__class__, self).__init__(**kwargs)
 
 
-ConfigsSave.add_yaml_support()
-
-
 class ConfigsLoad(Configs):
     _names = ('is_load', 'step')
-    defaults = {
+    default_configs = {
         'is_load': True,
         'step': -1
     }
@@ -28,12 +25,9 @@ class ConfigsLoad(Configs):
         super(__class__, self).__init__(**kwargs)
 
 
-ConfigsLoad.add_yaml_support()
-
-
 class ConfigsModelFS(Configs):
     _names = ('path_model', 'ckpt_name')
-    defaults = {
+    default_configs = {
         'path_model': './model',
         'ckpt_name': 'save'
     }
@@ -42,12 +36,9 @@ class ConfigsModelFS(Configs):
         super(__class__, self).__init__(**kwargs)
 
 
-ConfigsModelFS.add_yaml_support()
-
-
 class ConfigsTrain(Configs):
     _names = ('model_fs', 'load', 'save')
-    defaults = {
+    default_configs = {
         'model_fs': ConfigsModelFS(),
         'load': ConfigsLoad(),
         'save': ConfigsSave()
@@ -57,4 +48,8 @@ class ConfigsTrain(Configs):
         super(__class__, self).__init__(**kwargs)
 
 
-ConfigsTrain.add_yaml_support()
+from dxpy import serialization
+serialization.register(ConfigsSave)
+serialization.register(ConfigsLoad)
+serialization.register(ConfigsModelFS)
+serialization.register(ConfigsTrain)

@@ -10,12 +10,17 @@ class Configs(DXDict):
     #. Configs object
     #. list or dict of Configs
     """
+    yaml_tag = '!configs'
     _names = tuple()
     default_configs = {}
 
-    def __init__(self, **kwargs):
-        super(__class__, self).__init__(**kwargs)
-        self.apply_default(self.default_configs)
+    def __init__(self, *args, default_dict=None, **kwargs):
+        if default_dict is None:
+            default_dict = DXDict(self.default_configs)
+        else:
+            default_dict = default_dict.apply_default(default_dict)
+        super(__class__, self).__init__(
+            *args, **kwargs, default_dict=default_dict)
 
     @classmethod
     def names(cls):
@@ -23,17 +28,6 @@ class Configs(DXDict):
         """
         return cls._names
 
-    def __getitem__(self, key):
-        if key in self.data:
-            return self.data[key]
-        else:
-            return self.default_dict[key]
 
-    @classmethod
-    def add_yaml_support(cls):
-        from ruamel.yaml import YAML
-        yaml = YAML()
-        yaml.register_class(cls)
-
-
-Configs.add_yaml_support()
+from dxpy import serialization
+serialization.register(Configs)
