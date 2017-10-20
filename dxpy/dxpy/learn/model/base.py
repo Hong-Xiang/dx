@@ -51,7 +51,7 @@ class Net:
     def run(self, session, task, feeds):
         pass
 
-    def run_unknown_task(self):
+    def run_undefined(self):
         pass
 
     def resolve_feeds(self):

@@ -158,7 +158,10 @@ class Path:
 
     @classmethod
     def from_yaml(cls, constructor, node):
-        return Path(constructor.construct_scalar(node))
+        return Path(constructor.construct_calar(node))
+
+    def __hash__(self):
+        return self.abs
 
 
 yaml = YAML()

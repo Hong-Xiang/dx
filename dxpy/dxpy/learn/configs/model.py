@@ -5,7 +5,7 @@ from ruamel.yaml import YAML
 
 class ConfigsSave(Configs):
     _names = ('frequency', 'method')
-    default_configs = {
+    _default_configs = {
         'frequency': 100,
         'method': 'step'
     }
@@ -16,7 +16,7 @@ class ConfigsSave(Configs):
 
 class ConfigsLoad(Configs):
     _names = ('is_load', 'step')
-    default_configs = {
+    _default_configs = {
         'is_load': True,
         'step': -1
     }
@@ -27,7 +27,7 @@ class ConfigsLoad(Configs):
 
 class ConfigsModelFS(Configs):
     _names = ('path_model', 'ckpt_name')
-    default_configs = {
+    _default_configs = {
         'path_model': './model',
         'ckpt_name': 'save'
     }
@@ -38,7 +38,7 @@ class ConfigsModelFS(Configs):
 
 class ConfigsTrain(Configs):
     _names = ('model_fs', 'load', 'save')
-    default_configs = {
+    _default_configs = {
         'model_fs': ConfigsModelFS(),
         'load': ConfigsLoad(),
         'save': ConfigsSave()

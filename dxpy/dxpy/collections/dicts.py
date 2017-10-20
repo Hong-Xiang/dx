@@ -1,4 +1,6 @@
 from collections import UserDict
+from dxpy import serialization
+from dxpy.filesystem import Path
 
 
 class DXDict(UserDict):
@@ -32,5 +34,26 @@ class DXDict(UserDict):
             return DXDict(self.data, default_dict=self.default_dict.apply_default(default_dict))
 
 
-from dxpy import serialization
 serialization.register(DXDict)
+
+from .trees import PathTree
+
+
+class TreeDict(PathTree):
+    yaml_tag = '!treedict'
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def compile(self):
+        pass
+
+    def _push_dict(self, path, dct):
+        new_dict = self.get_data(path).apply_default(dct)
+        self.get_node(path).data = new_dict
+        nodes = self.tree.children(path)
+        for n in nodes:
+            self._push_dict(n.indentifier, self.get_node(path).data)
+
+    def __getitem__(self, path):
+        return self.get_data(path)

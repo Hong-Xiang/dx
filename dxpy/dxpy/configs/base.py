@@ -12,11 +12,11 @@ class Configs(DXDict):
     """
     yaml_tag = '!configs'
     _names = tuple()
-    default_configs = {}
+    _default_configs = {}
 
     def __init__(self, *args, default_dict=None, **kwargs):
         if default_dict is None:
-            default_dict = DXDict(self.default_configs)
+            default_dict = DXDict(self._default_configs)
         else:
             default_dict = default_dict.apply_default(default_dict)
         super(__class__, self).__init__(
