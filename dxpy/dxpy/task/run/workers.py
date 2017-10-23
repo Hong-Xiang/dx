@@ -5,8 +5,8 @@ import dask
 import sys
 import os
 import dxpy.slurm as slurm
-from ..representation import task as taskpy
-from ..representation import creators
+from ..model import task as taskpy
+from ..model import creators
 from .. import interface
 
 NB_THREADS = 5

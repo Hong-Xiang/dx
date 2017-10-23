@@ -13,6 +13,7 @@ class TestInterface(unittest.TestCase):
     def setUp(self):
         configs.set_config_by_name_key('database', 'file', ':memory:')
         Database.create()
+        Database.clear()
 
     def tearDown(self):
         Database.clear()

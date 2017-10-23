@@ -106,7 +106,7 @@ def set_config_by_name_key(name, key, value):
 
 
 @name_check
-def clear_config(name):
+def clear_config(name='all'):
     if name.upper() == 'ALL':
         for k in CONFIGS:
             CONFIGS[k] = None

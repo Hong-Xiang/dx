@@ -4,7 +4,7 @@ from dxpy.task.exceptions import TaskNotFoundError
 from unittest.mock import Mock, call
 from dxpy.task import configs, interface
 from dxpy.task import database as db
-from dxpy.task.representation import task, creators
+from dxpy.task.model import task, creators
 from dxpy.task.run import service, workers
 
 import sys
@@ -59,6 +59,7 @@ class TestService(unittest.TestCase):
 
         for tid in self.tidcs:
             interface.delete(tid)
+        # configs.clear_config()
         # Database.drop()
 
         # def test_auto_complete(self):
@@ -86,9 +87,12 @@ class TestService(unittest.TestCase):
         self.assertEqual(get_task(self.tids, 'slurm').state, task.State.Runing)
         workers.Slurm.is_complete = Mock(return_value=True)
         service.auto_complete()
-        self.assertEqual(get_task(self.tids, 'slurm').state, task.State.Complete)
+        self.assertEqual(get_task(self.tids, 'slurm').state,
+                         task.State.Complete)
 
     def test_auto_start(self):
-        self.assertEqual(get_task(self.tids, 'pending').state, task.State.Pending)
+        self.assertEqual(get_task(self.tids, 'pending').state,
+                         task.State.Pending)
         service.auto_start()
-        self.assertTrue(get_task(self.tids, 'pending').state in [task.State.Runing, task.State.Complete])
+        self.assertTrue(get_task(self.tids, 'pending').state in [
+                        task.State.Runing, task.State.Complete])

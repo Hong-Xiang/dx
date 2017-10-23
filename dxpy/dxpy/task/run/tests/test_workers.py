@@ -2,9 +2,9 @@ import unittest
 import threading
 from fs.tempfs import TempFS
 from dxpy.task import configs, interface
-from dxpy.task.representation import task, creators
+from dxpy.task.model import task, creators
 from dxpy.task.run import workers
-from dxpy.task.database.model import Database
+from dxpy.task.database import Database
 from time import sleep
 
 
@@ -30,6 +30,7 @@ class TestWorkers(unittest.TestCase):
     def tearDown(self):
         for tid in self.tid_buffer:
             interface.delete(tid)
+        # configs.clear_config()
 
     def test_is_complete(self):
         self.assertTrue(workers.Workers.is_complete(
