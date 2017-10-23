@@ -1,3 +1,3 @@
 config = {
-    'debug': False,
+    'debug': True,
 }

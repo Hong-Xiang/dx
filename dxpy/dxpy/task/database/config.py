@@ -1,15 +1,19 @@
 import os
 from collections import UserDict
 _default = {
-    'port': 23300,
-    'debug': True,
-    'version': 0.1,
     'path': os.environ.get('PATH_DATABASE') + 'taskdb.db',
     'name': 'task',
     'names': 'tasks',
     'use_web_api': True,
     'echo': False,
     'default_state': 'BeforeSubmit',
+
+    'host': '0.0.0.0',
+    'ip': '127.0.0.1',
+    'port': 23300,
+    'debug': True,
+    'version': 0.1,
+    'base': '/'
 }
 
 

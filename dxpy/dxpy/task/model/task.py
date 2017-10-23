@@ -20,7 +20,7 @@ from enum import Enum
 from dxpy.file_system.path import Path
 from dxpy.time.timestamps import TaskStamp
 from dxpy.time.utils import strf, strp, now
-from ..jsonserial import check_json
+from dxpy.task.database import check_json
 
 
 class State(Enum):
@@ -47,7 +47,17 @@ class Type(Enum):
 class Task:
     json_tag = '__task__'
 
-    def __init__(self, tid=None, desc='', workdir='.', worker=None, ttype=None, state=None, time_stamp=None, dependency=None, is_root=True, data=None):
+    def __init__(self,
+                 tid=None,
+                 desc='',
+                 workdir='.',
+                 worker=None,
+                 ttype=None,
+                 state=None,
+                 time_stamp=None,
+                 dependency=None,
+                 is_root=True,
+                 data=None):
         self.id = tid
         self.desc = desc
         self.workdir = Path(workdir).abs
@@ -98,16 +108,6 @@ class Task:
     def from_json(cls, s):
         check_json(s)
         return json.loads(s, object_hook=cls.deserialization)
-        # return Task(tid=dct['id'],
-        #             desc=dct['desc'],
-        #             workdir=dct['workdir'],
-        #             worker=dct['worker'],
-        #             ttype=dct['type'],
-        #             state=dct['state'],
-        #             time_stamp=dct['time_stamp'],
-        #             dependency=dct['dependency'],
-        #             is_root=dct['is_root'],
-        #             data=dct['data'])
 
     @classmethod
     def serialization(cls, obj):

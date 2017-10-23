@@ -4,7 +4,6 @@ from functools import wraps
 from flask import Flask, Response, make_response, request
 from flask_restful import Api, Resource, reqparse
 
-from dxpy.web.urls import full
 
 from ..exceptions import TaskNotFoundError
 from ..import service
@@ -45,24 +44,10 @@ class TasksResource(Resource):
         return Response(self.json.dumps({'id': res}), 201, mimetype="application/json")
 
 
-def add_api(api, root):
-    api.add_resource(TaskResource, task_url_tpl(root))
-    api.add_resource(TasksResource, tasks_url(root))
-
-
-def url():
-    pass
-
-
-def url_format():
-    pass
-
-
-def task_full_url(tid):
-    c = provider.get_or_create_service('config').get_config('database')
-    return urlf(c.ip, c.port, "{base}/{tid}".format(base=c.task_url, tid=tid))
-
-
-def tasks_full_url():
-    c = provider.get_or_create_service('config').get_config('database')
-    return urlf(c.ip, c.port, c.tasks_url)
+def add_api(api):
+    from ..config import config as c
+    from dxpy.web.urls import api_path
+    api.add_resource(TaskResource, api_path(
+        c['name'], '<int:id>', c['version'], c['base']))
+    api.add_resource(TasksResource, api_path(
+        c['names'], None, c['version'], c['base']))

@@ -1,5 +1,5 @@
 import unittest
-from dxpy.task.representation import creators, task
+from dxpy.task.model import creators, task
 
 
 class TestCreators(unittest.TestCase):

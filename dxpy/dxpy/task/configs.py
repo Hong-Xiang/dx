@@ -4,6 +4,14 @@ from .exceptions import UnknownConfigName
 
 VERSION = 0.2
 
+from .database import config as config_database
+
+_default = {
+    'name': 'task',
+    'names': 'tasks',
+    'version': 0.2,
+}
+
 
 class DatabaseConfigs:
     def __init__(self, file=None, root=None, ip=None, port=None, version=None, name=None, use_web_api=False):

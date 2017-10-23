@@ -1,1 +1,1 @@
-from .base import main
+from .base import cli

@@ -4,15 +4,16 @@ import unittest
 import rx
 
 from dxpy.task.database.config import config as c
-from dxpy.task.database.model import Database, TaskDB
-from dxpy.task.database.service import Service as service
+from dxpy.task import database as db
+from dxpy.task.database.model import TaskDB
+
 from dxpy.task.exceptions import TaskNotFoundError
 
 
 class TestDataBase(unittest.TestCase):
     def setUp(self):
         c['path'] = ':memory:'
-        Database.create()
+        db.Database.create()
         self.dummy_dct = {
             '__task__': True,
             'id': 1,
@@ -31,16 +32,15 @@ class TestDataBase(unittest.TestCase):
             'type': 'Regular'
         }
         self.dummy_json = json.dumps(self.dummy_dct)
-        self.dummy_id = service.create(self.dummy_json)
-        self.modify_id = service.create(self.dummy_json)
-        self.delete_id = service.create(self.dummy_json)
+        self.dummy_id = db.create(self.dummy_json)
+        self.modify_id = db.create(self.dummy_json)
+        self.delete_id = db.create(self.dummy_json)
 
     def tearDown(self):
-        service.clear_session()
-        Database.clear()
+        db.Database.clear()
 
     def test_create(self):
-        tid = service.create(self.dummy_json)
+        tid = db.create(self.dummy_json)
         self.assertIsInstance(tid, int)
 
     def test_creat_json(self):
@@ -57,11 +57,11 @@ class TestDataBase(unittest.TestCase):
                "data": {}}
         s = json.dumps(dct)
 
-        tid = service.create(s)
+        tid = db.create(s)
 
     def test_read(self):
         # TODO: add desired output json
-        t = service.read(self.dummy_id)
+        t = db.read(self.dummy_id)
         self.assertIsInstance(t, str)
         dct = json.loads(t)
         self.assertTrue(dct['__task__'])
@@ -70,10 +70,10 @@ class TestDataBase(unittest.TestCase):
     def test_read_invalid_tid(self):
         invalid_tid = self.dummy_id + 1000
         with self.assertRaises(TaskNotFoundError):
-            t = service.read(invalid_tid)
+            t = db.read(invalid_tid)
 
     def test_read_all(self):
-        t_all = service.read_all()
+        t_all = db.read_all()
         self.assertIsInstance(t_all, rx.Observable)
         t_list = (t_all
                   .subscribe_on(rx.concurrency.ThreadPoolScheduler())
@@ -82,14 +82,14 @@ class TestDataBase(unittest.TestCase):
         self.assertIsInstance(t_list, list)
 
     def test_update(self):
-        new_dct = json.loads(service.read(self.modify_id))
+        new_dct = json.loads(db.read(self.modify_id))
         new_dct['desc'] = 'modified'
-        service.update(json.dumps(new_dct))
-        data = json.loads(service.read(self.modify_id))
+        db.update(json.dumps(new_dct))
+        data = json.loads(db.read(self.modify_id))
         self.assertEqual(data['desc'], "modified")
 
     def test_delete(self):
-        service.read(self.delete_id)
-        service.delete(self.delete_id)
+        db.read(self.delete_id)
+        db.delete(self.delete_id)
         with self.assertRaises(TaskNotFoundError):
-            service.read(self.delete_id)
+            db.read(self.delete_id)

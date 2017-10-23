@@ -24,7 +24,7 @@ class Database:
 
 
 def create(s):
-    from .config import config as c
+    from ..config import config as c
     if c['use_web_api']:
         return service.create_web(s)
     else:
@@ -32,7 +32,7 @@ def create(s):
 
 
 def read(tid):
-    from .config import config as c
+    from ..config import config as c
     if c['use_web_api']:
         return service.read_web(tid)
     else:
@@ -40,7 +40,7 @@ def read(tid):
 
 
 def read_all():
-    from .config import config as c
+    from ..config import config as c
     if c['use_web_api']:
         return service.read_all_web()
     else:
@@ -48,7 +48,7 @@ def read_all():
 
 
 def update(s):
-    from .config import config as c
+    from ..config import config as c
     if c['use_web_api']:
         return service.update_web(s)
     else:
@@ -56,7 +56,7 @@ def update(s):
 
 
 def delete(tid):
-    from .config import config as c
+    from ..config import config as c
     if c['use_web_api']:
         return service.delete_web(tid)
     else:

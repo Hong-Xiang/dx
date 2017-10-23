@@ -3,7 +3,7 @@ import rx
 from unittest.mock import Mock
 import json
 from dxpy.task import configs
-from dxpy.task.representation import task, creators
+from dxpy.task.model import task, creators
 from dxpy.task.database.model import Database
 from dxpy.task.exceptions import TaskNotFoundError
 import dxpy.task.interface as interface

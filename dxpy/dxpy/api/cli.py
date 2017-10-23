@@ -12,7 +12,7 @@ class CLI(click.MultiCommand):
         return sorted(self.commands.keys())
 
     def get_command(self, ctx, name):
-        from ..task.api.cli import task
+        from ..task import cli as task
         from ..code.api.cli import code
         from ..batch.api.cli import batch
         if name in self.commands:
@@ -26,7 +26,4 @@ class CLI(click.MultiCommand):
         return self.commands.get(name)
 
 
-dxl = CLI()
-
-if __name__ == "__main__":
-    dxl()
+cli = CLI()

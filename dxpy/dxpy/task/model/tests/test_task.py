@@ -1,7 +1,7 @@
-import unittest
 import json
-from dxpy.file_system.path import Path
-from dxpy.task.representation import task
+import unittest
+
+from dxpy.task.model import task
 from dxpy.time.timestamps import TaskStamp
 from dxpy.time.utils import strp
 

@@ -10,13 +10,12 @@ import json
 import rx
 from dxpy.time.utils import now
 from dxpy.time.timestamps import TaskStamp
-from . import provider
-from . import database as db
-from .representation import task as ts
+from . import database
+from .model import task as ts
 
 
 def create(task) -> int:
-    return db.create(task.to_json())
+    return database.create(task.to_json())
 
 
 def create_graph(task_graph) -> 'list<int>':
@@ -58,11 +57,11 @@ def parse_json(s: 'json string'):
 def read(tid: int):
     if not isinstance(tid, int):
         raise TypeError("read only accept tid of int type: {!r}".format(tid))
-    return parse_json(db.read(tid))
+    return parse_json(database.read(tid))
 
 
 def read_all() -> 'Observable<TaskPy>':
-    return (db.read_all()
+    return (database.read_all()
             .map(parse_json))
 
 
@@ -71,7 +70,7 @@ def dependencies(task) -> 'Observable<TaskPy>':
 
 
 def update(task) -> None:
-    db.update(task.to_json())
+    database.update(task.to_json())
     return task
 
 
@@ -96,4 +95,4 @@ def mark_complete(task) -> None:
 
 
 def delete(tid: int) -> None:
-    db.delete(tid)
+    database.delete(tid)

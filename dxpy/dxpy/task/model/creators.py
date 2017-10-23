@@ -3,7 +3,7 @@ Task templates of frequently used ones.
 """
 import rx
 import os
-from dxpy.file_system.path import Path
+from dxpy.filesystem import Path
 from dxpy.graph.depens import DenpensGraph
 from dxpy.exceptions.checks import assert_same_length
 from . import task
@@ -39,7 +39,7 @@ def task_script(file, *args, **kwargs):
     })
 
 
-def task_slurm(file, *args, **kwargs):
-    return task.Task(*args, **kwargs, worker=task.Worker.Slurm, ttype=task.Type.Script, data={
-        'file': (Path(kwargs['workdir']) / file).abs
+def task_slurm(file, *args, workdir, **kwargs):
+    return task.Task(*args, **kwargs, workdir=workdir, worker=task.Worker.Slurm, ttype=task.Type.Script, data={
+        'file': (Path(workdir) / file).abs
     })
