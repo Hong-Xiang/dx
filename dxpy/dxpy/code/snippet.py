@@ -1,4 +1,6 @@
 import rx
+import jinja2
+from dxpy.filesystem import Path
 
 
 class Service:
@@ -8,34 +10,10 @@ class Service:
 
 
 def cli_template(name):
-    head = """#Auto generated cli.py
-import click
-
-class CLI(click.MultiCommand):
-    commands = {'sub': None}
-"""
-    init = """
-    def __init__(self):
-        super(__class__, self).__init__(name='{name}', help=__class__.__doc__)""".format(name=name)
-
-    tail = """
-
-    def list_commands(self, ctx):
-        return sorted(self.commands.keys())
-
-    def get_command(self, ctx, name):
-        from . import api
-        if name in self.commands:
-            if self.commands[name] is None:
-                mapping = {
-                    'sub': None,
-                }
-                self.commands[name] = mapping.get(name)
-        return self.commands.get(name)
-
-code = CLI()
-"""
-    return head + init + tail
+    # TODO: Add jinja2 implementation
+    with open((Path(Path(__file__).father) / 'cli' / 'base.py').abs) as fin:
+        tpl = jinja2.Template(fin.read())
+    return tpl.render(name=name)
 
 
 def web_template(name):

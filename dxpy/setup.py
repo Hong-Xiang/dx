@@ -13,7 +13,8 @@ setup(name='dxl-dxpy',
           'flask_restful',
           'flask_sqlalchemy',
           'graphviz',
-          'fs'
+          'fs',
+          'apscheduler'
       ],
       scripts=['bin/dxpy'],
       zip_safe=False)

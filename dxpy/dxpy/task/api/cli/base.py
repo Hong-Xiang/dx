@@ -1,17 +1,6 @@
 import click
 
 
-@click.group()
-def ui():
-    pass
-
-
-@ui.command()
-def start():
-    from . task import web
-    web.lauch_database_server()
-
-
 class CLI(click.MultiCommand):
     """
     Tasks cli tools.
@@ -27,6 +16,7 @@ class CLI(click.MultiCommand):
     def get_command(self, ctx, name):
         from ..database.cli import db
         from ..run.cli import run
+        from .commands import ui
         if name in self.commands:
             if self.commands[name] is None:
                 mapping = {
