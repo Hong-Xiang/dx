@@ -1,3 +1,6 @@
+import click
+
+
 class CLI(click.MultiCommand):
     """
     Task database utils.
