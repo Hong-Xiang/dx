@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from dxl.api.cli import dxl
+from dxpy.api.cli import dxl
 
 if __name__ == "__main__":
     dxl()

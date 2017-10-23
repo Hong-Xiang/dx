@@ -25,8 +25,8 @@ class CLI(click.MultiCommand):
         return sorted(self.commands.keys())
 
     def get_command(self, ctx, name):
-        from dxpy.task.database.cli import db
-        from dxpy.task.run.cli import run
+        from ..database.cli import db
+        from ..run.cli import run
         if name in self.commands:
             if self.commands[name] is None:
                 mapping = {

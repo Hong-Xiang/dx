@@ -1,13 +1,13 @@
 from setuptools import setup
 
-setup(name='dxpy',
-      version='0.1',
+setup(name='dxl-dxpy',
+      version='0.3',
       description='Duplicate components library python sub-library.',
       url='https://github.com/Hong-Xiang/dxl',
       author='Hong Xiang',
       author_email='hx.hongxiang@gmail.com',
       license='MIT',
-      packages=[],
+      packages=['dxpy'],
       install_requires=[
           'rx',
           'flask_restful',

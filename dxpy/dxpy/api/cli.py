@@ -12,9 +12,9 @@ class CLI(click.MultiCommand):
         return sorted(self.commands.keys())
 
     def get_command(self, ctx, name):
-        from ..task.cli import task
-        from ..code.cli import code
-        from ..batch.cli import batch
+        from ..task.api.cli import task
+        from ..code.api.cli import code
+        from ..batch.api.cli import batch
         if name in self.commands:
             if self.commands[name] is None:
                 mapping = {

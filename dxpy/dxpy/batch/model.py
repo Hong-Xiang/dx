@@ -15,11 +15,11 @@ class BaseFilter:
         self.exclude_filters = exclude_filters or []
         self.depth = depth
 
-    def apply(self, fs, path, depth):
+    def _apply(self, fs, path, depth):
         raise NotImplementedError
 
     def get_observable(self, fs):
-        return self.apply(fs, '.', self.depth)
+        return self._apply(fs, '.', self.depth)
 
     def get_list(self, fs):
         result = []
@@ -32,7 +32,7 @@ class FilesFilter(BaseFilter):
         super(__class__, self).__init__(include_filters,
                                         exclude_filters, depth)
 
-    def apply(self, fs, path='.', depth=None):
+    def _apply(self, fs, path='.', depth=None):
         if depth is None:
             depth = self.depth
         infos = fs.filterdir(path,
@@ -47,7 +47,7 @@ class FilesFilter(BaseFilter):
                                  exclude_dirs=self.exclude_filters)
             sub_results = (rx.Observable.from_(infos)
                            .map(lambda info: info.make_path(path))
-                           .flat_map(lambda p: self.apply(fs, p, depth - 1 if depth > 0 else -1)))
+                           .flat_map(lambda p: self._apply(fs, p, depth - 1 if depth > 0 else -1)))
             result = rx.Observable.merge(result, sub_results)
         return result
 
@@ -57,7 +57,7 @@ class DirsFilter(BaseFilter):
         super(__class__, self).__init__(include_filters,
                                         exclude_filters,  depth)
 
-    def apply(self, fs, path='.', depth=None):
+    def _apply(self, fs, path='.', depth=None):
         if depth is None:
             depth = self.depth
         infos = fs.filterdir(path,
@@ -72,7 +72,7 @@ class DirsFilter(BaseFilter):
                                  exclude_dirs=self.exclude_filters)
             sub_results = (rx.Observable.from_(infos)
                            .map(lambda info: info.make_path(path))
-                           .flat_map(lambda p: self.apply(fs, p, depth - 1 if depth > 0 else -1)))
+                           .flat_map(lambda p: self._apply(fs, p, depth - 1 if depth > 0 else -1)))
             result = rx.Observable.merge(result, sub_results)
         return result
 
@@ -82,6 +82,6 @@ class CombinedFileter(BaseFilter):
         super(__class__, self).__init__()
         self.filters = filters
 
-    def apply(self, fs):
+    def _apply(self, fs):
         # TODO: add merge observable operation
         pass

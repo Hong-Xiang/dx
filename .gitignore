@@ -1,6 +1,6 @@
 *.pyc
-
-dxpy.egg-info
+*/dist
+*.egg-info
 /docs/_*/
 /docs/make.bat
 .vs

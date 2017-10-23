@@ -1,16 +1,23 @@
-class FilesAPI:
-    from . import service
+"""
+"""
+# Level-0:
 
-    def __init__(self, fs, filters):
+
+class FilesBatchWorker:
+    from .. import service, model
+
+    def __init__(self, fs=None, include_pattern=None, exclude_pattern=None, depth=1):
+        from fs.osfs import OSFS
+        fs = fs or OSFS('.')
         self.fs = fs
-        self.filters = filters
+        self.filter = model.FilesFilter(
+            include_pattern, exclude_pattern, depth)
 
-    @classmethod
-    def ls(fs, filters, show_size=False):
+    def ls(self):
         """
-        List all files matches filters, show their properties.
+        List all files matches filters
         """
-        pass
+        self.service.Mapper.ls(self.fs, self.filter)
 
     @classmethod
     def merge(fs, filters, target=None, method=None):
@@ -33,7 +40,7 @@ class FilesAPI:
         pass
 
 
-class DirsAPI:
+class DirsBatchWorker:
     @classmethod
     def ls(fs, filters, show_size=False):
         """
@@ -51,3 +58,12 @@ class DirsAPI:
     @classmethod
     def clear(fs, filters):
         pass
+
+
+# Level-1
+def list_dirs(target, pattern):
+    pass
+
+
+def clear_dirs(target, pattern, is_walk=False):
+    pass

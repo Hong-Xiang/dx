@@ -43,6 +43,11 @@ class TasksResource(Resource):
         return Response(self.json.dumps({'id': res}), 201, mimetype="application/json")
 
 
+def add_api(api, root, name):
+    api.add_resource(TaskResource, c.task_url + '/<int:id>')
+    api.add_resource(TasksResource, c.tasks_url)
+
+
 def launch_database_server():
     c = provider.get_or_create_service('config').get_config('database')
     app = Flask(__name__)
