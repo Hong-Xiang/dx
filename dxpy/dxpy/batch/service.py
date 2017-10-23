@@ -17,7 +17,7 @@ class Mapper:
         return results
 
     @classmethod
-    def call(cls, fs, filter_, callback):
+    def map(cls, fs, filter_, callback):
         paths = filter_.get_list(fs)
         for p in paths:
             callback(p)

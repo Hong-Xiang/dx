@@ -56,8 +56,17 @@ class DirsBatchWorker:
         pass
 
     @classmethod
-    def clear(fs, filters):
-        pass
+    def clear(cls, fs, include_filters=None, exclude_filters=None, depth=1, dryrun=False):
+        from ..service import Mapper
+        from ..model import DirsFilter
+        from functools import partial
+        dirs = DirsFilter(include_filters=include_filters,
+                          exclude_filters=exclude_filters, depth=depth)
+        if dryrun:
+            print("The Following directories are going to be removed")
+            Mapper.map(fs, dirs, lambda d: print('[REMOVE]', d))
+        else:
+            Mapper.map(fs, dirs, fs.removetree)
 
 
 # Level-1
@@ -65,5 +74,8 @@ def list_dirs(target, pattern):
     pass
 
 
-def clear_dirs(target, pattern, is_walk=False):
-    pass
+def clear_dirs(target, include_filters, exclude_filters=None, depth=1, dryrun=False):
+    from dxpy.filesystem.smartfs import FS
+    with FS(target) as fs:
+        DirsBatchWorker.clear(fs, include_filters,
+                              exclude_filters, depth, dryrun)
