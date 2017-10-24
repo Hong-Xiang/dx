@@ -1,8 +1,11 @@
 import datetime
 
 
-def now():
-    return datetime.datetime.utcnow()
+def now(local=False):
+    if local:
+        return datetime.datetime.now()
+    else:
+        return datetime.datetime.utcnow()
 
 
 def delta(milliseconds=0):
@@ -34,3 +37,6 @@ def strp(s, fmt=None):
     if fmt is None:
         fmt = iso_format(' ')
     return datetime.datetime.strptime(s, fmt)
+
+
+

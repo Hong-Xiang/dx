@@ -9,8 +9,8 @@ def run():
 @click.command()
 def start():
     """ start task database web service """
-    from . service import launch_deamon
-    launch_deamon()
+    from .deamon import DeamonService
+    DeamonService.start()
     # input("Press any key to exit\n")
 
 

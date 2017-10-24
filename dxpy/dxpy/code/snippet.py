@@ -9,9 +9,13 @@ class Service:
     pass
 
 
+def template_dir():
+    return Path(Path(__file__).father)
+
+
 def cli_template(name):
     # TODO: Add jinja2 implementation
-    with open((Path(Path(__file__).father) / 'cli' / 'base.py').abs) as fin:
+    with open((template_dir() / 'cli' / 'base.py').abs) as fin:
         tpl = jinja2.Template(fin.read())
     return tpl.render(name=name)
 
@@ -87,6 +91,23 @@ def launch_server():
 """
 
     return ''.join([imports, resource, resources, add_api, launch_server])
+
+
+class SlurmScript:
+    def __init__(self, name, path):
+        self.path = path
+        self.name = name
+
+    def make(self):
+        from fs.osfs import OSFS
+        with OSFS(self.path) as fs:
+            if fs.exists(self.name):
+                d = fs.opendir(self.name)
+            else:
+                d = fs.makedir(self.name)
+            with d.open(self.name, 'w') as fout:
+                
+            d.close()
 
 
 class Component:

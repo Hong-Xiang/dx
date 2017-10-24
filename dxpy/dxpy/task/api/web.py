@@ -4,7 +4,7 @@ from functools import wraps
 from flask import Flask, make_response, request, Response
 from flask_restful import Resource, reqparse, Api
 
-from .. representation import task
+from ..model import task
 from .. import interface
 from .. import provider
 

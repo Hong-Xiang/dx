@@ -1,23 +1,25 @@
-
-from .service import auto_complete, auto_submit, auto_start, update_complete
+import os
+from dxpy.time.utils import now
 
 
 class DeamonService:
     @classmethod
-    def cycle():
-        from .service import auto_complete, auto_submit, auto_start
+    def cycle(cls):
+        from .service import auto_complete, auto_submit_chain, auto_start
         auto_complete()
-        auto_submit()
+        auto_submit_chain()
         auto_start()
+        print('Cycle at {t}.'.format(t=now(True)))
 
     @classmethod
     def start(cls, cycle_intervel=None):
         from apscheduler.schedulers.blocking import BlockingScheduler
         scheduler = BlockingScheduler()
-        scheduler.add_job(cycle_kernel, 'interval', seconds=10)
+        scheduler.add_job(cls.cycle, 'interval', seconds=10)
         print(
             'Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
         try:
+            cls.cycle()
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):
             pass

@@ -8,7 +8,7 @@ def ui():
 
 @ui.command()
 def start():
-    from .web import lauch_database_server
+    from ..web import lauch_database_server
     lauch_database_server()
 
 
