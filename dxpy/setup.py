@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 setup(name='dxl-dxpy',
-      version='0.3.3',
+      version='0.3.4',
       description='Duplicate components library python sub-library.',
       url='https://github.com/Hong-Xiang/dxl',
       author='Hong Xiang',
