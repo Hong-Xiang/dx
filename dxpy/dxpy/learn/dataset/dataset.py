@@ -17,8 +17,8 @@ class Dataset(Net):
     Subnet for loading datasets.    
     """
 
-    def __init__(self, name, config):
-        super(__class__, name).__init__(self, config)
+    def __init__(self, name):
+        super(__class__, name).__init__(self)
 
     def _initialize(self):
         pass
@@ -33,7 +33,7 @@ class Dataset(Net):
         self._finalize()
 
     def run(self, session=None, task=None, feeds=None):
-        pass
+        return self.batch()
 
     def single(self, session=None, task=None, feeds=None):
         pass
@@ -43,8 +43,8 @@ class Dataset(Net):
 
 
 class DatasetHDF5(Net):
-    def __init__(self, name, config):
-        super(__class__, name).__init__(self, config)
+    def __init__(self, name):
+        super(__class__, name).__init__(self)
 
     def run(self, session=None, task=None, feeds=None):
         pass

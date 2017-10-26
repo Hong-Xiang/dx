@@ -5,9 +5,10 @@ from dxpy.time.utils import now
 class DeamonService:
     @classmethod
     def cycle(cls):
-        from .service import auto_complete, auto_submit_chain, auto_start
+        from .service import auto_complete, auto_submit_chain, auto_submit_root, auto_start
         auto_complete()
         auto_submit_chain()
+        auto_submit_root()
         auto_start()
         print('Cycle at {t}.'.format(t=now(True)))
 

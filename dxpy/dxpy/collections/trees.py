@@ -29,6 +29,7 @@ class PathTree:
 
     def get_node(self, path):
         return self.tree.get_node(path)
+    
 
     def get_data(self, path):
         return self.get_node(path).data

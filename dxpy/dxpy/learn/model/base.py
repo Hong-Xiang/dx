@@ -16,16 +16,24 @@ class Net:
     subnets: {subnet name: Net}, A reference
     """
 
-    def __init__(self, name, config):
+    def __init__(self, name):
         """
         Inputs:
             devices_type: 'auto' or 'gpus'. If 'gpus', losses and grads are lists, [0] cpu [1-n] gpus.
         """
         self.name = name
+        self.c = self._load_configs()
         self.nodes = DXDict()
         self.subnets = DXDict()
+        self.main = None
+
+    def _load_configs(self):
+        from ..config import config as c
+        return c[self.name]
 
     def add_node(self, tensor_or_subnet, name=None):
+        if name is None:
+            name = tensor_or_subnet.name
         self.nodes[name] = tensor_or_subnet
 
     @property

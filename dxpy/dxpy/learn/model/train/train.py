@@ -2,7 +2,7 @@ from .base import Net
 
 
 class Trainer(Net):
-    def __init__(self, config, losses, train_vars):
+    def __init__(self, name, losses, variables):
         """
         Inputs:
             config: Configs;
@@ -10,7 +10,7 @@ class Trainer(Net):
         """
         super(__class__, self).__init__(config)
         self.loss = losses
-        self.vars = train_vars
+        self.variables = variables
         self.learning_rate = self._get_learning_rate()
         self.optimizer = self._get_optimizer()
         self.nodes['train_step'] = self._get_train_step()

@@ -114,6 +114,9 @@ class Path:
     def __truediv__(self, name):
         return Path(fp.combine(self.abs, name), self.url_spec)
 
+    def __add__(self, suffix):
+        return Path(self.abs + suffix)
+
     @property
     def abs(self):
         return fp.abspath(self.path)
