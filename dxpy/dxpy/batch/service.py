@@ -1,38 +1,42 @@
 import rx
+from fs import copy, path
 
 
 class Mapper:
     @classmethod
-    def ls(cls, fs, filter_, infos=None):
+    def ls(cls, fs, paths, infos=None):
         # TODO convert to true observalbes
-        infos = infos or []
-        paths = filter_.get_list(self.fs)
-        result_dct = {'path': paths}
+        infos = infos or ['syspath']
+        result_dct = dict()
         for k in infos:
-            if 'size' == k:
-                sizes = [fs.getdetails(p).size for p in paths]
-                result_dct.update({'size': sizes})
+            if k == 'syspath':
+                result_dct.update({k: [fs.syspath(p) for p in paths]})
+            elif k == 'size':
+                result_dct.update({k: [fs.getdetails(p).size for p in paths]})
         results = zip(*(result_dct[k] for k in result_dct))
         # return rx.Observable.from_(results)
         return results
 
     @classmethod
-    def map(cls, fs, filter_, callback):
-        paths = filter_.get_list(fs)
-        for p in paths:
-            callback(p)
+    def map(cls, fs, paths, callback):
+        return [callback(fs, p) for p in paths]
 
     @classmethod
-    def broadcast(cls, fs, filter_, content):
+    def broadcast(cls, fs, paths, path_content):
         """
-        Copy content to all filtered elements.
+        Copy content to all paths.
         """
-        pass
+        return [copy.copy_file(fs, path_content, fs, p) for p in paths]
+
+    @classmethod
+    def broadcast_directory(cls, fs, paths, path_content):
+        name = path.basename(path_content)
+        return [copy.copy_file(fs, path_content, fs, path.join(p, name)) for p in paths]
 
 
 class Reducer:
     @classmethod
-    def cat(cls, files):
+    def cat(cls, fs, paths):
         """
         Inputs:
             files: a list/observable of File.

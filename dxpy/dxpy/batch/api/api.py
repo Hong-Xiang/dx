@@ -82,4 +82,5 @@
 
 
 from ..model.filters import DirectoriesFilter, FilesFilter
+from ..service import Mapper
 from ..exceptions import *
