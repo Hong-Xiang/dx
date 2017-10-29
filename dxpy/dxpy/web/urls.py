@@ -4,9 +4,14 @@ def api_root(version):
 
 def api_path(name, suffix=None, version=None, base=None):
     if base is None:
-        base = root(version)
+        base = api_root(version)
     else:
+        if base.startswith('/'):
+            base = base[1:]
         base = "{root}/{base}".format(root=api_root(version), base=base)
+    
+    if base.endswith('/'):
+        base = base[:-1]    
     if suffix is None:
         return "{base}/{name}".format(base=base, name=name)
     else:

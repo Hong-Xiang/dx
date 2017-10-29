@@ -5,7 +5,6 @@ def template_path():
 
 
 class SnippetMaker:
-    from . import snippet
 
     @classmethod
     def service(cls, name, path='.'):
@@ -13,4 +12,5 @@ class SnippetMaker:
 
     @classmethod
     def component(cls, name, path='.'):
-        cls.snippet.Component(name, path).make()
+        from . import snippet
+        snippet.Component(name, path).make()

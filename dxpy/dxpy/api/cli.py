@@ -13,7 +13,7 @@ class CLI(click.MultiCommand):
 
     def get_command(self, ctx, name):
         from ..task import cli as task
-        from ..code.api.cli import code
+        from ..code import cli as code
         from ..batch.api.cli import batch
         from ..run import run_cli
         if name in self.commands:

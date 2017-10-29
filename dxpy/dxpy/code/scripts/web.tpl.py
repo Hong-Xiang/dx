@@ -14,7 +14,7 @@ class {{name}}(Resource):
     def put(self, id):
         try:
             obj = request.form['obj']
-            return Response(api.update(task), 201, mimetype="application/json")
+            return Response(api.update(id, obj), 201, mimetype="application/json")
         except Exception as e:
             return str(e), 404
 

@@ -35,4 +35,5 @@ class CLI(click.MultiCommand):
                 self.commands[name] = mapping.get(name)
         return self.commands.get(name)
 
-code = CLI()
+
+main = CLI()

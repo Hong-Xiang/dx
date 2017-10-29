@@ -11,7 +11,7 @@ _default = {
     'host': '0.0.0.0',
     'ip': '127.0.0.1',
     'port': 23300,
-    'debug': True,
+    'debug': False,
     'version': 0.1,
     'base': '/'
 }

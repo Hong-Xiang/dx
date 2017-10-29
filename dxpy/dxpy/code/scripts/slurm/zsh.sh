@@ -3,7 +3,5 @@
 #SBATCH -e %J.err
 source ~/.zshrc
 date
-
-# Add scripts here
-
+{{commands}}
 date

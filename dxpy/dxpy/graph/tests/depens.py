@@ -1,5 +1,5 @@
 import unittest
-from dxpy.graph.depens import DenpensGraph
+from dxpy.graph import DenpensGraph
 
 
 class TestDepensGraph(unittest.TestCase):
