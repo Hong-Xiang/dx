@@ -48,20 +48,31 @@ class UrlSpec:
 
 
 QUOTED_SLASH = qut('/')
+DOUBLE_QUOTED_SLASH = qut(qut('/'))
 
 
 def is_quoted_url(s):
     return QUOTED_SLASH in s
 
 
+def is_double_quoted_url(s):
+    return DOUBLE_QUOTED_SLASH in s
+
+
 def url_quote_path(path):
-    """
-    """
-    return qut(qut(path))
+    return qut(path)
 
 
 def url_unquote_path(url):
     return uqut(url)
+
+
+def url_double_quoted_path(path):
+    return qut(qut(path))
+
+
+def url_double_unquoted_path(path):
+    return uqut(uqut(path))
 
 
 class Path:
@@ -88,6 +99,7 @@ class Path:
         else:
             self.path = path
         self.url_spec = url_spec
+        self.path = fp.normpath(self.path)
         if path is None:
             raise NotValidPathError
 
@@ -117,6 +129,9 @@ class Path:
     def __add__(self, suffix):
         return Path(self.abs + suffix)
 
+    def check_exists(self, fs):
+        return fs.exists(self.abs)
+
     @property
     def abs(self):
         return fp.abspath(self.path)
@@ -130,7 +145,7 @@ class Path:
         result = fp.iteratepath(self.path)
         if fp.isabs(self.path) and not result[0] == '/':
             result = ['/'] + result
-        return result
+        return tuple(result)
 
     @property
     def recurse(self):
@@ -161,7 +176,7 @@ class Path:
 
     @classmethod
     def from_yaml(cls, constructor, node):
-        return Path(constructor.construct_calar(node))
+        return Path(constructor.construct_scalar(node))
 
     def __hash__(self):
         return self.abs
