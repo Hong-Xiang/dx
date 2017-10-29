@@ -4,6 +4,12 @@ class NotDictError(TypeError):
             "Need dict type, got {}.".format(true_type)
         )
 
+class NotTreeDictError(TypeError):
+    def __init__(self, true_type):
+        super(__class__, self).__init__(
+            "Need TreeDict type, got {}.".format(true_type)
+        )
+
 
 class KeyNotDictError(TypeError):
     def __init__(self, name, true_type):

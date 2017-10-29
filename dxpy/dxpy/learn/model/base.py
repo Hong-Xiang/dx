@@ -6,39 +6,58 @@ from dxpy.collections.dicts import DXDict
 RESTRICT_MODE = True
 
 
-class Net:
+class Graph:
+    """
+    Base class of components.
+    A graph is an abstraction of computational graph.
+    It supports:
+        1. Load configs externally. (By name(path))
+        2. Exports some interface nodes.
+        3. Supports some tasks to run.
+        4. A main tensor/graph which will be return by method as_tensor()
+    """
+    def __init__(name):
+        from dxpy.collections import TreeDict
+        self.name = name
+        self.c = self._load_config()
+        self.nodes = dict()
+        self.tasks = dict()
+        self.main = None
+
+    def _load_config(self):
+        from ..config import config
+        self.c = config[name]
+
+    def _reigister_node(self, tensor_or_subgraph, name=None):
+        if name is None:
+            name = tensor_or_subgraph.name
+        self.nodes[name] = tensor_or_subgraph
+
+    def _register_task(self, name, func):
+        self.tasks[name] = func
+
+    def __getitem__(self, name):
+        return self.nodes[name]
+
+    def run(self, task_name, feed_dict):
+        return self.tasks[name](feed_dict)
+
+    def as_tensor(self):
+        return self.main
+
+
+class Net(Graph):
     """ Base class of nets.
-    Which is used for:
-        configs
-        # TODO complete doc.
-        # TODO deprecate device type, use auto inference by nb_gpus    
-    nodes: {node name: tensor or Net}
-    subnets: {subnet name: Net}, A reference
+    Net add some special tasks based on graph:
+        1. load data
+        2. train
+        3. inference
+        4. evaluate
+        5. save/load
     """
 
     def __init__(self, name):
-        """
-        Inputs:
-            devices_type: 'auto' or 'gpus'. If 'gpus', losses and grads are lists, [0] cpu [1-n] gpus.
-        """
-        self.name = name
-        self.c = self._load_configs()
-        self.nodes = DXDict()
-        self.subnets = DXDict()
-        self.main = None
-
-    def _load_configs(self):
-        from ..config import config as c
-        return c[self.name]
-
-    def add_node(self, tensor_or_subnet, name=None):
-        if name is None:
-            name = tensor_or_subnet.name
-        self.nodes[name] = tensor_or_subnet
-
-    @property
-    def as_tensor(self):
-        return self.main
+        super(__class__, self).__init__(name)
 
     def __getitem__(self, name):
         """

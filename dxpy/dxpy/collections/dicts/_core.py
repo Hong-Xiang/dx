@@ -70,11 +70,16 @@ serialization.register(DXDict)
 #     def add_dict(self, name, parent, dct):
 #         self.create_node(name, parent, data=DXDict(dct))
 
+
+# TODO: Add yaml support.
 class TreeDict(UserDict):
     """
     A dict with tree struct:
-        1. Hierarchy access
-            Support a['name1']['name2'] style access;
+        1. Supports three different access method:
+            1. a['key1']['key2']
+            2. a['/key1/key2']
+            3. a.get(['key1','key2'])
+            4. a.get('key1')
         2. Autogenerate for missing layers
             If there is no a['name1'] dict while setting a['name1']['name2'],
             an empty TreeDict will be created on a['name1']
@@ -87,57 +92,110 @@ class TreeDict(UserDict):
     yaml_tag = '!dxdict'
 
     def __init__(self, dct=None, fa=None):
-        if not isinstance(dct, (dict, UserDict)):
-            raise NotDictError(type(dct))
+        """
+
+        Inputs:
+            - dct: dict like object, dict, Userdict or TreeDict,
+            - fa: father node, object of TreeDict,
+
+        Raises:
+            None
+
+        """
+        # if dct is not None and not isinstance(dct, (dict, UserDict)):
+        #     raise NotDictError(type(dct))
         super(__class__, self).__init__(dct)
         self.fa = fa
         for k in self.data:
-            if isinstance(self.data[k], (dict, UserDict)):
-                self.data[k] = TreeDict(self.data, fa=self)
+            self._unfied_dict_element(k, False)
+
+    def get(self, key):
+        keys = self._unified_and_processing_input_key(key)
+        return self._get(keys)
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def set(self, key, value):
+        keys = self._unified_and_processing_input_key(key)
+        self._set(keys, value)
+
+    def __setitem__(self, key, value):
+        self.set(key, value)
+
+    def _ensure_mid_layers(self, keys):
+        if len(keys) > 1:
+            if not keys[0] in self.data:
+                self.data[keys[0]] = TreeDict(fa=self)
+            else:
+                self._unfied_dict_element(keys[0], True)
+
+    def _update_child_dct(self, dct, key=None):
+        if isinstance(dct, TreeDict):
+            return dct
+        if isinstance(dct, (dict, UserDict)):
+            result = TreeDict(dct, fa=self)
+            if key is not None:
+                self.data[key] = dct
+            return self.data[key]
+        else:
+            return None
 
     @classmethod
-    def _parse_path(cls, name):
-        if '/' in name:
-            names = Path(name).parts
-            if len(names) > 1:
-                return names[0], '/'.join(names[1:])
-            elif len(names) == 1:
-                return names[0], None
-            elif len(names) == 0:
-                return None, None
+    def _unified_keys(cls, key_or_keys_or_path):
+        if isinstance(key_or_keys_or_path, (list, tuple)):
+            return tuple(key_or_keys_or_path)
+        elif isinstance(key_or_keys_or_path, str):
+            result = tuple(Path(key_or_keys_or_path).parts)
+            if len(result) > 0 and result[0] == '/':
+                result = result[1:]
+            return result
         else:
-            return name, None
+            raise TypeError(
+                "Key not supported {}.".format(key_or_keys_or_path))
 
-    def _ensure_mid_layers(self, name, names):
-        if names is not None:
-            if not name in self.data:
-                self.data[name] = TreeDict(fa=self)
-            elif not isinstance(self.)
+    def _unfied_dict_element(self, key, required=False):
+        from ._exceptions import KeyNotDictError
+        result = self._update_child_dct(self.data[key], key)
+        if result is None and required:
+            raise KeyNotDictError(key, type(self.data[key]))
+        return result
 
-    def _get_value_on_leaf(self, name):
-        if name is self.data:
-            return self.data[name]
-        value_inherent = self._get_value_by_inherence(name)
-        if value_inherent is None:
-            self.data[name] = TreeDict()
+    def _unified_and_processing_input_key(self, key_or_keys_or_path):
+        keys = self._unified_keys(key_or_keys_or_path)
+        self._ensure_mid_layers(keys)
+        return keys
+
+    def _get_value_by_key_from_inherence(self, key):
+        if self.fa is None:
+            result = None
         else:
-            self.data[name] = value_inherent
-        return self.data[name]
+            result = self.fa._get_value(key)
 
-    def _get_value(name, names):
-        if names is None:
-            return self._get_value_on_leaf(name)
+        def _update(result):
+            if result is None:
+                self.data[key] = TreeDict()
+                result = self.data[key]
+            return result
+        return _update(result)
+
+    def _get_value_by_key(self, key):
+        if key in self.data:
+            return self.data[key]
+        return self._get_value_by_key_from_inherence(key)
+
+    def _get(self, keys):
+        if len(keys) == 0:
+            raise ValueError(
+                "TreeDict requires positve len(keys), probably using key = None?")
+        if len(keys) == 1:
+            return self._get_value_by_key(keys[0])
+        result = self._unfied_dict_element(keys[0], True)
+        return result.get(keys[1:])
+
+    def _set(self, keys, value):
+        if len(keys) == 1:
+            self.data[keys[0]] = value
+            self._unfied_dict_element(keys[0], False)
         else:
-            if not isinstance(self.data[name], (TreeDict, dict, UserDict)):
-                raise _exceptions.KeyNotDictError(name)
-            if name in self.data:
-                return self.data[name]
-            else:
-                return default
-
-    def __getitem__(self, name):
-        if name is None:
-            return self
-        name, names = self._parse_path(name)
-        self._auto_create_mid_layers(name, names)
-        return self._get_value(name, names)
+            self.data[keys[0]].set(keys[1:], value)
