@@ -40,6 +40,8 @@ def get_task(id_dict, key, index=None):
 
 class TestService(unittest.TestCase):
     def setUp(self):
+        from dxpy.task.database import Database
+        Database.clear()
         self.tidcs = []
         configs.set_config_by_name_key('database', 'use_web_api', True)
         # Database.create()

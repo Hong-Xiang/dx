@@ -16,7 +16,7 @@ class DeamonService:
     def start(cls, cycle_intervel=None):
         from apscheduler.schedulers.blocking import BlockingScheduler
         scheduler = BlockingScheduler()
-        scheduler.add_job(cls.cycle, 'interval', seconds=10)
+        scheduler.add_job(cls.cycle, 'interval', seconds=60)
         print(
             'Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
         try:

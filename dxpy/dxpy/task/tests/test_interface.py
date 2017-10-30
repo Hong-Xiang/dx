@@ -4,7 +4,7 @@ from unittest.mock import Mock
 import json
 from dxpy.task import configs
 from dxpy.task.model import task, creators
-from dxpy.task.database.model import Database
+from dxpy.task.database import Database
 from dxpy.task.exceptions import TaskNotFoundError
 import dxpy.task.interface as interface
 
@@ -12,7 +12,7 @@ import dxpy.task.interface as interface
 class TestInterface(unittest.TestCase):
     def setUp(self):
         configs.set_config_by_name_key('database', 'file', ':memory:')
-        Database.create()
+        # Database.create()
         Database.clear()
 
     def tearDown(self):

@@ -26,6 +26,8 @@ class TestWorkers(unittest.TestCase):
     def setUp(self):
         self.tid_buffer = []
         configs.set_config_by_name_key('database', 'use_web_api', True)
+        from dxpy.task.database import Database
+        Database.clear()
 
     def tearDown(self):
         for tid in self.tid_buffer:
