@@ -46,7 +46,7 @@ class InterfaceConfigs:
         self.port = port or 23302
         self.name = name or 'task'
         self.version = VERSION
-        self.debug = True
+        self.debug = False
 
     @property
     def task_url(self):
