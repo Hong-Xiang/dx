@@ -38,13 +38,23 @@ class TestTreeDict(unittest.TestCase):
         tests.add(tuple(), tuple())
         tests.run()
 
+    def test_unified_dicts(self):
+        a = {
+            'aaa': {
+                'key1': 'value1',
+                'key2': 'value2'
+            },
+            'bbb': 'value3'
+        }
+        td = dicts.TreeDict(a)
+        self.assertEqual(td['aaa']['bbb'], 'value3')
+
     def test_set_and_load(self):
         td = dicts.TreeDict({'name1': 'value1'})
         td['name2'] = 'value2'
         self.assertEqual(td['name1'], 'value1')
         self.assertEqual(td['name2'], 'value2')
 
-    @unittest.skip
     def test_2_order_set_load(self):
         td_sub = dicts.TreeDict({'sub1': 'value1'})
         td_main = dicts.TreeDict({'main': td_sub})
@@ -52,19 +62,16 @@ class TestTreeDict(unittest.TestCase):
         td_main['main']['sub2'] = 'value2'
         self.assertEqual(td_main['main']['sub2'], 'value2')
 
-    @unittest.skip
     def test_path_set_load(self):
         td = dicts.TreeDict()
         td['/main/sub1/sub2'] = 'value1'
         self.assertEqual(td['main']['sub1']['sub2'], 'value1')
         self.assertEqual(td['/main/sub1/sub2'], 'value1')
 
-    @unittest.skip
     def test_inherent_value(self):
         td = dicts.TreeDict({'name1': 'value1', 'sub1': dicts.TreeDict()})
         self.assertEqual(td['sub1']['name1'], 'value1')
 
-    @unittest.skip
     def test_key_error(self):
         td = dicts.TreeDict()
-        self.assertIsInstance(td['test'], dicts.TreeDict())
+        self.assertIsInstance(td['test'], dicts.TreeDict)

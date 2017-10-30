@@ -130,17 +130,6 @@ class TreeDict(UserDict):
             else:
                 self._unfied_dict_element(keys[0], True)
 
-    def _update_child_dct(self, dct, key=None):
-        if isinstance(dct, TreeDict):
-            return dct
-        if isinstance(dct, (dict, UserDict)):
-            result = TreeDict(dct, fa=self)
-            if key is not None:
-                self.data[key] = dct
-            return self.data[key]
-        else:
-            return None
-
     @classmethod
     def _unified_keys(cls, key_or_keys_or_path):
         if isinstance(key_or_keys_or_path, (list, tuple)):
@@ -153,6 +142,19 @@ class TreeDict(UserDict):
         else:
             raise TypeError(
                 "Key not supported {}.".format(key_or_keys_or_path))
+
+    def _update_child_dct(self, dct, key=None):
+        if isinstance(dct, TreeDict):
+            if dct.fa is None:
+                dct.fa = self
+            return dct
+        if isinstance(dct, (dict, UserDict)):
+            result = TreeDict(dct, fa=self)
+            if key is not None:
+                self.data[key] = result
+            return self.data[key]
+        else:
+            return None
 
     def _unfied_dict_element(self, key, required=False):
         from ._exceptions import KeyNotDictError
@@ -170,14 +172,12 @@ class TreeDict(UserDict):
         if self.fa is None:
             result = None
         else:
-            result = self.fa._get_value(key)
+            result = self.fa._get_value_by_key(key)
 
-        def _update(result):
-            if result is None:
-                self.data[key] = TreeDict()
-                result = self.data[key]
-            return result
-        return _update(result)
+        if result is None:
+            self.data[key] = TreeDict()
+            result = self.data[key]
+        return result
 
     def _get_value_by_key(self, key):
         if key in self.data:
