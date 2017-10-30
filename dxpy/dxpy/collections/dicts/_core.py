@@ -123,6 +123,23 @@ class TreeDict(UserDict):
     def __setitem__(self, key, value):
         self.set(key, value)
 
+    def publish(self):
+        for kv in self.data:
+            if not isinstance(self.data[kv], TreeDict):
+                for kd in self.data:
+                    if isinstance(self.data[kd], TreeDict):
+                        self.data[kd]._publish_element(kv, self.data[kv])
+        for k in self.data:
+            if isinstance(self.data[k], TreeDict):
+                self.data[k].publish()
+
+    def _publish_element(self, key, value):
+        if key in self.data and not isinstance(self.data[key], TreeDict):
+            return
+        if key in self.data and isinstance(self.data[key], TreeDict) and len(self.data[key]) > 0:
+            return
+        self.data[key] = value
+
     def _ensure_mid_layers(self, keys):
         if len(keys) > 1:
             if not keys[0] in self.data:

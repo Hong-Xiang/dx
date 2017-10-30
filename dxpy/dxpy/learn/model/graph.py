@@ -21,8 +21,6 @@ class Graph:
     -   as_tensor(self):    
         return self.nodes['main'], which is designed for sub_graphs.
     """
-    required_configs = []
-
     def __init__(name):
         from dxpy.collections import TreeDict
         self.name = name
@@ -34,8 +32,10 @@ class Graph:
     def _load_config(self):
         from ..config import config
         self.c = config[name]
-        for k in self.required_configs:
-            self.c[k] = config[name][k]
+
+    def _extend_config(self):
+        self.required_configs = super(
+            __class__, self).required_configs + self.required_configs
 
     def _refine_config(self):
         """

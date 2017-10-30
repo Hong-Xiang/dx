@@ -75,3 +75,26 @@ class TestTreeDict(unittest.TestCase):
     def test_key_error(self):
         td = dicts.TreeDict()
         self.assertIsInstance(td['test'], dicts.TreeDict)
+
+    def test_publish(self):
+        a = {'key1': 'value1', 'key2': {'subk1': 'v1', 'key3': {'key4': 'v4'}}}
+        td = dicts.TreeDict(a)
+        sub1 = td['key2']
+        # self.assertIsInstance(sub1['key1'], dicts.TreeDict)
+        td.publish()
+        sub2 = td['key2']
+        self.assertEqual(sub2['key1'], 'value1')
+        sub3 = td['key2']['key3']
+        self.assertEqual(sub3['key1'], 'value1')
+
+    def test_publish_2(self):
+        a = {'key': 'v1',
+             'key2': {'key': 'v2',
+                      'key3': {'key': 'v3'}
+                      }
+             }
+        td = dicts.TreeDict(a)
+        td.publish()
+        self.assertEqual(td['key'], 'v1')
+        self.assertEqual(td['key2']['key'], 'v2')
+        self.assertEqual(td['key2']['key3']['key'], 'v3')
