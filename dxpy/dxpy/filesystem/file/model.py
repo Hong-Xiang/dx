@@ -13,7 +13,7 @@ class File:
     @property
     def exists(self):
         with OSFS('/') as fs:
-            return fs.exists(self.path.rel)
+            return fs.exists(self.path.rel) and fs.isfile(self.path.rel)
 
     def load(self, depth):
         self.contents = None

@@ -37,7 +37,7 @@ class Directory:
     @property
     def exists(self):
         with OSFS('/') as fs:
-            return fs.exists(self.path.rel)
+            return fs.exists(self.path.rel) and fs.isdir(self.path.rel)
 
     def ensure(self):
         if not self.exists:
