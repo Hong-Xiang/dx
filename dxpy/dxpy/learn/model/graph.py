@@ -9,12 +9,17 @@ RESTRICT_MODE = True
 class Graph:
     """
     Base class of components.
-    A graph is an abstraction of computational graph.
-    It supports:
-        1. Load configs externally. (By name(path))
-        2. Exports some interface nodes.
-        3. Supports some tasks, a dict of callables.
-        4. A main tensor/graph which will be return by method as_tensor()
+    A `Graph` is an generalization of `tf.Graph`, which is designed for following features:
+        1. An unified interface of `tf.Graph` and general compute graph or operations/procedures;
+        2. Seperate config and implementation, use TreeDict for configs, and supports multiple ways of config;
+        3. An easy-to-use way of seperate/reuse subgraphs
+        4. Supports an warp of sessions.run/normal python function.
+            Please add member method for tasks, and register them to tasks
+
+    Methods:
+
+    -   as_tensor(self):    
+        return self.nodes['main'], which is designed for sub_graphs.
     """
     required_configs = []
 
@@ -25,7 +30,6 @@ class Graph:
         self._refine_config()
         self.nodes = dict()
         self.tasks = dict()
-        self.main = None
 
     def _load_config(self):
         from ..config import config
@@ -39,7 +43,7 @@ class Graph:
         """
         pass
 
-    def reigister_node(self, tensor_or_subgraph, name=None):
+    def register_node(self, name=None, tensor_or_subgraph=None):
         if name is None:
             name = tensor_or_subgraph.name
         self.nodes[name] = tensor_or_subgraph
@@ -62,7 +66,7 @@ class Graph:
         return self.tasks[name](feed_dict)
 
     def as_tensor(self):
-        return self.main
+        return self.nodes['main']
 
 
 class Net(Graph):

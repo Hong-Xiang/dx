@@ -1,4 +1,14 @@
-from .base import Net
+from ..graph import Graph
+
+
+class LearningRate(Graph):
+    pass
+
+
+class GlobalStep(Graph):
+    def __init__(self, name='global_step'):
+        super(__class__, self).__init__(name)
+    
 
 
 class Trainer(Net):
@@ -8,7 +18,7 @@ class Trainer(Net):
             config: Configs;
             loss: Tensor;
         """
-        super(__class__, self).__init__(config)
+        super(__class__, self).__init__(name)
         self.loss = losses
         self.variables = variables
         self.learning_rate = self._get_learning_rate()
@@ -16,8 +26,8 @@ class Trainer(Net):
         self.nodes['train_step'] = self._get_train_step()
 
     def _get_optimizer(self):
-        if self.config['optimizer']['name'].upper() == 'ADAM':
-            return tf.train.
+        if self.c['optimizer'].upper() == 'ADAM':
+            pass
 
     def _get_learning_rate(self):
         self.add_node('learning_rate', shape=[], is_gpu=)

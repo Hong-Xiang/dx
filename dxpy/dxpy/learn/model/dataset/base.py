@@ -2,13 +2,14 @@ from ..graph import Graph
 import numpy as np
 
 
-class Database(Graph):
+class Dataset(Graph):
     """Base class of database
     Database add some special tasks based on graph:
         1. load single
         2. load batch
         3. load next N samples (given N)
         4. load next N samples with batch (given N)
+    Support with statement.
     """
 
     def __init__(self, name):

@@ -14,3 +14,11 @@
     #     config.gpu_options.allow_growth = True
     #     self.sess = self.supervisor.prepare_or_wait_for_session(config=config)
     #     # self.saver = self.supervisor.saver
+
+from .graph import Graph
+class Session(Graph):
+    def __init__(self, name='session'):
+        super(__class__, self).__init__(self, name)
+
+    @classmethod
+    def 
