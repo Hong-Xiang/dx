@@ -3,7 +3,8 @@ class FS:
         from .config import config
         if fs_or_path is None:
             self.fs = config.default_fs('/')
-        if isinstance(fs_or_path, str):
+            self.need_close = True
+        elif isinstance(fs_or_path, str):
             self.fs = config.default_fs(Path(fs_or_path).abs)
             self.need_close = True
         else:
