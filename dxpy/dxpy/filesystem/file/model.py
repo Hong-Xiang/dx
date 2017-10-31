@@ -1,18 +1,20 @@
 from fs.osfs import OSFS
 from ..path.model import Path
+from ..smartfs import FS
 
 
 class File:
-    def __init__(self, path, load_depth=0):
+    def __init__(self, path, load_depth=0, fs=None):
         self.path = Path(path)
         if load_depth > 0:
             self.load(load_depth)
         else:
             self.contents = None
+        self.fs = fs
 
     @property
     def exists(self):
-        with OSFS('/') as fs:
+        with FS(self.fs) as fs:
             return fs.exists(self.path.rel) and fs.isfile(self.path.rel)
 
     def load(self, depth):
@@ -23,12 +25,12 @@ class File:
             raise FileNotFoundError(self.path.abs)
         if depth == 0:
             return
-        with OSFS('/') as fs:
+        with FS(self.fs) as fs:
             with fs.open(self.path.abs, 'rb') as fin:
                 self.contents = fin.read()
 
     def save(self, data):
-        with OSFS('/') as fs:
+        with FS(self.fs) as fs:
             with fs.open(self.path.abs, 'wb') as fout:
                 self.contents = fout.write(data)
 
