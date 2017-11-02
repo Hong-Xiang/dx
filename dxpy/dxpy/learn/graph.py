@@ -88,7 +88,7 @@ class Graph:
         return self.run(KEY_MAIN, feeds)
 
     def run(self, task_name, feeds):
-        return self.tasks[name](feeds)
+        return self.tasks[task_name](feeds)
 
     def as_tensor(self):
         return self.nodes[KEY_MAIN]

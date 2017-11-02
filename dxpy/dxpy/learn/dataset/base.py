@@ -49,6 +49,10 @@ class DatasetTFRecords(Graph):
         self.dataset = self._processing(self._load_tfrecord_files())
         self._register_dataset()
 
+    @classmethod
+    def default_config(cls):
+        raise NotImplementedError
+
     def _load_tfrecord_files(self):
         from dxpy.batch import FilesFilter
         from fs.osfs import OSFS
