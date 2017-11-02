@@ -5,6 +5,7 @@ Features:
 """
 
 import fs.path as fp
+from fs.path import normpath
 from fs import opener
 from urllib.parse import quote_plus as qut
 from urllib.parse import unquote_plus as uqut
@@ -75,6 +76,19 @@ def url_double_unquoted_path(path):
     return uqut(uqut(path))
 
 
+def unified_path_to_str(path):
+    if path is None:
+        raise NotValidPathError
+    if isinstance(path, str):
+        if is_quoted_url(path):
+            path = url_unquote_path(path)
+        return normpath(path)
+    if isinstance(path, Path):
+        return unified_path_to_str(str(path.path))
+    if isinstance(path, pathlib.Path):
+        return unified_path_to_str(str(path))
+
+
 class Path:
     """ Unified path for posix/windows/url/url_quoted paths.
     This class is an 'abstract' path object, which means it only normalize its representation for different platform,
@@ -86,22 +100,8 @@ class Path:
     def __init__(self, path, url_spec=None):
         """
         """
-        if isinstance(path, Path):
-            self.path = str(path.path)
-            self.url_spec = url_spec
-            return
-        if isinstance(path, pathlib.Path):
-            self.path = str(path.absolute())
-            self.url_spec = None
-            return
-        if is_quoted_url(path):
-            self.path = url_unquote_path(path)
-        else:
-            self.path = path
+        self.path = unified_path_to_str(path)
         self.url_spec = url_spec
-        self.path = fp.normpath(self.path)
-        if path is None:
-            raise NotValidPathError
 
     @classmethod
     def copy(cls, path, url_spec=None):
@@ -118,7 +118,7 @@ class Path:
 
     def __str__(self):
         if self.url_spec is None:
-            return self.abs
+            return self.path
         else:
             fmt = "__str__ for Path with not None url_spec is not Implemented yet, path: {0}, url_spec: {1}."
             raise TypeError(fmt.format(self.path, self.url_spec))
@@ -147,9 +147,19 @@ class Path:
             result = ['/'] + result
         return tuple(result)
 
+    def rel_parts(self):
+        result = fp.iteratepath(self.path)
+        if result[0] == '/':
+            result = result[1:]
+        return result
+
     @property
     def recurse(self):
         return fp.recursepath(self.path)
+
+    @property
+    def father_path(self):
+        return Path(fp.dirname(self.path))
 
     @property
     def father(self):
@@ -179,7 +189,7 @@ class Path:
         return Path(constructor.construct_scalar(node))
 
     def __hash__(self):
-        return self.abs
+        return hash(self.path)
 
 
 yaml = YAML()

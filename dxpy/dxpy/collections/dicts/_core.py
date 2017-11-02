@@ -123,6 +123,9 @@ class TreeDict(UserDict):
     def __setitem__(self, key, value):
         self.set(key, value)
 
+    def empty(self):
+        return len(self.data) == 0
+
     def publish(self):
         for kv in self.data:
             if not isinstance(self.data[kv], TreeDict):
@@ -151,27 +154,39 @@ class TreeDict(UserDict):
     def _unified_keys(cls, key_or_keys_or_path):
         if isinstance(key_or_keys_or_path, (list, tuple)):
             return tuple(key_or_keys_or_path)
-        elif isinstance(key_or_keys_or_path, str):
+        if isinstance(key_or_keys_or_path, str):
             result = tuple(Path(key_or_keys_or_path).parts)
             if len(result) > 0 and result[0] == '/':
                 result = result[1:]
             return result
+        if isinstance(key_or_keys_or_path, int):
+            return tuple(str(key_or_keys_or_path))
         else:
             raise TypeError(
                 "Key not supported {}.".format(key_or_keys_or_path))
 
     def _update_child_dct(self, dct, key=None):
+        from ruamel.yaml.comments import CommentedMap
         if isinstance(dct, TreeDict):
             if dct.fa is None:
                 dct.fa = self
             return dct
+        result = None
         if isinstance(dct, (dict, UserDict)):
             result = TreeDict(dct, fa=self)
-            if key is not None:
-                self.data[key] = result
-            return self.data[key]
-        else:
-            return None
+        # if isinstance(dct, (list, tuple)):
+        #     result = dict()
+        #     for i, v in enumerate(dct):
+        #         result[str(i)] = v
+        #     result = TreeDict(result, fa=self)
+        if isinstance(dct, CommentedMap):
+            result = dict()
+            for k in dct:
+                result[k] = dct[k]
+            result = TreeDict(result, fa=self)
+        if result is not None and key is not None:
+            self.data[key] = result
+        return result
 
     def _unfied_dict_element(self, key, required=False):
         from ._exceptions import KeyNotDictError
@@ -216,3 +231,8 @@ class TreeDict(UserDict):
             self._unfied_dict_element(keys[0], False)
         else:
             self.data[keys[0]].set(keys[1:], value)
+
+
+class FileSystemDict(UserDict):
+    def __init__(self, dct):
+        super(__class__, self).__init__(dct)
