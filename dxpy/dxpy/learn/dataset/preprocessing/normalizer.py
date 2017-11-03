@@ -3,6 +3,7 @@ import tensorflow as tf
 
 
 class Normalizer(Graph):
+
     def __init__(self, name):
         super(__class__, self).__init__(name)
         self.register_main_task(self._normalization)
@@ -22,6 +23,8 @@ class Normalizer(Graph):
 
 
 class FixWhite(Normalizer):
+    method_name = 'fix_white'
+
     def __init__(self, name):
         super(__class__, self).__init__(name)
 
@@ -35,6 +38,8 @@ class FixWhite(Normalizer):
 
 
 class MeanStdWhite(Normalizer):
+    method_name = 'mean_std_white'
+
     def __init__(self, name):
         super(__class__, self).__init__(name)
 
@@ -47,6 +52,8 @@ class MeanStdWhite(Normalizer):
 
 
 class SelfMinMax(Normalizer):
+    method_name = 'self_min_max'
+
     def __init__(self, name):
         super(__class__, self).__init__(name)
 
@@ -54,7 +61,7 @@ class SelfMinMax(Normalizer):
         with tf.name_scope('normalization'):
             rmin = tf.reduce_min(feeds)
             rmax = tf.reduce_max(feeds)
-            data = (feeds - rmin) / (rmax- rmin)
+            data = (feeds - rmin) / (rmax - rmin)
             return {'min': rmin, 'max': rmax, 'data': data}
 
     def _denormalization_kernel(self, feeds):
@@ -63,6 +70,8 @@ class SelfMinMax(Normalizer):
 
 
 class SelfMeanStd(Normalizer):
+    method_name = 'self_mean_std'
+
     def __init__(self, name):
         super(__class__, self).__init__(name)
 

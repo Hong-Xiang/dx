@@ -24,19 +24,33 @@ class Graph:
         return self.nodes['main'], which is designed for sub_graphs.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, *, config=None):
         self.name = Path(name)
-        self.c = self._load_config()
+        self.c = self._load_config(config)
         self.nodes = dict()
         self.tasks = dict()
 
-    def _load_config(self):
-        from .config import config
+    @classmethod
+    def _default_config(cls):
+        return dict()
+
+    def _load_config(self, config_direct):
+        from .config import config as config_global
         from copy import deepcopy
-        current_config = config
+        current_config = config_global
         for k in self.name.rel_parts():
-            current_config = current_config[k]
-        return deepcopy(current_config)
+            current_config = current_config.get(k)
+            if current_config is None:
+                current_config = dict()
+                break
+        if config_direct is None:
+            config_direct = dict()
+        from dxpy.unittests.utils import debug_msg
+        full_config = self._default_config()
+        full_config.update(current_config)
+        full_config.update(config_direct)
+        current_config.update(full_config)
+        return full_config
 
     def register_node(self, name=None, tensor_or_subgraph=None):
         if name is None:
@@ -51,6 +65,20 @@ class Graph:
 
     def register_main_task(self, func):
         self.tasks[KEY_MAIN] = func
+
+    def create_node(self, dtype, shape, name):
+        self.register_node(name, tf.placeholder(dtype, shape, name))
+
+    def create_variable_node(self, dtype, shape, name, *, trainable=False, init_value=None):
+        if init_value is not None:
+            initer = tf.constant_initializer(init_value)
+        else:
+            initer = None
+        self.register_node(name, tf.get_variable(
+            name, shape, dtype, trainable=trainable, initializer=initer))
+
+    def create_placeholder_node(self, dtype, shape, name):
+        self.register_node(name, tf.placeholder(dtype, shape, name))
 
     def p(self, key, feeds=None):
         if isinstance(feeds, dict) and key in feeds:

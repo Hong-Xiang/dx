@@ -19,6 +19,7 @@ class Dataset(Graph):
 
     def __init__(self, name):
         super(__class__, self).__init__(name)
+
         self.register_task('single', self.single)
         self.register_task('batch', self.batch)
 
@@ -46,8 +47,12 @@ class Dataset(Graph):
 class DatasetTFRecords(Graph):
     def __init__(self, name):
         super(__class__, self).__init__(name)
+        self._before_processing()
         self.dataset = self._processing(self._load_tfrecord_files())
         self._register_dataset()
+
+    def _before_processing():
+        pass
 
     @classmethod
     def default_config(cls):
