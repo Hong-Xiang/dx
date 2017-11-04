@@ -24,7 +24,7 @@ class Graph:
         return self.nodes['main'], which is designed for sub_graphs.
     """
 
-    def __init__(self, name, *, config=None):
+    def __init__(self, name, **config):
         self.name = Path(name)
         self.c = self._load_config(config)
         self.nodes = dict()
@@ -34,40 +34,37 @@ class Graph:
     def _default_config(cls):
         return dict()
 
+    @property
+    def basename(self):
+        return self.name.name
+
     def _load_config(self, config_direct):
         from .config import config as config_global
-        from copy import deepcopy
         current_config = config_global
         for k in self.name.rel_parts():
             current_config = current_config.get(k)
             if current_config is None:
                 current_config = dict()
                 break
-        if config_direct is None:
-            config_direct = dict()
-        from dxpy.unittests.utils import debug_msg
         full_config = self._default_config()
         full_config.update(current_config)
         full_config.update(config_direct)
-        current_config.update(full_config)
         return full_config
 
     def register_node(self, name=None, tensor_or_subgraph=None):
-        if name is None:
-            name = tensor_or_subgraph.name
+        if tensor_or_subgraph is None:
+            tensor_or_subgraph = name
+            name = str(tensor_or_subgraph.name)
         self.nodes[name] = tensor_or_subgraph
 
     def register_task(self, name, func):
         self.tasks[name] = func
 
     def register_main_node(self, tensor_or_subgraph=None):
-        self.nodes[KEY_MAIN] = tensor_or_subgraph
+        self.register_node(KEY_MAIN, tensor_or_subgraph)
 
     def register_main_task(self, func):
-        self.tasks[KEY_MAIN] = func
-
-    def create_node(self, dtype, shape, name):
-        self.register_node(name, tf.placeholder(dtype, shape, name))
+        self.register_task(KEY_MAIN, func)
 
     def create_variable_node(self, dtype, shape, name, *, trainable=False, init_value=None):
         if init_value is not None:
@@ -76,11 +73,16 @@ class Graph:
             initer = None
         self.register_node(name, tf.get_variable(
             name, shape, dtype, trainable=trainable, initializer=initer))
+        return self.nodes[name]
 
     def create_placeholder_node(self, dtype, shape, name):
         self.register_node(name, tf.placeholder(dtype, shape, name))
+        return self.nodes[name]
 
-    def p(self, key, feeds=None):
+    def get_feed_dict(self, feeds, task=None):
+        return dict()
+
+    def param(self, key, feeds=None):
         if isinstance(feeds, dict) and key in feeds:
             return feeds[key]
         return self.c[key]
