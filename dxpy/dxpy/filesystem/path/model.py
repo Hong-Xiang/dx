@@ -141,6 +141,14 @@ class Path:
         return fp.relpath(self.path)
 
     @property
+    def isabs(self):
+        return fp.isabs(self.path)
+
+    @property
+    def isrel(self):
+        return not fp.isabs(self.path)
+
+    @property
     def parts(self):
         result = fp.iteratepath(self.path)
         if fp.isabs(self.path) and not result[0] == '/':

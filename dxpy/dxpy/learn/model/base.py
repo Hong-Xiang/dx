@@ -15,6 +15,7 @@ class Model(Graph):
         super(__class__, self).__init__(name, **config)
         self.inputs = self.__inputs_standardization(inputs)
         self._created = False
+        self._scope = self.c.get('scope')
         if not self.c.get('lazy_create', False):
             self.__create()
         self.register_main_task(self.apply)
@@ -25,7 +26,10 @@ class Model(Graph):
 
     @property
     def _variable_scope(self):
-        return self.name.name
+        if self._scope is None:
+            return self.name.name
+        else:
+            return self._scope
 
     def _kernel(self, feeds):
         raise NotImplementedError
@@ -56,7 +60,8 @@ class Model(Graph):
         return result
 
     def __create(self, feeds=None):
-        with tf.variable_scope(self._variable_scope, reuse=False):
+        with tf.variable_scope(self._variable_scope, reuse=False) as scope:
+            self._scope = scope
             with tf.name_scope('inputs'):
                 inputs = self.__inputs_standardization(feeds)
                 for n in inputs:

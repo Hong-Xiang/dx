@@ -1,6 +1,7 @@
 import tensorflow as tf
 
-from ..model.base import Model
+from ..model import Model
+from ..
 from ..graph import Graph
 
 
@@ -42,3 +43,6 @@ class MNISTSimpleConvModel(Model):
                 result['accuracy'] = tf.reduce_mean(
                     tf.cast(correct_prediction, tf.float32))
         return result
+
+
+class MNISTSimpleNet:
