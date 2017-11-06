@@ -9,7 +9,7 @@ def keep_prob():
 
 def graph():
     if _instance is None:
-        create()    
+        raise TypeError("Global keep prob not created yet.")
     return _instance
 
 

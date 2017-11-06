@@ -21,4 +21,4 @@ class ScalarVariable(Graph):
             self.nodes['new_value']: feeds})
 
     def get_value(self):
-        tf.get_default_session().run(self.as_tensor())
+        return tf.get_default_session().run(self.as_tensor())

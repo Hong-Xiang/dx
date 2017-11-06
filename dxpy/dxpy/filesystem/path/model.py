@@ -134,7 +134,12 @@ class Path:
 
     @property
     def abs(self):
-        return fp.abspath(self.path)
+        if fp.isabs(self.path):
+            return self.path
+        else:
+            from fs.osfs import OSFS
+            with OSFS('.') as fs:
+                return fs.getsyspath(self.path)
 
     @property
     def rel(self):

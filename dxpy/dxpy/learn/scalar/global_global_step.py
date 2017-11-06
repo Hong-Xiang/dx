@@ -9,7 +9,7 @@ def global_step():
 
 def graph():
     if _instance is None:
-        create()
+        raise TypeError("Global step not created yet.")
     return _instance
 
 

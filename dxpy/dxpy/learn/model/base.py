@@ -1,5 +1,5 @@
 import tensorflow as tf
-from ..graph import Graph, KEY_MAIN
+from ..graph import Graph, NodeKeys
 
 
 class Model(Graph):
@@ -12,17 +12,94 @@ class Model(Graph):
     """
 
     def __init__(self, name, inputs=None, **config):
-        super(__class__, self).__init__(name, **config)
-        self.inputs = self.__inputs_standardization(inputs)
+        super().__init__(name, **config)
         self._created = False
         self._scope = self.c.get('scope')
-        if not self.c.get('lazy_create', False):
-            self.__create()
+        self._inputs = self._inputs_standardization(inputs)
+        if not self.param('lazy_create'):
+            self._construct()
         self.register_main_task(self.apply)
 
-    @classmethod
-    def _default_inputs(self):
+    def tensors_need_summary(self):
         return dict()
+
+    @classmethod
+    def _default_config(cls):
+        result = dict()
+        result.update(super()._default_config())
+        result.update({
+            'lazy_create': False,
+            'register_inputs': True,
+            'register_outputs': True,
+        })
+        return result
+
+    @classmethod
+    def _default_inputs(cls):
+        return dict()
+
+    def _pre_create_out_scope(self):
+        pass
+
+    def _pre_create_in_scope(self):
+        pass
+
+    def _post_create_in_scope(self):
+        pass
+
+    def _post_create_out_scope(self):
+        pass
+
+    def _kernel(self, feeds):
+        raise NotImplementedError
+
+    def apply(self, feeds=None):
+        if not self._created:
+            self._inputs = self._inputs_standardization(feeds)
+            self._construct()
+            return self._outputs
+        else:
+            with tf.variable_scope(self._variable_scope, reuse=True):
+                return self._kernel(self._inputs_standardization(feeds))
+
+    def _create_inputs(self):
+        with tf.name_scope('inputs'):
+            inputs = self._inputs_standardization()
+            for n in inputs:
+                if isinstance(inputs[n], tf.Tensor):
+                    self.register_node(n, inputs[n])
+                else:
+                    inputs[n] = self.create_placeholder_node(
+                        tf.float32, inputs[n]['shape'], n)
+                    self._inputs[n] = inputs[n]
+
+    def _register_inputs(self):
+        if self.c.get('register_inputs'):
+            for n in self._inputs:
+                self.register_node(n, self._inputs[n])
+
+    def _register_outputs(self):
+        if self.c.get('register_outputs'):
+            for n in self._outputs:
+                self.register_node(n, self._outputs[n])
+
+    def _create(self):
+        with tf.variable_scope(self._variable_scope, reuse=False) as scope:
+            self._scope = scope
+            self._create_inputs()
+            self._register_inputs()
+            self._pre_create_in_scope()
+            self._outputs = self._outputs_standardization(
+                self._kernel(self._inputs))
+
+            self._post_create_in_scope()
+            self._register_outputs()
+        self._created = True
+
+    def _construct(self):
+        self._pre_create_out_scope()
+        self._create()
+        self._post_create_out_scope()
 
     @property
     def _variable_scope(self):
@@ -31,49 +108,41 @@ class Model(Graph):
         else:
             return self._scope
 
-    def _kernel(self, feeds):
-        raise NotImplementedError
-
-    def apply(self, feeds=None):
-        reuse = feeds.get('reuse', self._created)
-        with tf.variable_scope(self._variable_scope, reuse=reuse):
-            return self._kernel(self.__inputs_standardization(feeds))
-
     @classmethod
-    def __tensor_dict_standardization(cls, tensors=None):
+    def _tensor_dict_standardization(cls, tensors=None):
         if tensors is None:
             return dict()
         if isinstance(tensors, tf.Tensor):
-            return {KEY_MAIN: tensors}
-        return tensors
-
-    def __inputs_standardization(self, inputs=None):
-        result = self._default_inputs()
-        if hasattr(self, 'inputs'):
-            result.update(self.inputs)
-        result.update(self.__tensor_dict_standardization(inputs))
-        return result
-
-    def __outputs_standardization(self, outputs):
+            return {NodeKeys.MAIN: tensors}
         result = dict()
-        result.update(self.__tensor_dict_standardization(outputs))
+        for n in tensors:
+            if tensors[n] is not None:
+                result[n] = tensors[n]
         return result
 
-    def __create(self, feeds=None):
-        with tf.variable_scope(self._variable_scope, reuse=False) as scope:
-            self._scope = scope
-            with tf.name_scope('inputs'):
-                inputs = self.__inputs_standardization(feeds)
-                for n in inputs:
-                    if isinstance(inputs[n], tf.Tensor):
-                        self.register_node(n, inputs[n])
-                    else:
-                        inputs[n] = self.create_placeholder_node(
-                            tf.float32, inputs[n]['shape'], n)
-                        self.inputs[n] = inputs[n]
-            outputs = self.__outputs_standardization(
-                self._kernel(inputs))
-            if self.c.get('register_outputs'):
-                for n in outputs:
-                    self.register_node(n, outputs[n])
-        self._created = True
+    def _inputs_standardization(self, inputs=None):
+        result = self._default_inputs()
+        if hasattr(self, '_inputs'):
+            result.update(self._inputs)
+        result.update(self._tensor_dict_standardization(inputs))
+        return result
+
+    def _outputs_standardization(self, outputs):
+        result = dict()
+        result.update(self._tensor_dict_standardization(outputs))
+        return result
+
+
+models = dict()
+
+
+def register_model(key, model):
+    if not isinstance(model, Model):
+        raise TypeError("Only Model is supported, got {}.".format(type(model)))
+    if key in models:
+        raise ValueError("Key {} already exists.".format(key))
+    models[key] = model
+
+
+def load_model(key):
+    return models.get(key)

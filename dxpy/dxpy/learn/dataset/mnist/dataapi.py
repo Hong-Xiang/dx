@@ -2,7 +2,7 @@ from ..base import DatasetTFRecords
 import tensorflow as tf
 
 
-class MNIST(DatasetTFRecords):
+class MNISTTFRecords(DatasetTFRecords):
     def __init__(self, name):
         super(__class__, self).__init__(name)
 
@@ -93,31 +93,68 @@ from ..base import Graph
 
 
 class MNISTLoadAll(Graph):
-    def __init__(self, name, **config):
+    def __init__(self, name='/dataset', **config):
+        from ..preprocessing.normalizer import SelfMinMax
         super(__class__, self).__init__(name, **config)
+        self._normalizer = None
+        if self.c['normalization']['method'].lower() == 'selfminmax':
+            self._normalizer = SelfMinMax(self.name / 'normalization')
         self.register_main_node(self.__load_data())
         self.register_node('image', self.as_tensor()['image'])
         self.register_node('label', self.as_tensor()['label'])
+
+    def get_feed_dict(self):
+        return tf.get_default_session().run(
+            {'image': self.tensor('image'), 'label': self.tensor('label')})
+
+    @classmethod
+    def _default_config(cls):
+        return {
+            'batch_size': 32,
+            'normalization': {
+                'method': 'selfminmax'
+            }
+        }
+
+    def post_session_created(self):
+        tf.get_default_session().run(self._iter_init,
+                                     feed_dict={
+                                         self.tensor('images'): self.images,
+                                         self.tensor('labels'): self.labels
+                                     })
+
+    def _normalize(self, image):
+        if self._normalizer is None:
+            return image
+        else:
+            return self._normalizer(image)['data']
 
     def __load_data(self):
         from tensorflow.examples.tutorials.mnist import input_data
         from tensorflow.contrib.data import Dataset
         mnist = input_data.read_data_sets(
             '/home/hongxwing/Datas/mnist/tfdefault', one_hot=True)
-        images = mnist.train.images
-        label = mnist.train.labels
+        self.images = mnist.train.images
+        self.labels = mnist.train.labels
 
-        # def gen_image():            
+        # def gen_image():
         #     for i in range(images.shape[0]):
         #         yield {'image': images[i, ...], 'label': label[i, ...]}
-        
-        dataset_image = Dataset.from_tensor_slices(images).map(
-            lambda img: tf.reshape(img, [28, 28, 1]))
-        dataset_label = Dataset.from_tensor_slices(label)
-        dataset = Dataset.zip({'image': dataset_image, 'label': dataset_label})
-
-        dataset = Dataset.from_gener
-        dataset = dataset.batch(32).repeat()
-        iterator = dataset.make_one_shot_iterator()
-        next_element = iterator.get_next()
+        with tf.name_scope(self.basename):
+            images_tensor = tf.placeholder(tf.float32, self.images.shape,
+                                           'mnist_images')
+            self.register_node('images', images_tensor)
+            labels_tensor = tf.placeholder(tf.int64, self.labels.shape,
+                                           'mnist_label')
+            self.register_node('labels', labels_tensor)
+            dataset_image = (Dataset.from_tensor_slices(images_tensor)
+                             .map(lambda img: tf.reshape(img, [28, 28, 1]))
+                             .map(self._normalize))
+            dataset_label = Dataset.from_tensor_slices(labels_tensor)
+            dataset = Dataset.zip(
+                {'image': dataset_image, 'label': dataset_label})
+            dataset = dataset.batch(self.param('batch_size')).repeat()
+            iterator = dataset.make_initializable_iterator()
+            self._iter_init = iterator.initializer
+            next_element = iterator.get_next()
         return next_element

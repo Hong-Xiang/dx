@@ -16,23 +16,35 @@ class Trainer(Graph):
         if variables is None:
             variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         self.variables = variables
-        self.register_node(ScalarVariable('learning_rate',
-                                          init_value=self.c['learning_rate']))
-        self.optimizer = self._get_optimizer()
-        self.register_main_node(self._get_train_step())
-        self.register_main_task(self._train)
+        with tf.variable_scope(self.basename):
+            self.register_node('learning_rate', ScalarVariable('learning_rate',
+                                                               init_value=self.c['learning_rate']))
+            self.optimizer = self._get_optimizer()
+            self.register_main_node(self._get_train_step())
+            self.register_main_task(self._train)
+            self.register_task('multiply_learning_rate', self._multiply_learning_rate)
+            self.register_task('set_learning_rate', self._set_learning_rate)
 
     @classmethod
     def _default_config(cls):
         return {
             'is_multi_gpu': False,
             'learning_rate': 1e-3,
-            'simple_mode': False,
+            'simple_mode': True,
         }
 
     def _train(self, feeds):
         sess = tf.get_default_session()
         sess.run(self.as_tensor(), feed_dict=feeds)
+
+    def _multiply_learning_rate(self, feeds):
+        old_value = self.nodes['learning_rate'].get_value()
+        new_value = old_value * self.param('ratio', feeds)
+        self.nodes['learning_rate'].set_value(new_value)
+
+    def _set_learning_rate(self, feeds):
+        self.nodes['learning_rate'].set_value(self.param('learning_rate'),
+                                              feeds)
 
     def _get_optimizer(self):
         return tf.train.AdamOptimizer(self.nodes['learning_rate'].as_tensor())

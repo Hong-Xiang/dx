@@ -1,12 +1,12 @@
 import tensorflow as tf
-
 from ..model import Model
-from ..
-from ..graph import Graph
+from ..net import Net
+from ..graph import Graph, NodeKeys
 
 
 class MNISTSimpleConvModel(Model):
-    def __init__(self, name, inputs=None, **config):
+    def __init__(self, name='/model', image=None, label=None, **config):
+        inputs = {'image': image, 'label': label}
         super(__class__, self).__init__(name, inputs, **config)
 
     @classmethod
@@ -16,7 +16,7 @@ class MNISTSimpleConvModel(Model):
             'label': {'shape': [None, 10]}}
 
     def _kernel(self, feeds):
-        x = feeds['image']        
+        x = feeds['image']
         result = dict()
         with tf.variable_scope('kernel'):
             x = tf.layers.conv2d(x, 32, 5, padding='same',
@@ -45,4 +45,77 @@ class MNISTSimpleConvModel(Model):
         return result
 
 
-class MNISTSimpleNet:
+class MNISTSimpleNet(Net):
+    def __init__(self, name='/net', image=None, label=None, **config):
+        inputs = {'image': image, 'label': label}
+        super(__class__, self).__init__(name, inputs, **config)
+
+    @classmethod
+    def _default_inputs(self):
+        return {
+            'image': {'shape': [None, 28, 28, 1]},
+            'label': {'shape': [None, 10]}}
+
+    def tensors_need_summary(self):
+        return {
+            'loss': {
+                'type': 'scalar',
+                'tensor': self.tensor(NodeKeys.LOSS)
+            },
+            'accuracy': {
+                'type': 'scalar',
+                'tensor': self.tensor(NodeKeys.EVALUATE)
+            },
+            'image': {
+                'type': 'image',
+                'tensor': self.tensor('image')
+            }
+        }
+
+    def _pre_create_in_scope(self):
+
+        self._main_model = MNISTSimpleConvModel(self.name / 'model',
+                                                self.nodes['image'],
+                                                self.nodes['label'], lazy_create=True)
+
+    def _post_create_in_scope(self):
+        self.register_node(
+            NodeKeys.LOSS, self._main_model['cross_entropy'])
+        self.register_node(NodeKeys.INFERENCE,
+                           self._main_model['prediction'])
+        self.register_node(NodeKeys.EVALUATE,
+                           self._main_model['accuracy'])
+        super()._post_create_in_scope()
+
+    def _kernel(self, feeds=None):
+        return self._main_model({'image': self.tensor('image'), 'label': self.tensor('label')})
+
+
+def main():
+    from dxpy.learn.dataset.mnist import MNISTLoadAll
+    from dxpy.learn.train.summary_writer import SummaryWriter
+    from dxpy.learn.scalar import create_global_scalars
+    create_global_scalars()
+    create_global_scalars()
+    dataset = MNISTLoadAll()
+    net = MNISTSimpleNet(
+        '/net', image=dataset['image'], label=dataset['label'])
+    summary = SummaryWriter(
+        'train', net.tensors_need_summary(), path='./summary/train/')
+    sess = tf.Session(config=tf.ConfigProto(log_device_placement=False))
+    with sess.as_default():
+        sess.run(tf.global_variables_initializer())
+        dataset.post_session_created()
+        net.post_session_created()
+        summary.post_session_created()
+        feeds = sess.run(
+            {'image': dataset['image'], 'label': dataset['label']})
+        print('initial accuracy', net.evaluate())
+        for i in tqdm_notebook(range(10)):
+            for _ in tqdm_notebook(range(100)):
+                net.train()
+            feeds = dataset.get_feed_dict()
+            print('STEP={}'.format((i + 1) * 100), net.evaluate())
+            summary.summary()
+            net.save()
+        summary.flush()

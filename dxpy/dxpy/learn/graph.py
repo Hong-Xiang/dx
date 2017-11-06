@@ -5,7 +5,16 @@ from dxpy.collections.dicts import DXDict
 
 # On restrict mode, tensors as allocated to CPU memory if not specified.
 RESTRICT_MODE = True
-KEY_MAIN = 'main'
+
+
+class NodeKeys:
+    EVALUATE = 'evaluate'
+    INFERENCE = 'inference'
+    TRAINER = 'trainer'
+    SAVER = 'saver'
+    LOSS = 'loss'
+    MAIN = 'main'
+    MAIN_MODEL = 'main_model'
 
 
 class Graph:
@@ -20,7 +29,7 @@ class Graph:
 
     Methods:
 
-    -   as_tensor(self):    
+    -   as_tensor(self):
         return self.nodes['main'], which is designed for sub_graphs.
 
     - get_feed_dict(self, task=None):
@@ -41,8 +50,16 @@ class Graph:
         """ Override this method to provide default configs. """
         return dict()
 
-    def get_feed_dict(self, feeds, task=None):
-        return dict()
+    def get_feed_dict(self, feeds=None, task=None):
+        result = dict()
+        if feeds is None:
+            return result
+        for n in self.nodes:
+            if n in feeds:
+                result[self.tensor(n)] = feeds[n]
+            if self.nodes[n] in feeds:
+                result[self.tensor(n)] = feeds[self.nodes[n]]
+        return result
 
     def _print_config_kernel(self, fout, recursive, indent):
         title = "{ind}>{cls}:{name}({fullname})".format(ind=" " * indent,
@@ -79,10 +96,10 @@ class Graph:
         self.tasks[name] = func
 
     def register_main_node(self, tensor_or_subgraph=None):
-        self.register_node(KEY_MAIN, tensor_or_subgraph)
+        self.register_node(NodeKeys.MAIN, tensor_or_subgraph)
 
     def register_main_task(self, func):
-        self.register_task(KEY_MAIN, func)
+        self.register_task(NodeKeys.MAIN, func)
 
     def create_variable_node(self, dtype, shape, name, *, trainable=False, init_value=None):
         if init_value is not None:
@@ -97,13 +114,26 @@ class Graph:
         self.register_node(name, tf.placeholder(dtype, shape, name))
         return self.nodes[name]
 
-    def param(self, key, feeds=None):
+    def param(self, key, feeds=None, *,  default=None):
         """
         Best practice: always use param instead of directly using self.c
         """
         if isinstance(feeds, dict) and key in feeds:
             return feeds[key]
-        return self.c[key]
+        result = self.c.get(key, default)
+        if result is None:
+            raise KeyError(key)
+        return result
+
+    def tensor(self, key=None):
+        if key is None:
+            return self.as_tensor()
+        if not key in self.nodes:
+            return None
+        if isinstance(self.nodes[key], tf.Tensor):
+            return self.nodes[key]
+        elif isinstance(self.nodes[key], Graph):
+            return self.nodes[key].as_tensor()
 
     def print_config(self, fout=None, recursive=False, indent=0):
         self._print_config_kernel(fout, recursive, indent)
@@ -117,13 +147,13 @@ class Graph:
             return None
 
     def __call__(self, feeds=None):
-        return self.run(KEY_MAIN, feeds)
+        return self.run(NodeKeys.MAIN, feeds)
 
-    def run(self, task_name, feeds):
+    def run(self, task_name, feeds=None):
         return self.tasks[task_name](feeds)
 
     def as_tensor(self):
-        return self.nodes[KEY_MAIN]
+        return self.nodes[NodeKeys.MAIN]
 
     def _load_config(self, config_direct):
         from .config import config as config_global

@@ -21,11 +21,11 @@ class Saver(Graph):
 
     @classmethod
     def _default_config(cls):
-        return {'model_dir': './save',
+        return {'model_dir': './save/',
                 'ckpt_name': 'save'}
 
     def _model_path(self):
-        return str(Path(self.c['model_dir']) / self.config['ckpt_name'])
+        return (Path(self.param('model_dir')) / self.param('ckpt_name')).abs
 
     def __save(self, feeds):
         from ..scalar import global_step
@@ -33,37 +33,54 @@ class Saver(Graph):
             self._saver = tf.train.Saver()
         sess = tf.get_default_session()
         step = sess.run(global_step())
-        self.echo('SAVE', step)
-        self.saver.save(sess, self.c['model_dir'], global_step=step)
+        print("[SAVE] model to: {}.".format(self._model_path()))
+        self._saver.save(sess, self._model_path(), global_step=step)
 
     def resolve_path_load(self, feeds):
         from fs.osfs import OSFS
-        path_load = Path(self.c['model_dir'])
-        if path_load.isrel:
-            root = '.'
-        else:
-            root = '/'
-        with OSFS(root) as fs:
-            step = self.param('step', feeds)
-            if step == -1:
-                if not fs.isdir(str(path_load)):
-                    raise ValueError(
-                        "Invalid load path {}.".format(str(path_load)))
-                p = re.compile(self.param('ckpt_name', feeds) + '-([0-9]+)-*')
-                # TODO: Start here:
-                for f in fs.listdir(path_load)
-                    mat = p.match(f)
-                    if mat and step < int(mat[1]):
-                        step = int(mat[1])
-            path_load = str(path_load / self.params['ckpt_name'])
-            path_load += '-%d' % (step)
-        return path_load
+        import re
+        from dxpy.filesystem import Path
+        path_check_point = (
+            Path(self.param('model_dir', feeds)) / 'checkpoint').abs
+        pp = re.compile('^.*: "(.*)".*$')
+        ps = re.compile('.*' + self.param('ckpt_name', feeds) + '-([0-9]+)-*')
+        paths = []
+        with OSFS('/') as fs:
+            if not fs.exists(path_check_point):
+                return fs.getsyspath(path_check_point), False
+            with fs.open(path_check_point) as fin:
+                for l in fin.readlines():
+                    mat_path = pp.match(l)
+                    if mat_path is not None:                        
+                        path_load = mat_path[1]
+                        mat_step = ps.match(path_load)
+                        if mat_step is not None:
+                            paths.append([path_load, int(mat_step[1])])
+        step = self.param('step', feeds)
+        if step == -1:
+            step = max(list(zip(*paths))[1])
+        for p, s in paths:
+            if s == step:
+                return p, True
+        return step, False
 
     def __load(self, feeds):
         from ..scalar import global_global_step
+        import sys
         if self._saver is None:
             self._saver = tf.train.Saver()
         sess = tf.get_default_session()
-        path_load = self.resolve_path_load(feeds['step'])
+        from dxpy.debug import dbgmsg
+        dbgmsg(feeds)
+        path_load, flag = self.resolve_path_load(feeds)
+        if flag is False:
+            if isinstance(path_load, int):
+                msg = "[ERROR][LOAD] Save for given step {} not found. Skip restore."
+                print(msg.format(path_load), file=sys.stderr)
+                return
+            else:
+                msg = "[ERROR][LOAD] Checkpoint file {} not found. Skip restore."
+                print(msg.format(path_load), file=sys.stderr)
+                return
         print("[LOAD] model from: {}.".format(path_load))
         self._saver.restore(sess, path_load)

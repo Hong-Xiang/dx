@@ -2,12 +2,15 @@ import tensorflow as tf
 import numpy as np
 import random
 from ..base import DatasetClassic
+from ..preprocessing.normalizer import SelfMinMax
 
 
 class MNISTClassic(DatasetClassic):
-    def __init__(self, name, **config):
+    def __init__(self, name='/dataset', **config):
         super(__class__, self).__init__(name, **config)
         self.images, self.labels = self.__load_data()
+        if self.param('normalization')['method'].lower() == 'selfminmax':
+            self._normalizer = SelfMinMax(self.name / 'normalization')
 
     @classmethod
     def _default_config(cls):
@@ -23,11 +26,16 @@ class MNISTClassic(DatasetClassic):
                 }
             },
             'batch_size': 32,
+            'normalization': {
+                'method': 'selfminmax'
+            },
         }
 
     def _load_sample(self, feeds=None):
         idx = random.randint(0, self.images.shape[0] - 1)
         image = np.reshape(self.images[idx, ...], [28, 28, 1])
+        image = self._normalizer(image)['data']
+
         label = self.labels[idx, ...]
         return {'image': image, 'label': label}
 

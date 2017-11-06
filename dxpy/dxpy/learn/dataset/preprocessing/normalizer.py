@@ -1,5 +1,6 @@
 from ...graph import Graph
 import tensorflow as tf
+import numpy as np
 
 
 class Normalizer(Graph):
@@ -58,11 +59,16 @@ class SelfMinMax(Normalizer):
         super(__class__, self).__init__(name)
 
     def _normalization_kernel(self, feeds):
-        with tf.name_scope('normalization'):
-            rmin = tf.reduce_min(feeds)
-            rmax = tf.reduce_max(feeds)
+        if isinstance(feeds, tf.Tensor):
+            with tf.name_scope('normalization'):
+                rmin = tf.reduce_min(feeds)
+                rmax = tf.reduce_max(feeds)
+                data = (feeds - rmin) / (rmax - rmin)
+        else:
+            rmin = np.min(feeds)
+            rmax = np.max(feeds)
             data = (feeds - rmin) / (rmax - rmin)
-            return {'min': rmin, 'max': rmax, 'data': data}
+        return {'min': rmin, 'max': rmax, 'data': data}
 
     def _denormalization_kernel(self, feeds):
         with tf.name_scope('denormalization'):
@@ -76,10 +82,15 @@ class SelfMeanStd(Normalizer):
         super(__class__, self).__init__(name)
 
     def _normalization_kernel(self, feeds):
-        with tf.name_scope('normalization'):
-            mean, stdv = tf.nn.moments(feeds)
+        if isinstance(feeds, tf.Tensor):
+            with tf.name_scope('normalization'):
+                mean, stdv = tf.nn.moments(feeds)
+                data = (feeds - mean) / stdv
+        else:
+            mean = np.mean(feeds)
+            stdv = np.std(feeds)
             data = (feeds - mean) / stdv
-            return {'mean': mean, 'std': stdv, 'data': data}
+        return {'mean': mean, 'std': stdv, 'data': data}
 
     def _denormalization_kernel(self, feeds):
         with tf.name_scope('denormalization'):

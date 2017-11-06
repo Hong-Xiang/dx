@@ -68,7 +68,10 @@ class DatasetTFRecords(Graph):
         self.dataset = self._processing(self._load_tfrecord_files())
         self._register_dataset()
 
-    def _before_processing():
+    def _before_processing(self):
+        pass
+
+    def post_session_created(self):
         pass
 
     @classmethod
