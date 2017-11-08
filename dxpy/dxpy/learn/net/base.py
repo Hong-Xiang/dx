@@ -17,13 +17,11 @@ class Net(Model):
 
     @classmethod
     def _default_config(cls):
-        result = dict()
-        result.update(super()._default_config())
-        result.update({
+        from dxpy.collections.dicts import combine_dicts
+        return combine_dicts({
             'add_trainer': True,
             'add_saver': True
-        })
-        return result
+        }, super()._default_config())
 
     def _tensors_need_summary(self):
         return dict()
