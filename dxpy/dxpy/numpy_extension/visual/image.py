@@ -25,7 +25,7 @@ def grid_view(image_lists, windows=None, nb_column=8, scale=2.0, cmap=None, *, h
             if i > len(image_lists[k]):
                 continue
             r = i // nb_column * nb_cata + k
-            c = i % nb_column            
+            c = i % nb_column
             ax = plt.subplot(nb_row, nb_column, r * nb_column + c + 1)
             plt.imshow(image_lists[k][i], cmap=cmap,
                        vmin=windows[k][0], vmax=windows[k][1])
