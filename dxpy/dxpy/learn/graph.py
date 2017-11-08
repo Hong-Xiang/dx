@@ -15,6 +15,10 @@ class NodeKeys:
     LOSS = 'loss'
     MAIN = 'main'
     MAIN_MODEL = 'main_model'
+    INPUT = 'input'
+    LABEL = 'label'
+    OUTPUT = 'output'
+    CHILD_MODEL = 'child_model'
 
 
 class Graph:
@@ -36,11 +40,16 @@ class Graph:
         A method which returns a feed_dict, which can be used to update parent graph's get_feed_dict() or run task.
         Which is used to garantee output nodes (if is Tensor) to be valid under certain tasks, if task is None,
         a feed_dict should be provided so that all nodes are valid.
+
+    Properties:
+        name: Path, name is used for:
+            1. loading configs from global config object;
+            2. its basename sometimes used for namescope/variable name in TensorFlow;
     """
 
     def __init__(self, name, **config):
         self.name = Path(name)
-        self.c = self._load_config(config)
+        self.c = self.__load_config(config)
         self.nodes = dict()
         self.tasks = dict()
 
@@ -50,8 +59,18 @@ class Graph:
         """ Override this method to provide default configs. """
         return dict()
 
+    def _externel_feeds(self):
+        return dict()
+
     def get_feed_dict(self, feeds=None, task=None):
-        result = dict()
+        """
+        Return feed dict for this graph to work for specific tasks.
+
+        In most cases, it works as an translator for feeds to feed_dict,
+        thus replacing name of feeds to tf.Tensor.
+        """
+        from dxpy.collections.dicts import combine_dicts
+        result = self._externel_feeds()
         if feeds is None:
             return result
         for n in self.nodes:
@@ -61,7 +80,7 @@ class Graph:
                 result[self.tensor(n)] = feeds[self.nodes[n]]
         return result
 
-    def _print_config_kernel(self, fout, recursive, indent):
+    def _print_config_kernel(self, recursive, indent, fout):
         title = "{ind}>{cls}:{name}({fullname})".format(ind=" " * indent,
                                                         cls=__class__,
                                                         name=self.parse_name())
@@ -69,15 +88,13 @@ class Graph:
         for k in self.nodes:
             if isinstance(self.nodes[k], tf.Tensor):
                 print('{ind}tf.Tensor:{name}({sp})'.format(ind=" " * indent_sub,
-                                                           name=k, sp=self.nodes[k].shape))
+                                                           name=k, sp=self.nodes[k].shape), file=fout)
             elif isinstance(self.nodes[k], Graph):
                 if recursive:
                     self.nodes[k].print_config(recursive, fout, indent_sub)
                 else:
                     print('{ind}Graph:{name}({sub_name})'.format(ind=" " * indent_sub,
-                                                                 name=k, sub_name=self.nodes[k].name))
-
-    # Functionality functions:
+                                                                 name=k, sub_name=self.nodes[k].name), file=fout)
 
     @property
     def basename(self):
@@ -87,15 +104,16 @@ class Graph:
         return self.name.name
 
     def register_node(self, name=None, tensor_or_subgraph=None):
+        from .utils import refined_tensor_or_graph_name        
         if tensor_or_subgraph is None:
             tensor_or_subgraph = name
-            name = str(tensor_or_subgraph.name)
+            name = refined_tensor_or_graph_name(tensor_or_subgraph)
         self.nodes[name] = tensor_or_subgraph
 
     def register_task(self, name, func):
         self.tasks[name] = func
 
-    def register_main_node(self, tensor_or_subgraph=None):
+    def register_main_node(self, tensor_or_subgraph):
         self.register_node(NodeKeys.MAIN, tensor_or_subgraph)
 
     def register_main_task(self, func):
@@ -114,6 +132,10 @@ class Graph:
         self.register_node(name, tf.placeholder(dtype, shape, name))
         return self.nodes[name]
 
+    def create_sub_graph_node(self, name, create_func):
+        self.register_node(name, create_func())
+        return self.nodes[name]
+
     def param(self, key, feeds=None, *,  default=None):
         """
         Best practice: always use param instead of directly using self.c
@@ -129,14 +151,19 @@ class Graph:
         if key is None:
             return self.as_tensor()
         if not key in self.nodes:
+            if isinstance(key, tf.Tensor):
+                for n in self.nodes:
+                    if self.nodes[n] == key:
+                        return self.nodes[n]
             return None
         if isinstance(self.nodes[key], tf.Tensor):
             return self.nodes[key]
         elif isinstance(self.nodes[key], Graph):
             return self.nodes[key].as_tensor()
+        return None
 
     def print_config(self, fout=None, recursive=False, indent=0):
-        self._print_config_kernel(fout, recursive, indent)
+        self._print_config_kernel(recursive, indent, fout)
 
     def __getitem__(self, name):
         if name in self.nodes:
@@ -153,17 +180,11 @@ class Graph:
         return self.tasks[task_name](feeds)
 
     def as_tensor(self):
-        return self.nodes[NodeKeys.MAIN]
+        return self.nodes.get(NodeKeys.MAIN)
 
-    def _load_config(self, config_direct):
+    def __load_config(self, config_direct):
         from .config import config as config_global
-        current_config = config_global
-        for k in self.name.rel_parts():
-            current_config = current_config.get(k)
-            if current_config is None:
-                current_config = dict()
-                break
-        full_config = self._default_config()
-        full_config.update(current_config)
-        full_config.update(config_direct)
-        return full_config
+        from dxpy.collections.dicts import get_hierarchy_dict, combine_dicts
+        return combine_dicts(config_direct,
+                             get_hierarchy_dict(config_global, self.name),
+                             self._default_config())

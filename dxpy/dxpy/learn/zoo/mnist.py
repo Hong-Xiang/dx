@@ -56,7 +56,7 @@ class MNISTSimpleNet(Net):
             'image': {'shape': [None, 28, 28, 1]},
             'label': {'shape': [None, 10]}}
 
-    def tensors_need_summary(self):
+    def _tensors_need_summary(self):
         return {
             'loss': {
                 'type': 'scalar',
@@ -101,7 +101,7 @@ def main():
     net = MNISTSimpleNet(
         '/net', image=dataset['image'], label=dataset['label'])
     summary = SummaryWriter(
-        'train', net.tensors_need_summary(), path='./summary/train/')
+        'train', net._tensors_need_summary(), path='./summary/train/')
     sess = tf.Session(config=tf.ConfigProto(log_device_placement=False))
     with sess.as_default():
         sess.run(tf.global_variables_initializer())

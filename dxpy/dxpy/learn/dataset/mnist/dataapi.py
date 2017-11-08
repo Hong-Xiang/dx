@@ -3,10 +3,10 @@ import tensorflow as tf
 
 
 class MNISTTFRecords(DatasetTFRecords):
-    def __init__(self, name):
+    def __init__(self, name='dataset'):
         super(__class__, self).__init__(name)
 
-    def _before_processing(self):
+    def _pre_processing(self):
         self._add_normalizer()
 
     def _add_normalizer(self):
@@ -73,10 +73,8 @@ class MNISTTFRecords(DatasetTFRecords):
             result.update({'label': data['label']})
         return result
 
-    def _processing(self, dataset):
-        dataset = dataset.map(self._parse_example)
-        image = dataset['image']
-        shape = dataset['shape']
+    def _processing(self):
+        dataset = super()._processing()
         return (dataset
                 .map(self._parse_example)
                 .map(self._decode_image)

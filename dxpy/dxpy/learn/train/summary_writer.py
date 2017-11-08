@@ -1,92 +1,118 @@
 import tensorflow as tf
 
-from ..graph import Graph
+from dxpy.collections.dicts import combine_dicts
+
+from ..graph import Graph, NodeKeys
+
+
+class SummaryItem:
+    def __init__(self, tensor, stype=None):
+        self.tensor = tensor
+        if stype is None:
+            if len(self.tensor.shape.as_list()) <= 1:
+                stype = 'scalar'
+            elif len(self.tensor.shape.as_list()) == 4:
+                stype = 'image'
+            else:
+                raise TypeError(
+                    "Can not auto infer summary type of {}.".format(tensor))
+        self.stype = stype
 
 
 class SummaryWriter(Graph):
-    @classmethod
-    def _default_config(cls):
-        result = dict()
-        result.update(super()._default_config())
-        result.update({'path': './summary',
-                       'add_prefix': False})
-        return result
+    """
+    Summary writer class.
+    """
 
-    def __init__(self, name, tensors=None, inputs=None, **config):
+    def __init__(self, name, tensors_to_summary=None, inputs=None, **config):
+        """
+        Inputs:
+            tensors_to_summary: dict of name: SummaryItem
+            inputs: tensors required to run summary (will used for feeds)
+        """
         super().__init__(name, **config)
-        if tensors is None:
-            tensors = dict()
+        if tensors_to_summary is None:
+            tensors_to_summary = dict()
         if inputs is None:
             inputs = dict()
 
-        self._tensors = self._default_summaries()
-        self._tensors.update(tensors)
-        self._inputs = inputs
-        for k in self._inputs:
-            self.register_node(k, self._inputs[k])
+        self._tensors = combine_dicts(tensors_to_summary,
+                                      self._default_summaries())
+        for k in inputs:
+            self.register_node(k, inputs[k])
         self._summary_ops = list()
-        self.register_task('create_writer', self._create_writer)
-        self.register_main_task(self.summary)
+        self.register_task('create_writer', self.__create_writer)
         self.register_task('flush', self.flush)
+        self.register_main_task(self.summary)
 
         if self.param('add_prefix'):
             with tf.name_scope('summary'):
-                self._add_all_ops()
+                self.__add_all_ops()
         else:
-            self._add_all_ops()
+            self.__add_all_ops()
 
-    def _add_all_ops(self):
-        self._add_tensors_to_summary()
-        self._add_main_op()
-
-    def _add_main_op(self):
-        if len(self._summary_ops) > 0:
-            self.register_main_node(tf.summary.merge(self._summary_ops))
+    @classmethod
+    def _default_config(cls):
+        return combine_dicts({'path': './summary',
+                              'add_prefix': False},
+                             super()._default_config())
 
     @classmethod
     def _default_summaries(cls):
-        from ..scalar import global_step
-        return {
-            'global_step': {
-                'tensor': global_step(),
-                'type': 'scalar'
-            }
-        }
+        return dict()
 
     def post_session_created(self):
         self.run('create_writer')
 
-    def _create_writer(self, feeds):
-        self.register_node('summary_writer', tf.summary.FileWriter(self.param('path', feeds),
-                                                                   tf.get_default_session().graph))
+    def summary(self, feeds=None):
+        from ..scalar import current_step
+        if self.as_tensor() is None:
+            return
+        value = tf.get_default_session().run(self.as_tensor(), feeds)
+        self.nodes['summary_writer'].add_summary(value, current_step())
 
-    def _get_summary_name(self, name):
-        if self.param('add_prefix'):
-            return self.basename + '/' + name
-        else:
-            return name
+    def flush(self):
+        self.nodes['summary_writer'].flush()
 
-    def _add_tensors_to_summary(self):
+    def __add_all_ops(self):
+        self.__add_tensors_to_summary()
+        self.__add_main_op()
+
+    def __add_main_op(self):
+        if len(self._summary_ops) > 0:
+            self.register_main_node(tf.summary.merge(self._summary_ops))
+
+    def __create_writer(self, feeds):
+        self.register_node('summary_writer',
+                           tf.summary.FileWriter(self.param('path', feeds),
+                                                 tf.get_default_session().graph))
+
+    def __add_tensors_to_summary(self):
         for n, v in self._tensors.items():
             if v is None:
                 continue
             op = None
-            if v['type'] == 'scalar':
-                op = tf.summary.scalar(self._get_summary_name(n),
-                                       v['tensor'])
-            elif v['type'] == 'image':
-                op = tf.summary.image(self._get_summary_name(n),
-                                      v['tensor'])
+            if v.stype == 'scalar':
+                op = tf.summary.scalar(n, v.tensor)
+            elif v.stype == 'image':
+                op = tf.summary.image(n, v.tensor)
             if op is not None:
                 self._summary_ops.append(op)
 
-    def summary(self, feeds=None):
-        from ..scalar import global_global_step
-        if self.as_tensor() is None:
-            return
-        value = tf.get_default_session().run(self.as_tensor(), feeds)
-        self.nodes['summary_writer'].add_summary(value,
-                                                 global_global_step.get_value())
 
-    def flush(self):
-        self.nodes['summary_writer'].flush()
+class SummaryWriterForNet(SummaryWriter):
+    """
+    A quick summary writer which automaticlly add loss, evaluate (if exists),
+    input, inference of net.
+    """
+
+    def __init__(self, name, net, tensors_to_summary=None, inputs=None, **config):
+        automatic_summary_tensors = dict()
+        automatic_keys = [NodeKeys.LOSS, NodeKeys.INFERENCE, NodeKeys.EVALUATE]
+        for k in automatic_keys:
+            if k in net.nodes:
+                automatic_summary_tensors[k] = SummaryItem(net[k])
+        if tensors_to_summary is None:
+            tensors_to_summary = dict()
+        super().__init__(name, combine_dicts(tensors_to_summary, automatic_summary_tensors),
+                         inputs, **config)

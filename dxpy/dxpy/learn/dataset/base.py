@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from ..graph import Graph
+from ..graph import Graph, NodeKeys
 
 
 class DatasetClassic(Graph):
@@ -61,34 +61,40 @@ class DatasetClassic(Graph):
                     list(self.param('fields')[field_name]['shape']))
 
 
-class DatasetTFRecords(Graph):
-    def __init__(self, name):
-        super(__class__, self).__init__(name)
-        self._before_processing()
-        self.dataset = self._processing(self._load_tfrecord_files())
-        self._register_dataset()
+class DatasetBase(Graph):
+    def __init__(self, name, **config):
+        super().__init__(name, **config)
+        self._pre_processing()
+        with tf.name_scope(self.basename):
+            self.dataset = self._processing()
+            self.__register_dataset()
 
-    def _before_processing(self):
+    def _pre_processing(self):
         pass
 
     def post_session_created(self):
         pass
 
-    @classmethod
-    def default_config(cls):
+    def _processing(self):
         raise NotImplementedError
 
-    def _load_tfrecord_files(self):
-        from dxpy.batch import FilesFilter
-        from fs.osfs import OSFS
-        return tf.contrib.data.TFRecordDataset(self.c['files'])
-
-    def _processing(self, dataset):
-        return dataset
-
-    def _register_dataset(self):
+    def __register_dataset(self):
         iterator = self.dataset.make_one_shot_iterator()
         next_element = iterator.get_next()
         self.register_main_node(next_element)
         for k in next_element:
             self.register_node(k, next_element[k])
+        self.register_node(NodeKeys.MAIN, self.dataset)
+
+
+class DatasetTFRecords(DatasetBase):
+    def __init__(self, name, **config):
+        super().__init__(name, **config)
+
+    def _load_tfrecord_files(self):
+        from dxpy.batch import FilesFilter
+        from fs.osfs import OSFS
+        return tf.data.TFRecordDataset(self.param('files'))
+
+    def _processing(self):
+        return self._load_tfrecord_files()

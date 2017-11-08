@@ -25,13 +25,16 @@ class Net(Model):
         })
         return result
 
+    def _tensors_need_summary(self):
+        return dict()
+
     def _post_create_in_scope(self):
+        super()._post_create_in_scope()
         from ..train import Trainer, Saver
         if self.param('add_trainer'):
             if NodeKeys.LOSS in self.nodes:
-                loss = self.nodes[NodeKeys.LOSS]
-            self.register_node(NodeKeys.TRAINER,
-                               Trainer(self.name / 'trainer', self.nodes[NodeKeys.LOSS]))
+                self.register_node(NodeKeys.TRAINER,
+                                   Trainer(self.name / 'trainer', self.nodes[NodeKeys.LOSS]))
         if self.param('add_saver'):
             self.register_node(NodeKeys.SAVER, Saver(self.name / 'saver'))
 
@@ -43,7 +46,7 @@ class Net(Model):
         return tf.get_default_session()
 
     def train(self, feeds=None):
-        self.nodes[NodeKeys.TRAINER](feeds)
+        return self.nodes[NodeKeys.TRAINER](feeds)
 
     def inference(self, feeds=None):
         return self.session.run(self.tensor(NodeKeys.INFERENCE), self.get_feed_dict(feeds))
