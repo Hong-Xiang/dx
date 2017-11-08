@@ -1,24 +1,29 @@
-from .service import auto_complete, auto_submit, auto_start, update_complete
-
-to_complete = []
-
-
-def cycle_kernel():
-    auto_complete()
-    auto_submit()
-    auto_start()
-
-
-def launch_deamon(cycle_intervel=None):
-    (Observable.interval(interval).start_with(0)
-     .subscribe(on_next=lambda i: cycle_kernel(),
-                on_error=lambda e: print(e, file=sys.stderr)))
+import os
+from dxpy.time.utils import now
 
 
 class DeamonService:
-    @staticmethod
-    def start():
-        launch_deamon()
+    @classmethod
+    def cycle(cls):
+        from .service import auto_complete, auto_submit_chain, auto_submit_root, auto_start
+        auto_complete()
+        auto_submit_chain()
+        auto_submit_root()
+        auto_start()
+        print('Cycle at {t}.'.format(t=now(True)))
+
+    @classmethod
+    def start(cls, cycle_intervel=None):
+        from apscheduler.schedulers.blocking import BlockingScheduler
+        scheduler = BlockingScheduler()
+        scheduler.add_job(cls.cycle, 'interval', seconds=60)
+        print(
+            'Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
+        try:
+            cls.cycle()
+            scheduler.start()
+        except (KeyboardInterrupt, SystemExit):
+            pass
 
     @staticmethod
     def stop():

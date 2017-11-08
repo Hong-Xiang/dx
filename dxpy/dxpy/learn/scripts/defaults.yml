@@ -1,0 +1,9 @@
+save:
+  frequency: 100
+  method: step
+load:
+  is_load: true
+  step: -1
+model_filesystem:
+  path_model: ./model
+  ckpt_name: save

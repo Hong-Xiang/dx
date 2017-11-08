@@ -5,6 +5,7 @@ Features:
 """
 
 import fs.path as fp
+from fs.path import normpath
 from fs import opener
 from urllib.parse import quote_plus as qut
 from urllib.parse import unquote_plus as uqut
@@ -48,20 +49,44 @@ class UrlSpec:
 
 
 QUOTED_SLASH = qut('/')
+DOUBLE_QUOTED_SLASH = qut(qut('/'))
 
 
 def is_quoted_url(s):
     return QUOTED_SLASH in s
 
 
+def is_double_quoted_url(s):
+    return DOUBLE_QUOTED_SLASH in s
+
+
 def url_quote_path(path):
-    """
-    """
-    return qut(qut(path))
+    return qut(path)
 
 
 def url_unquote_path(url):
     return uqut(url)
+
+
+def url_double_quoted_path(path):
+    return qut(qut(path))
+
+
+def url_double_unquoted_path(path):
+    return uqut(uqut(path))
+
+
+def unified_path_to_str(path):
+    if path is None:
+        raise NotValidPathError
+    if isinstance(path, str):
+        if is_quoted_url(path):
+            path = url_unquote_path(path)
+        return normpath(path)
+    if isinstance(path, Path):
+        return unified_path_to_str(str(path.path))
+    if isinstance(path, pathlib.Path):
+        return unified_path_to_str(str(path))
 
 
 class Path:
@@ -75,21 +100,8 @@ class Path:
     def __init__(self, path, url_spec=None):
         """
         """
-        if isinstance(path, Path):
-            self.path = str(path.path)
-            self.url_spec = url_spec
-            return
-        if isinstance(path, pathlib.Path):
-            self.path = str(path.absolute())
-            self.url_spec = None
-            return
-        if is_quoted_url(path):
-            self.path = url_unquote_path(path)
-        else:
-            self.path = path
+        self.path = unified_path_to_str(path)
         self.url_spec = url_spec
-        if path is None:
-            raise NotValidPathError
 
     @classmethod
     def copy(cls, path, url_spec=None):
@@ -106,7 +118,7 @@ class Path:
 
     def __str__(self):
         if self.url_spec is None:
-            return self.abs
+            return self.path
         else:
             fmt = "__str__ for Path with not None url_spec is not Implemented yet, path: {0}, url_spec: {1}."
             raise TypeError(fmt.format(self.path, self.url_spec))
@@ -114,24 +126,53 @@ class Path:
     def __truediv__(self, name):
         return Path(fp.combine(self.abs, name), self.url_spec)
 
+    def __add__(self, suffix):
+        return Path(self.abs + suffix)
+
+    def check_exists(self, fs):
+        return fs.exists(self.abs)
+
     @property
     def abs(self):
-        return fp.abspath(self.path)
+        if fp.isabs(self.path):
+            return self.path
+        else:
+            from fs.osfs import OSFS
+            with OSFS('.') as fs:
+                return fs.getsyspath(self.path)
 
     @property
     def rel(self):
         return fp.relpath(self.path)
 
     @property
+    def isabs(self):
+        return fp.isabs(self.path)
+
+    @property
+    def isrel(self):
+        return not fp.isabs(self.path)
+
+    @property
     def parts(self):
         result = fp.iteratepath(self.path)
         if fp.isabs(self.path) and not result[0] == '/':
             result = ['/'] + result
+        return tuple(result)
+
+    def rel_parts(self):
+        result = fp.iteratepath(self.path)
+        if result[0] == '/':
+            result = result[1:]
         return result
 
     @property
     def recurse(self):
         return fp.recursepath(self.path)
+
+    @property
+    def father_path(self):
+        return Path(fp.dirname(self.path))
 
     @property
     def father(self):
@@ -159,6 +200,9 @@ class Path:
     @classmethod
     def from_yaml(cls, constructor, node):
         return Path(constructor.construct_scalar(node))
+
+    def __hash__(self):
+        return hash(self.path)
 
 
 yaml = YAML()

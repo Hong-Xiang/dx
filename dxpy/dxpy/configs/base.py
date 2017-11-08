@@ -1,7 +1,8 @@
 import copy
+from dxpy.collections.dicts import DXDict
 
 
-class Configs:
+class Configs(DXDict):
     """
     A configs object is a *imutable* dict like collection. elements of the collection can be one of the following:
     #. basic types (str, int, bool)
@@ -9,57 +10,26 @@ class Configs:
     #. Configs object
     #. list or dict of Configs
     """
-    keys = tuple()
-    defaults = {}
+    yaml_tag = '!configs'
+    _names = tuple()
+    _default_configs = {}
+
+    def __init__(self, *args, default_dict=None, **kwargs):
+        if default_dict is None:
+            default_dict = DXDict(self._default_configs)
+        else:
+            default_dict = default_dict.apply_default(default_dict)
+        super(__class__, self).__init__(
+            *args, **kwargs, default_dict=default_dict)
 
     @classmethod
-    def keys(cls):
+    def names(cls):
         """ All keys of a configs class.
         """
-        return cls.keys
-
-    @classmethod
-    def defaults(cls):
-        """
-        Note: keys not exists in cls.keys() are ignored.
-        """
-        return cls.defaults
-
-    def __init__(self, **kwargs):
-        for k in kwargs:
-            self.k = kwargs[k]
-
-    def get(self, key):
-        if not hasattr(self, k):
-            return None
-        else:
-            return copy.deepcopy(self.k)
-
-    def apply_defaults(self, recursive=True):
-        results = {}
-        for k in self.keys():
-            if self.get(k) is None:
-                results.update({k: self.defaults().get(k)})
-            elif isinstance(self.k, Configs) and recursive:
-                results.update({k: self.k.apply_defaults(recursive)})
-            else:
-                results.update({k: self.k})
-        return type(self)(**results)
-
-    def append_update(self, configs, extend_keys=False):
-        results = {}
-        for k in self.keys():
-            if self.get(k) is None:
-                results.update({k: configs.get(k)})
-            else:
-                results.update({k: self.get(k)})
-        return type(self)(**results)
-
-    @classmethod
-    def add_yaml_support(cls):
-        from ruamel.yaml import YAML
-        yaml = YAML()
-        yaml.register_class(cls)
+        return cls._names
 
 
-Configs.add_yaml_support()
+from dxpy import serialization
+serialization.register(Configs)
+
+

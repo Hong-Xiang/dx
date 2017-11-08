@@ -4,9 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
 
-from dxpy.file_system.path import Path
 from dxpy.time.utils import now
-from ..representation.task import State
 
 Base = declarative_base()
 
@@ -16,9 +14,8 @@ class Database:
 
     @classmethod
     def create_engine(cls):
-        from ..import provider
-        c = provider.get_or_create_service('config').get_config('database')
-        cls.engine = create_engine(c.path, echo=c.echo)
+        from .config import config as c
+        cls.engine = create_engine(c.path_sqllite, echo=c['echo'])
 
     @classmethod
     def get_or_create_engine(cls):
@@ -67,7 +64,8 @@ class TaskDB(Base):
             time_create = now()
         self.time_create = time_create
         if state is None:
-            state = State.BeforeSubmit.name
+            from .config import config as c
+            state = c['default_state']
         self.state = state
         self.worker = worker
         self.workdir = workdir

@@ -8,7 +8,7 @@ from .. import provider
 SUPPORTED_WORKERS = [workers.Slurm, workers.MultiThreding, workers.NoAction]
 
 
-def start(task):    
+def start(task):
     workers.get_workers(task).run(task)
 
 
@@ -58,20 +58,19 @@ def auto_start():
                              tasks.flat_map(is_dependencies_complete))
      .filter(lambda x: x[1])
      .map(lambda x: x[0])
-    #  .subscribe(print))
      .subscribe(lambda t: start(t)))
 
 
-def cycle():
-    auto_complete()
-    auto_submit_root()
-    auto_submit_chain()
-    auto_start()
-    print('Cycle.')
+# def cycle():
+#     auto_complete()
+#     auto_submit_root()
+#     auto_submit_chain()
+#     auto_start()
+#     print('Cycle.')
 
 
-def launch_deamon(interval=1000):
-    configs = provider.get_or_create_service('config')
-    configs.set_config_by_name_key('database', 'use_web_api', True)
-    rx.Observable.interval(interval).start_with(0).subscribe(
-        on_next=lambda t: cycle(), on_error=lambda e: print(e))
+# def launch_deamon(interval=1000):
+#     configs = provider.get_or_create_service('config')
+#     configs.set_config_by_name_key('database', 'use_web_api', True)
+#     rx.Observable.interval(interval).start_with(0).subscribe(
+#         on_next=lambda t: cycle(), on_error=lambda e: print(e))

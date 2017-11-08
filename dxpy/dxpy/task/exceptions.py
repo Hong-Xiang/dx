@@ -1,11 +1,4 @@
-class TaskNotFoundError(Exception):
-    def __init__(self, tid=None):
-        super(__class__, self).__init__(
-            "Task with id: {tid} not found.".format(tid=tid))
-
-
-class TaskDatabaseConnectionError(Exception):
-    pass
+from .database import TaskNotFoundError, TaskDatabaseConnectionError, InvalidJSONForTask
 
 
 class ServiceNotFound(Exception):
@@ -24,8 +17,3 @@ class UnknownTemplateNameError(Exception):
     def __init__(self, ukn_name):
         super(__class__, self).__init__("Unknown task template name {name}, suppoted names are {supp}.".format(
             name=ukn_name, supp=[k for k in TEMPLATE_NAME_MAP.keys()]))
-
-
-class InvalidJSONForTask(Exception):
-    def __init__(self, details):
-        super(__class__, self).__init__(details)

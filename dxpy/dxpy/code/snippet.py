@@ -1,4 +1,6 @@
 import rx
+import jinja2
+from dxpy.filesystem import Path
 
 
 class Service:
@@ -7,35 +9,15 @@ class Service:
     pass
 
 
+def template_dir():
+    return Path(Path(__file__).father)
+
+
 def cli_template(name):
-    head = """#Auto generated cli.py
-import click
-
-class CLI(click.MultiCommand):
-    commands = {'sub': None}
-"""
-    init = """
-    def __init__(self):
-        super(__class__, self).__init__(name='{name}', help=__class__.__doc__)""".format(name=name)
-
-    tail = """
-
-    def list_commands(self, ctx):
-        return sorted(self.commands.keys())
-
-    def get_command(self, ctx, name):
-        from . import api
-        if name in self.commands:
-            if self.commands[name] is None:
-                mapping = {
-                    'sub': None,
-                }
-                self.commands[name] = mapping.get(name)
-        return self.commands.get(name)
-
-code = CLI()
-"""
-    return head + init + tail
+    # TODO: Add jinja2 implementation
+    with open((template_dir() / 'cli' / 'base.py').abs) as fin:
+        tpl = jinja2.Template(fin.read())
+    return tpl.render(name=name)
 
 
 def web_template(name):
@@ -109,6 +91,23 @@ def launch_server():
 """
 
     return ''.join([imports, resource, resources, add_api, launch_server])
+
+
+class SlurmScript:
+    def __init__(self, name, path):
+        self.path = path
+        self.name = name
+
+    def make(self):
+        from fs.osfs import OSFS
+        with OSFS(self.path) as fs:
+            if fs.exists(self.name):
+                d = fs.opendir(self.name)
+            else:
+                d = fs.makedir(self.name)
+            with d.open(self.name, 'w') as fout:
+                
+            d.close()
 
 
 class Component:

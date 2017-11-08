@@ -1,0 +1,2 @@
+{{indents}}<{{cls}}:{{name}}>
+{{% for x in nodes %}} {{indents}}{{indent}} {{% endfor %}}
