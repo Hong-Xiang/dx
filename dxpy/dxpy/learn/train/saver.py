@@ -16,8 +16,8 @@ class Saver(Graph):
     def __init__(self, name='/saver', **config):
         super(__class__, self).__init__(name, **config)
         self._saver = None
-        self.register_task('save', self.__save)
-        self.register_task('load', self.__load)
+        self.register_task('save', self.save)
+        self.register_task('load', self.load)
 
     @classmethod
     def _default_config(cls):
@@ -27,7 +27,7 @@ class Saver(Graph):
     def _model_path(self):
         return (Path(self.param('model_dir')) / self.param('ckpt_name')).abs
 
-    def __save(self, feeds):
+    def save(self, feeds):
         from ..scalar import global_step
         if self._saver is None:
             self._saver = tf.train.Saver()
@@ -36,7 +36,7 @@ class Saver(Graph):
         print("[SAVE] model to: {}.".format(self._model_path()))
         self._saver.save(sess, self._model_path(), global_step=step)
 
-    def resolve_path_load(self, feeds):
+    def __resolve_path_load(self, feeds):
         from fs.osfs import OSFS
         import re
         from dxpy.filesystem import Path
@@ -51,7 +51,7 @@ class Saver(Graph):
             with fs.open(path_check_point) as fin:
                 for l in fin.readlines():
                     mat_path = pp.match(l)
-                    if mat_path is not None:                        
+                    if mat_path is not None:
                         path_load = mat_path[1]
                         mat_step = ps.match(path_load)
                         if mat_step is not None:
@@ -64,7 +64,7 @@ class Saver(Graph):
                 return p, True
         return step, False
 
-    def __load(self, feeds):
+    def load(self, feeds):
         from ..scalar import global_global_step
         import sys
         if self._saver is None:
@@ -72,7 +72,7 @@ class Saver(Graph):
         sess = tf.get_default_session()
         from dxpy.debug import dbgmsg
         dbgmsg(feeds)
-        path_load, flag = self.resolve_path_load(feeds)
+        path_load, flag = self.__resolve_path_load(feeds)
         if flag is False:
             if isinstance(path_load, int):
                 msg = "[ERROR][LOAD] Save for given step {} not found. Skip restore."
