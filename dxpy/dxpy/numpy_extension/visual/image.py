@@ -3,7 +3,7 @@ import numpy as np
 from .. import image as nei
 
 
-def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, hide_axis=False, tight_c=0.001, return_figure=False, dpi=50, adjust_figure_size=True):
+def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, hide_axis=True, tight_c=0.01, return_figure=False, dpi=None, adjust_figure_size=True):
     """ subplot list of images of multiple categories into grid subplots
     Args:
         image_lists: list of [list of images or 4D tensor]
@@ -12,8 +12,6 @@ def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, h
     Returns:
         Return figure if return_figure is true, else None.
     """
-    from dxpy.debug import dbgmsg
-    dbgmsg("V", 0.1)
     nb_cata = len(image_lists)
     if windows is None:
         windows = [(None, None)] * nb_cata
@@ -22,7 +20,7 @@ def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, h
         if not isinstance(v, list) and isinstance(v, np.ndarray) and v.ndim == 2:
             image_lists[i] = [v]
     image_lists = [list(map(nei.fix_dim, imgs)) for imgs in image_lists]
-    dbgmsg(image_lists[0][0])
+
     nb_images = max([len(imgs) for imgs in image_lists])
 
     nb_row = np.ceil(nb_images / nb_column) * nb_cata
@@ -37,8 +35,10 @@ def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, h
             width *= np.mean(w) / 100
             height *= np.mean(h) / 100
         return (width, height)
-    width, height = adjust_figure_size()
-    fig = plt.figure(figsize=(width, height), dpi=dpi)
+
+    if dpi is None:
+        dpi = 2000.0 / adjust_figure_size()[0]
+    fig = plt.figure(figsize=adjust_figure_size(), dpi=dpi)
 
     for k in range(nb_cata):
         for i in range(nb_images):
@@ -52,7 +52,7 @@ def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, h
             if hide_axis:
                 ax.get_xaxis().set_visible(False)
                 ax.get_yaxis().set_visible(False)
-    if isinstance(tight_c, list):
+    if isinstance(tight_c, (list, tuple)):
         h_pad, w_pad = tight_c
     else:
         h_pad = tight_c
