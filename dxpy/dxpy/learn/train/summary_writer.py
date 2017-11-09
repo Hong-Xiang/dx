@@ -7,6 +7,13 @@ from ..graph import Graph, NodeKeys
 
 class SummaryItem:
     def __init__(self, tensor, stype=None):
+        """
+        Args:
+
+        -   tensor: tensor to add to summary
+        -   stype: `str`, indicating which summary type will be added.
+                Currently support 'scalar', 'image'.
+        """
         self.tensor = tensor
         if stype is None:
             if len(self.tensor.shape.as_list()) <= 1:
@@ -22,9 +29,35 @@ class SummaryItem:
 class SummaryWriter(Graph):
     """
     Summary writer class.
+
+
+    Usage:
+
+        #create dataset, network
+
+        dataset = ...
+
+        network = ...
+
+        summary = SummaryWriter('train', {'loss': network['loss']}, {'input': network['input'], 'label': network['label']} path='./summary/train/)
+
+        #After create session
+        sess = tf.Session()
+        with sess.as_default():
+            dataset.post_session_created()
+            network.post_session_created()
+            summary.post_session_created()
+
+        #Train steps:
+        with sess.as_default():
+            for i in range(1000):
+                network.train()
+                if (i % 10) == 0:
+                    summary.summary({'input': input_ndarray, 'label': label_ndarray})
+            summary.flust()
     """
 
-    def __init__(self, name, tensors_to_summary=None, inputs=None, **config):
+    def __init__(self, name='summary', tensors_to_summary=None, inputs=None, **config):
         """
         Inputs:
             tensors_to_summary: dict of name: SummaryItem
@@ -68,7 +101,7 @@ class SummaryWriter(Graph):
         from ..scalar import current_step
         if self.as_tensor() is None:
             return
-        value = tf.get_default_session().run(self.as_tensor(), feeds)
+        value = tf.get_default_session().run(self.as_tensor(), self.get_feed_dict(feeds))
         self.nodes['summary_writer'].add_summary(value, current_step())
 
     def flush(self):

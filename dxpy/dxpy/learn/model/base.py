@@ -5,6 +5,13 @@ from ..graph import Graph, NodeKeys
 class Model(Graph):
     """
     Graphs which do not support sofiscated tasks, just acts as an function.
+
+    A Model object is mainly used for two purpose:
+        1. Share weights / reuse model for different inputs
+        2. Access global configs as it inherent Graph
+        3. Use its 'lazy_create' config to for some case of defining graph,
+        which is useful for simiplified managing tensorflow name scopes.
+
     Configs:
         reuse: bool
         tensorflow_variable_scope: str=None, *NOT IMPLEMENTED YET*.
@@ -47,7 +54,6 @@ class Model(Graph):
             self._construct()
         self.register_main_task(self.apply)
 
-
     @classmethod
     def _default_config(cls):
         from dxpy.collections.dicts import combine_dicts
@@ -65,19 +71,25 @@ class Model(Graph):
     def _default_inputs(cls):
         return dict()
 
-    def _pre_create_out_scope(self):
+    def _post_create(self):
         pass
 
-    def _pre_create_in_scope(self):
+    def _pre_kernel_pre_inputs(self):
+        pass
+
+    def _pre_kernel_post_inputs(self):
         """
         Function hook before kernel of during create. Useful to create child models.
         """
         pass
 
-    def _post_create_in_scope(self):
+    def _post_kernel_pre_outputs(self):
         pass
 
-    def _post_create_out_scope(self):
+    def _post_kernel_post_outputs(self):
+        pass
+
+    def _post_create(self):
         pass
 
     def _kernel(self, feeds):
@@ -162,17 +174,17 @@ class Model(Graph):
             self.__create_non_tensor_inputs()
             self.__register_inputs()
             self.__create_non_model_child_models()
-            self._pre_create_in_scope()
+            self._pre_kernel_post_inputs()
             self.outputs = self._outputs_standardization(
                 self._kernel(self.inputs))
             self.__register_outputs()
-            self._post_create_in_scope()
+            self._post_kernel_post_outputs()
         self._created = True
 
     def _construct(self):
-        self._pre_create_out_scope()
+        self._post_create()
         self.__create()
-        self._post_create_out_scope()
+        self._post_create()
 
     @property
     def _variable_scope(self):

@@ -19,6 +19,7 @@ class NodeKeys:
     LABEL = 'label'
     OUTPUT = 'output'
     CHILD_MODEL = 'child_model'
+    TASK = 'task'
 
 
 class Graph:

@@ -62,6 +62,11 @@ class MultiGPUSplitor(Model):
 
 
 class PlaceHolder(Graph):
+    """
+    Placeholder for graph. Note this placeholder can be used to construct logic
+    graph, thus may not create in tensorflow.
+    """
+
     def __init__(self, shape, dtype=None, name='placeholder'):
         dtype = self._unified_dtype(dtype)
         super().__init__(name, shape=shape, dtype=dtype)
@@ -84,6 +89,14 @@ class PlaceHolder(Graph):
                 if dtype.upper() in type_desc[k]:
                     return k
             raise ValueError("Unknown dtype {}.".format(dtype))
+
+    @property
+    def shape(self):
+        return self.param('shape')
+
+    @property
+    def dtype(self):
+        return self.param('dtype')
 
 
 class ShapeEnsurer(Model):
