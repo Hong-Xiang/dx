@@ -22,7 +22,8 @@ class Trainer(Graph):
             self.optimizer = self._get_optimizer()
             self.register_main_node(self._get_train_step())
             self.register_main_task(self._train)
-            self.register_task('multiply_learning_rate', self._multiply_learning_rate)
+            self.register_task('multiply_learning_rate',
+                               self._multiply_learning_rate)
             self.register_task('set_learning_rate', self._set_learning_rate)
 
     @classmethod
@@ -41,6 +42,9 @@ class Trainer(Graph):
         old_value = self.nodes['learning_rate'].get_value()
         new_value = old_value * self.param('ratio', feeds)
         self.nodes['learning_rate'].set_value(new_value)
+
+    def decay_learning_rate(self, ratio):
+        self.run('multiply_learning_rate', feeds={'ratio': ratio})
 
     def _set_learning_rate(self, feeds):
         self.nodes['learning_rate'].set_value(self.param('learning_rate'),

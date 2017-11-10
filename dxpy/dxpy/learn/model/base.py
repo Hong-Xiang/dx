@@ -63,7 +63,8 @@ class Model(Graph):
             'register_inputs': True,
             'register_outputs': True,
             'simple_output': True,
-            'no_new_output_for_none_feeds': True
+            'no_new_output_for_none_feeds': True,
+            'register_output_with_prefix': True
         }
         return combine_dicts(cfg, super()._default_config())
 
@@ -126,8 +127,8 @@ class Model(Graph):
                     self.register_node(n, inputs[n])
                 else:
                     if isinstance(inputs[n], PlaceHolder):
-                        shape = inputs[n].param('shape')
-                        dtype = inputs[n].param('dtype')
+                        shape = inputs[n].shape
+                        dtype = inputs[n].dtype
                     else:
                         shape = inputs[n]['shape']
                         dtype = tf.float32
@@ -158,7 +159,11 @@ class Model(Graph):
     def __register_outputs(self):
         if self.param('register_outputs'):
             for n in self.outputs:
-                self.register_node('outputs/{}'.format(n), self.outputs[n])
+                if self.param('register_output_with_prefix'):
+                    output_key = 'outputs/{}'.format(n)
+                else:
+                    output_key = n
+                self.register_node(output_key, self.outputs[n])
                 left_out_keys = [NodeKeys.MAIN,
                                  NodeKeys.LOSS, NodeKeys.INFERENCE]
                 if n in left_out_keys:
@@ -171,12 +176,14 @@ class Model(Graph):
         assert self._scope is None
         with tf.variable_scope(self._variable_scope, reuse=False) as scope:
             self._scope = scope
+            self._pre_kernel_pre_inputs()
             self.__create_non_tensor_inputs()
             self.__register_inputs()
             self.__create_non_model_child_models()
             self._pre_kernel_post_inputs()
             self.outputs = self._outputs_standardization(
                 self._kernel(self.inputs))
+            self._post_kernel_pre_outputs
             self.__register_outputs()
             self._post_kernel_post_outputs()
         self._created = True

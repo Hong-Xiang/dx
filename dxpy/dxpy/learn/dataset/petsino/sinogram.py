@@ -41,10 +41,11 @@ class PhantomSinograms(DatasetTFRecords):
         return {'phantom': data['phantom'], 'sinogram': sinogram}
 
     def _add_normalizer(self):
-        from ..preprocessing.normalizer import SelfMinMax
+        from ...model import normalizer
         self._normalizer = None
-        if self.param('normalization')['method'].lower() == 'selfminmax':
-            self._normalizer = SelfMinMax(self.name / 'normalization')
+        if self.param('normalization')['method'].lower() != 'pass':
+            self._normalizer = normalizer.get_normalizer(
+                self.param('normalization')['method'].lower())
 
     def _processing(self):
         return (super()._processing()

@@ -17,15 +17,16 @@ class Normalizer(Model):
             'add_denorm': False
         }, super()._default_config())
 
-    def _pre_create_in_scope(self):
-        super()._pre_create_in_scope()
+    def _pre_kernel_pre_inputs(self):
+        from .tensor import PlaceHolder
+        super()._pre_kernel_post_inputs()
+        from dxpy.debug import dbgmsg
+        dbgmsg(self.param('add_denorm'))
+        dbgmsg(self.inputs)
         if self.param('add_denorm') and not DENORM_INPUT_KEY in self.inputs:
-            with tf.name_scope('inputs'):
-                t = tf.placeholder(self.tensor(NodeKeys.INPUT).dtype,
-                                   self.tensor(NodeKeys.INPUT).shape,
-                                   name=DENORM_INPUT_KEY)
-                self.inputs[DENORM_INPUT_KEY] = t
-                self.register_node(DENORM_INPUT_KEY, t)
+            self.inputs[DENORM_INPUT_KEY] = PlaceHolder(self.inputs[NodeKeys.INPUT].shape,
+                                                        self.inputs[NodeKeys.INPUT].dtype,
+                                                        name=DENORM_INPUT_KEY)
 
     def _kernel(self, feeds):
         with tf.name_scope('normalization'):
@@ -96,6 +97,10 @@ class SelfMeanStd(Normalizer):
 
 
 class ReduceSum(Normalizer):
+    """
+    Normalize tensor to fix summation.
+    """
+
     def __init__(self, name='normalizer/reduce_sum', inputs=None, fixed_sum=None, **config):
         super().__init__(name, inputs, fixed_sum=fixed_sum, **config)
 
@@ -114,3 +119,10 @@ class ReduceSum(Normalizer):
 
     def _denormalization_kernel(self, feeds):
         return {DENORM_OUTPUT_KEY: feeds[DENORM_INPUT_KEY] * feeds['sum'] / self.param('fixed_sum', feeds)}
+
+
+def get_normalizer(name):
+    if name.lower() in ['self_min_max', 'selfminmax']:
+        return SelfMinMax
+    if name == 'reduce_sum':
+        return ReduceSum

@@ -1,28 +1,28 @@
-from ..base import DatasetTFRecords
 import tensorflow as tf
+from ..base import DatasetTFRecords, NodeKeys
 
 
 class MNISTTFRecords(DatasetTFRecords):
     def __init__(self, name='dataset'):
         super(__class__, self).__init__(name)
 
-    def _pre_processing(self):
-        self._add_normalizer()
+    # def _pre_processing(self):
+    #     self._add_normalizer()
 
-    def _add_normalizer(self):
-        from ..preprocessing.normalizer import SelfMinMax
-        self._normalizer = None
-        if self.c['normalization']['method'].lower() == 'selfminmax':
-            self._normalizer = SelfMinMax(self.name / 'normalization')
+    # def _add_normalizer(self):
+    #     from ...model.normalizer import get_normalizer
+    #     from ...model.tensor import PlaceHolder
+    #     self._normalizer = None
+    #     normalizer_class = get_normalizer(self.c['normalization']['method'])
+    #     if normalizer_class is not None:
+    #         self._normalizer = normalizer_class(self.name / 'normalization',
+    #                                             PlaceHolder([28, 28, 1]), lazy_create=True)
 
     @classmethod
     def _default_config(cls):
         return {
             'files': ['/home/hongxwing/Datas/mnist/mnist.train.tfrecord'],
-            'batch_size': 32,
-            'normalization': {
-                'method': 'selfminmax'
-            },
+            'batch_size': 32,            
             'one_hot': True,
         }
 
@@ -56,7 +56,7 @@ class MNISTTFRecords(DatasetTFRecords):
         if self._normalizer is None:
             image = data['image']
         else:
-            image = self._normalizer(data['image'])['data']
+            image = self._normalizer(data['image'])[NodeKeys.MAIN]
         return {'image': image,
                 'shape': data['shape'],
                 'label': data['label']}
@@ -80,7 +80,7 @@ class MNISTTFRecords(DatasetTFRecords):
                 .map(self._decode_image)
                 .map(self._change_dtype)
                 .map(self._reshape_tensors)
-                .map(self._normalize)
+                # .map(self._normalize)
                 .map(self._maybe_onehot)
                 .batch(self.c['batch_size'])
                 .cache()
@@ -92,11 +92,14 @@ from ..base import Graph
 
 class MNISTLoadAll(Graph):
     def __init__(self, name='/dataset', **config):
-        from ..preprocessing.normalizer import SelfMinMax
+        # from ..preprocessing.normalizer import SelfMinMax
+
         super(__class__, self).__init__(name, **config)
         self._normalizer = None
-        if self.c['normalization']['method'].lower() == 'selfminmax':
-            self._normalizer = SelfMinMax(self.name / 'normalization')
+        method = self.c['normalization']['method'].lower()
+        if method != 'pass':
+            self._normalizer = get_normalizer(
+                method)(self.name / 'normalization', )
         self.register_main_node(self.__load_data())
         self.register_node('image', self.as_tensor()['image'])
         self.register_node('label', self.as_tensor()['label'])
@@ -108,10 +111,7 @@ class MNISTLoadAll(Graph):
     @classmethod
     def _default_config(cls):
         return {
-            'batch_size': 32,
-            'normalization': {
-                'method': 'selfminmax'
-            }
+            'batch_size': 32,            
         }
 
     def post_session_created(self):

@@ -3,7 +3,6 @@ import numpy as np
 from ...graph import Graph, NodeKeys
 
 
-
 class Normalizer(Graph):
 
     def __init__(self, name, input_tensors=None, **config):
@@ -15,9 +14,7 @@ class Normalizer(Graph):
         self.register_task('norm', self.__normalization)
 
     def __unified_input_tensors(self, input_tensors):
-        if input_tensors is None:
-
-
+        pass
 
     def _normalization_kernel(self, feeds):
         raise NotImplementedError

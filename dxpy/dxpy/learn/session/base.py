@@ -1,5 +1,6 @@
 import tensorflow as tf
 from ..graph import Graph, NodeKeys
+from contextlib import contextmanager
 
 
 class Session(Graph):
@@ -25,52 +26,57 @@ class Session(Graph):
 
     def run(self, tensors, feed_dict=None):
         with self.nodes[NodeKeys.MAIN].as_default():
-            self.nodes[NodeKeys.MAIN].run(tensors, feed_dict)
+            return self.nodes[NodeKeys.MAIN].run(tensors, feed_dict)
 
     def run_func(self, func):
         with self.nodes[NodeKeys.MAIN].as_default():
-            func()
+            return func()
 
+    @contextmanager
+    def as_default(self):
+        with self.nodes[NodeKeys.MAIN].as_default():
+            yield self.nodes[NodeKeys.MAIN]
 
-# class SessionWithSupervisor(Graph):
-#     def __init__(self, name, **config):
-#         super(__class__, self).__init__(name, **config)
+    def post_session_created(self):
+        self.as_tensor().run(tf.global_variables_initializer())
+        # class SessionWithSupervisor(Graph):
+        #     def __init__(self, name, **config):
+        #         super(__class__, self).__init__(name, **config)
 
-#     def __construct(self):
-#         sv_para = {'summary_op': None}
-#         sms = self.c['save']['frequency']
-#         load_step = self.c['save']['load_step']
-#         if sms is not None:
-#             sv_para['save_model_secs'] = sms
-#         if load_step is not None:
-#             sv_para['init_fn'] = load_fn
-#         sv_para['saver'] = save_fn
-#         supervisor = tf.train.Supervisor(**sv_para)
-#         tf_config = tf.ConfigProto(
-#             log_device_placement=config.log.is_show_device_placement)
-#         tf_config.gpu_options.allow_growth = True
-#         sess = supervisor.prepare_or_wait_for_session(config=tf_config)
-#         return {'supervisor': supervisor, 'session': sess}
+        #     def __construct(self):
+        #         sv_para = {'summary_op': None}
+        #         sms = self.c['save']['frequency']
+        #         load_step = self.c['save']['load_step']
+        #         if sms is not None:
+        #             sv_para['save_model_secs'] = sms
+        #         if load_step is not None:
+        #             sv_para['init_fn'] = load_fn
+        #         sv_para['saver'] = save_fn
+        #         supervisor = tf.train.Supervisor(**sv_para)
+        #         tf_config = tf.ConfigProto(
+        #             log_device_placement=config.log.is_show_device_placement)
+        #         tf_config.gpu_options.allow_growth = True
+        #         sess = supervisor.prepare_or_wait_for_session(config=tf_config)
+        #         return {'supervisor': supervisor, 'session': sess}
 
-#     def _load(self):
-#         pass
-# def supervisor(config, load_fn, save_fn):
-#     sv_para = {'summary_op': None}
-#     sms = config.save.frequency
-#     load_step = config.save.load_step
-#     if sms is not None:
-#         sv_para['save_model_secs'] = sms
-#     if load_step is not None:
-#         sv_para['init_fn'] = load_fn
-#     sv_para['saver'] = save_fn
-#     supervisor = tf.train.Supervisor(**sv_para)
-#     tf_config = tf.ConfigProto(
-#         log_device_placement=config.log.is_show_device_placement)
-#     tf_config.gpu_options.allow_growth = True
-#     sess = supervisor.prepare_or_wait_for_session(config=tf_config)
-#     return {'supervisor': supervisor, 'session': sess}
+        #     def _load(self):
+        #         pass
+        # def supervisor(config, load_fn, save_fn):
+        #     sv_para = {'summary_op': None}
+        #     sms = config.save.frequency
+        #     load_step = config.save.load_step
+        #     if sms is not None:
+        #         sv_para['save_model_secs'] = sms
+        #     if load_step is not None:
+        #         sv_para['init_fn'] = load_fn
+        #     sv_para['saver'] = save_fn
+        #     supervisor = tf.train.Supervisor(**sv_para)
+        #     tf_config = tf.ConfigProto(
+        #         log_device_placement=config.log.is_show_device_placement)
+        #     tf_config.gpu_options.allow_growth = True
+        #     sess = supervisor.prepare_or_wait_for_session(config=tf_config)
+        #     return {'supervisor': supervisor, 'session': sess}
 
-
-# def _set_sesssv(self):
-#         from .supervisor import supervisor
-#         result = supervisor(self.params)
+        # def _set_sesssv(self):
+        #         from .supervisor import supervisor
+        #         result = supervisor(self.params)

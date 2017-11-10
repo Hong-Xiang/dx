@@ -118,7 +118,7 @@ class StackedConv2D(Model):
         }
         return combine_dicts(cfg, super()._default_config())
 
-    def _pre_create_in_scope(self):
+    def _pre_kernel_post_inputs(self):
         for i in range(self.param('nb_stacked')):
             if i == 0:
                 pre_activation = self.param('pre_activation')

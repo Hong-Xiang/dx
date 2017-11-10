@@ -26,8 +26,8 @@ class Net(Model):
     def _tensors_need_summary(self):
         return dict()
 
-    def _post_create_in_scope(self):
-        super()._post_create_in_scope()
+    def _post_kernel_post_outputs(self):
+        super()._post_kernel_post_outputs()
         from ..train import Trainer, Saver
         if self.param('add_trainer'):
             if NodeKeys.LOSS in self.nodes:

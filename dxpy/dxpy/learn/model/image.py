@@ -58,7 +58,7 @@ class MultiDownSampler(Model):
     A helper model to create multiple down sampler and form their results to a dict.
     """
 
-    def __init__(self, input_tensor, down_sample_ratios, keep_original=None, original_key=None, name='multi_down_sampler', **config):
+    def __init__(self, input_tensor, down_sample_ratios=None, keep_original=None, original_key=None, name='multi_down_sampler', **config):
         super().__init__(name,
                          inputs={NodeKeys.INPUT: input_tensor},
                          down_sample_ratios=down_sample_ratios,
@@ -70,7 +70,8 @@ class MultiDownSampler(Model):
         from dxpy.collections.dicts import combine_dicts
         cfg = {
             'keep_original': True,
-            'original_key': 'ds1x'
+            'original_key': 'ds1x',
+            'rigister_output_with_prefix': False
         }
         return combine_dicts(cfg, super()._default_config())
 
