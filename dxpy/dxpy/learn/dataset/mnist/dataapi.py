@@ -3,8 +3,8 @@ from ..base import DatasetTFRecords, NodeKeys
 
 
 class MNISTTFRecords(DatasetTFRecords):
-    def __init__(self, name='dataset'):
-        super(__class__, self).__init__(name)
+    def __init__(self, name='dataset', **config):
+        super(__class__, self).__init__(name, **config)
 
     # def _pre_processing(self):
     #     self._add_normalizer()
@@ -22,7 +22,7 @@ class MNISTTFRecords(DatasetTFRecords):
     def _default_config(cls):
         return {
             'files': ['/home/hongxwing/Datas/mnist/mnist.train.tfrecord'],
-            'batch_size': 32,            
+            'batch_size': 32,
             'one_hot': True,
         }
 
@@ -111,7 +111,7 @@ class MNISTLoadAll(Graph):
     @classmethod
     def _default_config(cls):
         return {
-            'batch_size': 32,            
+            'batch_size': 32,
         }
 
     def post_session_created(self):

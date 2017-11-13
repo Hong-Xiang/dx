@@ -68,8 +68,12 @@ class DatasetBase(Graph):
         with tf.name_scope(self.basename):
             self.dataset = self._processing()
             self.__register_dataset()
+            self._post_processing()
 
     def _pre_processing(self):
+        pass
+
+    def _post_processing(self):
         pass
 
     def post_session_created(self):
@@ -84,7 +88,6 @@ class DatasetBase(Graph):
         self.register_main_node(next_element)
         for k in next_element:
             self.register_node(k, next_element[k])
-        self.register_node(NodeKeys.MAIN, self.dataset)
 
 
 class DatasetTFRecords(DatasetBase):

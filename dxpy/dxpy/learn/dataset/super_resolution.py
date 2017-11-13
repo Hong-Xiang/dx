@@ -23,6 +23,6 @@ class SuperResolutionDataset(Graph):
                            MultiDownSampler(self.nodes['dataset'][self.param('input_key')],
                                             down_sample_ratios=down_sample_ratios,
                                             keep_original=True, original_key=origin_key,
-                                            register_output_with_prefix=False))        
+                                            register_output_with_prefix=False))
         for k, _ in self.__down_sample_keys(0):
             self.register_node(k, self.nodes['down_sampler'][k])

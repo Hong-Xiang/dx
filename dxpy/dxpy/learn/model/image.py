@@ -83,3 +83,13 @@ class MultiDownSampler(Model):
         if self.param('keep_original'):
             result[self.param('original_key')] = self.tensor(NodeKeys.INPUT)
         return result
+
+
+class Padder(Model):
+    def __init__(self, input_tensor, padding=None, shape=None, name='padder', **config):
+        super().__init__(name,
+                         inputs={NodeKeys.INPUT: input_tensor},
+                         padding=padding, shape=shape)
+
+    def _kernel(self, feeds):
+        x = feeds[NodeKeys.INPUT]
