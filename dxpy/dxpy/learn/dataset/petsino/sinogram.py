@@ -1,11 +1,17 @@
-from ..base import DatasetTFRecords
+from ..base import DatasetTFRecords, NodeKeys
 import tensorflow as tf
 from ..config import config
 
 
 class PhantomSinograms(DatasetTFRecords):
+    SHAPE_SINOGRAM = [320, 640, 1]
+    SHAPE_PHANTOM = [256, 256, 1]
+
     def __init__(self, name='dataset', **config):
+        from dxpy.learn.utils.tensor import ensure_shape
         super().__init__(name, **config)
+        self.nodes['image'] = ensure_shape(
+            self.nodes['image'], batch_size=self.param('batch_size'))
 
     @classmethod
     def _parse_example(cls, example):
@@ -43,34 +49,19 @@ class PhantomSinograms(DatasetTFRecords):
             raise ValueError(
                 "Unsupported fields: {}.".format(self.param('fields')))
 
-    @classmethod
-    def _reshape_tensors(cls, data):
-        return {'image': tf.reshape(tf.cast(data['image'], tf.float32), data['shape']),
+    def _reshape_tensors(self, data):
+        if self.param('fields') == 'sinogram':
+            shape = self.SHAPE_SINOGRAM
+        else:
+            shape = self.SHAPE_PHANTOM
+        return {'image': tf.reshape(tf.cast(data['image'], tf.float32), shape),
                 'shape': data['shape']}
-
-    # def _pre_processing(self):
-        # self._add_normalizer()
-
-    # def _normalize(self, data):
-    #     if self._normalizer is None:
-    #         sinogram = data['sinogram']
-    #     else:
-    #         sinogram = self._normalizer(data['sinogram'])['data']
-    #     return {'phantom': data['phantom'], 'sinogram': sinogram}
-
-    # def _add_normalizer(self):
-    #     from ...model import normalizer
-    #     self._normalizer = None
-    #     if self.param('normalization')['method'].lower() != 'pass':
-    #         self._normalizer = normalizer.get_normalizer(
-    #             self.param('normalization')['method'].lower())
 
     def _processing(self):
         return (super()._processing()
                 .map(self._parse_example)
                 .map(self._decode_image)
                 .map(self._reshape_tensors)
-                # .map(self._normalize)
                 .batch(self.c['batch_size'])
                 .cache()
                 .repeat())

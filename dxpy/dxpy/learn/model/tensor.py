@@ -104,10 +104,14 @@ class ShapeEnsurer(Model):
     Used for assert on shapes or provide information for None dimensions.
     """
 
-    def __init__(self, input_tensor, shape, name='shape_ensurer'):
+    def __init__(self, input_tensor, shape=None, *, batch_size=None, name='shape_ensurer'):
         super().__init__(name, inputs={NodeKeys.INPUT: input_tensor},
-                         shape=shape, simple_output=True)
+                         shape=shape, batch_size=batch_size, simple_output=True)
 
     def _kernel(self, feeds):
         with tf.name_scope('shape_ensurer'):
+            if self.param('shape', raise_key_error=False) is None:
+                shape = self.tensor(NodeKeys.INPUT).shape.as_list()
+            else:
+                shape = self.param('shape')
             return tf.reshape(feeds[NodeKeys.INPUT], self.param('shape'))

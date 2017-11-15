@@ -27,7 +27,11 @@ def add_poisson_noise(input_tensor):
 
 
 class DownSampler(Model):
-    def __init__(self, input_tensor, ratio, method=None, padding=None, name='down_sampler', **config):
+    def __init__(self,
+                 input_tensor, ratio,
+                 *,
+                 method=None, padding=None, name='down_sampler',
+                 **config):
         super().__init__(name, inputs={NodeKeys.INPUT: input_tensor},
                          ratio=ratio, method=method, padding=padding, **config)
 
@@ -58,7 +62,14 @@ class MultiDownSampler(Model):
     A helper model to create multiple down sampler and form their results to a dict.
     """
 
-    def __init__(self, input_tensor, down_sample_ratios=None, keep_original=None, original_key=None, name='multi_down_sampler', **config):
+    def __init__(self, input_tensor, down_sample_ratios=None,
+                 *,
+                 keep_original=None,
+                 original_key=None,
+                 with_shape_info=None,
+                 original_shape=None,
+                 name='multi_down_sampler',
+                 **config):
         super().__init__(name,
                          inputs={NodeKeys.INPUT: input_tensor},
                          down_sample_ratios=down_sample_ratios,
@@ -71,7 +82,8 @@ class MultiDownSampler(Model):
         cfg = {
             'keep_original': True,
             'original_key': 'ds1x',
-            'rigister_output_with_prefix': False
+            'rigister_output_with_prefix': False,
+            'with_shape_info': False
         }
         return combine_dicts(cfg, super()._default_config())
 

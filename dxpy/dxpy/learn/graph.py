@@ -1,5 +1,6 @@
 """ Base class definition """
 import tensorflow as tf
+from contextlib import contextmanager
 from dxpy.filesystem import Path
 from dxpy.collections.dicts import DXDict
 
@@ -25,12 +26,17 @@ class NodeKeys:
 class Graph:
     """
     Base class of components.
+
+    A `Graph` is an dict like collections of nodes and edges. Nodes of `Graph` can be a tensor another sub `Graph`.
+    Edges representing relations of sub graphs/tensors, flow of information.
+
     A `Graph` is an generalization of `tf.Graph`, which is designed for following features:
         1. An unified interface of `tf.Graph` and general compute graph or operations/procedures;
         2. Seperate config and implementation, use TreeDict for configs, and supports multiple ways of config;
         3. An easy-to-use way of seperate/reuse subgraphs;
         4. Supports an warp of sessions.run/normal python function.
             Please add member method for tasks, and register them to tasks
+
 
 
     Methods:
@@ -142,14 +148,14 @@ class Graph:
         self.register_node(name, create_func())
         return self.nodes[name]
 
-    def param(self, key, feeds=None, *,  default=None):
+    def param(self, key, feeds=None, *,  default=None, raise_key_error=True):
         """
         Best practice: always use param instead of directly using self.c
         """
         if isinstance(feeds, dict) and key in feeds:
             return feeds[key]
         result = self.c.get(key, default)
-        if result is None:
+        if result is None and raise_key_error:
             raise KeyError(key)
         return result
 
@@ -194,3 +200,4 @@ class Graph:
         return combine_dicts(config_direct,
                              get_hierarchy_dict(config_global, self.name),
                              self._default_config())
+

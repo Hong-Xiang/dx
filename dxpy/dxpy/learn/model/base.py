@@ -20,7 +20,7 @@ class Model(Graph):
     Model extends Graphs interface with two properities:
         inputs
         outputs
-    
+
     They are implemented based on nodes.
     Model will generate output tenors in the following two setuations:
         1. when model is created;
@@ -81,7 +81,8 @@ class Model(Graph):
 
     def _pre_kernel_post_inputs(self):
         """
-        Function hook before kernel of during create. Useful to create child models.
+        Function hook before kernel of after register inputs during create.
+        Useful to create child models.
         """
         pass
 
@@ -214,7 +215,7 @@ class Model(Graph):
                 result[n] = tensors[n]
         return result
 
-    def _inputs_standardization(self, inputs=None):
+    def _inputs_standardization(self, inputs=None):        
         result = self._default_inputs()
         if hasattr(self, 'inputs'):
             result.update(self.inputs)
