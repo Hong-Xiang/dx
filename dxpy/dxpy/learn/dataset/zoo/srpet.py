@@ -1,3 +1,4 @@
+import tensorflow as tf
 
 
 def pet_image_super_resolution_dataset(dataset_name: str,
@@ -37,15 +38,16 @@ def pet_image_super_resolution_dataset(dataset_name: str,
         'origin': config_origin,
         'fix_white': config_normalizer
     }
-    dataset_origin = PhantomSinograms(name='dataset/origin',
-                                      batch_size=batch_size)
-    dataset_summed = ReduceSum('dataset/reduce_sum',
-                               dataset_origin['image'],
-                               fixed_summation_value=1e6).as_tensor()
-    dataset = FixWhite(name='dataset/fix_white',
-                       inputs=dataset_summed).as_tensor()
-    dataset = SuperResolutionDataset('dataset/super_resolution',
-                                     lambda: {'image': dataset},
-                                     input_key='image',
-                                     nb_down_sample=3)    
+    with tf.name_scope('{img_type}_dataset'.format(img_type=image_type)):
+        dataset_origin = PhantomSinograms(name='dataset/origin',
+                                          batch_size=batch_size)
+        dataset_summed = ReduceSum('dataset/reduce_sum',
+                                   dataset_origin['image'],
+                                   fixed_summation_value=1e6).as_tensor()
+        dataset = FixWhite(name='dataset/fix_white',
+                           inputs=dataset_summed).as_tensor()
+        dataset = SuperResolutionDataset('dataset/super_resolution',
+                                         lambda: {'image': dataset},
+                                         input_key='image',
+                                         nb_down_sample=3)
     return dataset
