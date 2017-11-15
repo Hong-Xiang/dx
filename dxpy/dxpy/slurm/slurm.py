@@ -29,7 +29,7 @@ class TaskInfo:
             return cls(*items)
 
 
-def apply_command(command):
+def __apply_command(command):
     with os.popen(command) as fin:
         return fin.readlines()
 
@@ -38,7 +38,7 @@ def sbatch(workdir, script_file, *args):
     cmd = 'cd {dir} && sbatch {args} {file}'.format(dir=workdir,
                                                     args=' '.join(args),
                                                     file=script_file)
-    result = apply_command(cmd)
+    result = __apply_command(cmd)
     return sid_from_submit(result[0])
 
 
@@ -47,7 +47,7 @@ def sid_from_submit(s):
 
 
 def squeue():
-    return (Observable.from_(apply_command('squeue'))
+    return (Observable.from_(__apply_command('squeue'))
             .map(lambda l: TaskInfo.from_squeue(l))
             .filter(lambda l: l is not None))
 
