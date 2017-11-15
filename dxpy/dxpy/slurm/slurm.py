@@ -55,8 +55,11 @@ def squeue():
 def is_complete(sid):
     if sid is None:
         return False
-    return (squeue()
-            .subscribe_on(rx.concurrency.ThreadPoolScheduler())
-            .filter(lambda tinfo: tinfo.id == sid)
-            .count()
-            .to_blocking().first()) == 0
+    result = []
+    squeue().filter(lambda tinfo: tinfo.id == sid).count().subscribe(result.append)
+    return result[0] == 0
+    # return (squeue()
+    #         .subscribe_on(rx.concurrency.ThreadPoolScheduler())
+    #         .filter(lambda tinfo: tinfo.id == sid)
+    #         .count()
+    #         .to_blocking().first()) == 0
