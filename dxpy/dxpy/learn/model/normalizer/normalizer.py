@@ -1,9 +1,19 @@
-import tensorflow as tf
+from enum import Enum
+
 import numpy as np
-from .base import Model, NodeKeys
+import tensorflow as tf
+
+from ..base import Model, NodeKeys
 
 DENORM_INPUT_KEY = 'to_denorm'
 DENORM_OUTPUT_KEY = 'denormed'
+
+
+class ConfigKeys(Enum):
+    DENORM_INPUT_KEY = 'to_denorm'
+    DENORM_OUTPUT_KEY = 'denormed'
+    ADD_DENORM_FLAG = 'add_denorm'
+    WITH_BATCH_DIM = 'with_batch_dim'
 
 
 class Normalizer(Model):
@@ -14,16 +24,14 @@ class Normalizer(Model):
     def _default_config(cls):
         from dxpy.collections.dicts import combine_dicts
         return combine_dicts({
-            'add_denorm': False
+            ConfigKeys.ADD_DENORM_FLAG.name: False,
+            ConfigKeys.WITH_BATCH_DIM.name: True,
         }, super()._default_config())
 
     def _pre_kernel_pre_inputs(self):
-        from .tensor import PlaceHolder
-        super()._pre_kernel_post_inputs()
-        from dxpy.debug import dbgmsg
-        dbgmsg(self.param('add_denorm'))
-        dbgmsg(self.inputs)
-        if self.param('add_denorm') and not DENORM_INPUT_KEY in self.inputs:
+        from ..tensor import PlaceHolder
+        super()._pre_kernel_pre_inputs()
+        if self.param(ConfigKeys.ADD_DENORM_FLAG.name) and not DENORM_INPUT_KEY in self.inputs:
             self.inputs[DENORM_INPUT_KEY] = PlaceHolder(self.inputs[NodeKeys.INPUT].shape,
                                                         self.inputs[NodeKeys.INPUT].dtype,
                                                         name=DENORM_INPUT_KEY)
@@ -101,24 +109,24 @@ class ReduceSum(Normalizer):
     Normalize tensor to fix summation.
     """
 
-    def __init__(self, name='normalizer/reduce_sum', inputs=None, fixed_sum=None, **config):
-        super().__init__(name, inputs, fixed_sum=fixed_sum, **config)
-
-    @classmethod
-    def _default_config(cls):
-        from dxpy.collections.dicts import combine_dicts
-        return combine_dicts({
-            'add_denorm': True
-        }, super()._default_config())
+    def __init__(self, name='normalizer/reduce_sum',
+                 inputs=None,
+                 fixed_summation_value=None,
+                 **config):
+        super().__init__(name, inputs, fixed_summation_value=fixed_summation_value, **config)
 
     def _normalization_kernel(self, feeds):
         x = feeds[NodeKeys.INPUT]
-        summation = tf.reduce_sum(x)
+        if self.param(ConfigKeys.WITH_BATCH_DIM.name):
+            summation = tf.reduce_sum(x, axis=list(range(1, len(x.shape))),
+                                      keep_dims=True)
+        else:
+            summation = tf.reduce_sum(x)
         return {'sum': summation,
-                NodeKeys.MAIN: x / summation * self.param('fixed_sum', feeds)}
+                NodeKeys.MAIN: x / summation * self.param('fixed_summation_value', feeds)}
 
     def _denormalization_kernel(self, feeds):
-        return {DENORM_OUTPUT_KEY: feeds[DENORM_INPUT_KEY] * feeds['sum'] / self.param('fixed_sum', feeds)}
+        return {DENORM_OUTPUT_KEY: feeds[DENORM_INPUT_KEY] * feeds['sum'] / self.param('fixed_summation_value', feeds)}
 
 
 def get_normalizer(name):

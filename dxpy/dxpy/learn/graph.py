@@ -14,10 +14,10 @@ class NodeKeys:
     SAVER = 'saver'
     LOSS = 'loss'
     MAIN = 'main'
-    MAIN_MODEL = 'main_model'
     INPUT = 'input'
     LABEL = 'label'
     OUTPUT = 'output'
+    MAIN_MODEL = 'main_model'
     CHILD_MODEL = 'child_model'
     TASK = 'task'
 
@@ -28,19 +28,24 @@ class Graph:
     A `Graph` is an generalization of `tf.Graph`, which is designed for following features:
         1. An unified interface of `tf.Graph` and general compute graph or operations/procedures;
         2. Seperate config and implementation, use TreeDict for configs, and supports multiple ways of config;
-        3. An easy-to-use way of seperate/reuse subgraphs
+        3. An easy-to-use way of seperate/reuse subgraphs;
         4. Supports an warp of sessions.run/normal python function.
             Please add member method for tasks, and register them to tasks
+
 
     Methods:
 
     -   as_tensor(self):
         return self.nodes['main'], which is designed for sub_graphs.
 
-    - get_feed_dict(self, task=None):
-        A method which returns a feed_dict, which can be used to update parent graph's get_feed_dict() or run task.
+    -   get_feed_dict(self, task=None):
+        A method which returns a feed_dict, which can be used to update parent (in most cases, the graph which called 
+        subgraph.get_feed_dict()) graph's get_feed_dict() or run task.
         Which is used to garantee output nodes (if is Tensor) to be valid under certain tasks, if task is None,
         a feed_dict should be provided so that all nodes are valid.
+
+    -   run(self, task_name, feeds):
+        Call a registered function. # TODO: make it different from directly call function, provide default feeds / unified feeds, etc.
 
     Properties:
         name: Path, name is used for:
@@ -105,7 +110,7 @@ class Graph:
         return self.name.name
 
     def register_node(self, name=None, tensor_or_subgraph=None):
-        from .utils import refined_tensor_or_graph_name        
+        from .utils import refined_tensor_or_graph_name
         if tensor_or_subgraph is None:
             tensor_or_subgraph = name
             name = refined_tensor_or_graph_name(tensor_or_subgraph)

@@ -34,9 +34,11 @@ def apply_command(command):
         return fin.readlines()
 
 
-def sbatch(workdir, script_file):
-    result = apply_command('cd {dir} && sbatch {file}'.format(
-        dir=workdir, file=script_file))
+def sbatch(workdir, script_file, *args):
+    cmd = 'cd {dir} && sbatch {args} {file}'.format(dir=workdir,
+                                                    args=' '.join(args),
+                                                    file=script_file)
+    result = apply_command(cmd)
     return sid_from_submit(result[0])
 
 

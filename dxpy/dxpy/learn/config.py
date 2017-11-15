@@ -3,3 +3,8 @@ from dxpy.filesystem import Path
 import os
 # config = ModuleConfigs('learn', 'dxpy', os.getcwd()).get_config()
 config = dict()
+
+
+def clear_config():
+    global config
+    config = dict()

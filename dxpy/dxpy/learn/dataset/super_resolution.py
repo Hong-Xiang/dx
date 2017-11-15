@@ -3,12 +3,23 @@ from ..model.image import MultiDownSampler
 
 
 class SuperResolutionDataset(Graph):
-    def __init__(self, name, origial_dataset_maker, input_key=None, nb_down_sample=None, **config):
+    """
+    SuperResolutionDataset is a special kind of dataset which 
+    """
+
+    def __init__(self, name, origial_dataset_maker, input_key=None, nb_down_sample=None, with_shape_info=None, origin_shape=None, **config):
         super().__init__(name, input_key=input_key,
                          nb_down_sample=nb_down_sample,
+                         with_shape_info=with_shape_info,
+                         origin_shape=origin_shape,
                          **config)
         self._dataset_maker = origial_dataset_maker
         self.__construct()
+
+    @classmethod
+    def _default_config(cls):
+        from dxpy.collections.dicts import combine_dicts
+        return combine_dicts({'with_shape_info': False}, super()._default_config())
 
     def __down_sample_keys(self, start):
         return [('image{}x'.format(2**i), 2**i) for i in range(start, self.param('nb_down_sample') + 1)]

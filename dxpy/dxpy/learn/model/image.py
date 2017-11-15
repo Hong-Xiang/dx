@@ -86,7 +86,15 @@ class MultiDownSampler(Model):
 
 
 class Padder(Model):
-    def __init__(self, input_tensor, padding=None, shape=None, name='padder', **config):
+    def __init__(self, input_tensor, padding=None, shape=None, offset=None, name='padder', **config):
+        """
+        Args:
+            padding: str|list of str, value|element value is one of the flollowing:
+            -   none: no padding on specific axis
+            -   period: period padding
+            -   shape: list of shape (target shape)
+            -   offset: start index of original image in result image
+        """
         super().__init__(name,
                          inputs={NodeKeys.INPUT: input_tensor},
                          padding=padding, shape=shape)

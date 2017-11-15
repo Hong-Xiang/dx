@@ -1,5 +1,6 @@
 from ..base import DatasetTFRecords
 import tensorflow as tf
+from ..config import config
 
 
 class PhantomSinograms(DatasetTFRecords):
@@ -20,7 +21,7 @@ class PhantomSinograms(DatasetTFRecords):
     def _default_config(cls):
         from dxpy.collections.dicts import combine_dicts
         fmt = '/home/hongxwing/Datas/phantom/phantom.{}.tfrecord'
-        files = [fmt.format(i) for i in range(500)]
+        files = [fmt.format(i) for i in range(1)]
         return combine_dicts({
             'files': files,
             'fields': 'sinogram',

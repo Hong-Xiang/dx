@@ -20,6 +20,7 @@ class Model(Graph):
     Model extends Graphs interface with two properities:
         inputs
         outputs
+    
     They are implemented based on nodes.
     Model will generate output tenors in the following two setuations:
         1. when model is created;

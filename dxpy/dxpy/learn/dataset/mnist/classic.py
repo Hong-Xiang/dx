@@ -3,6 +3,10 @@ import numpy as np
 import random
 from ..base import DatasetClassic
 from ..preprocessing.normalizer import SelfMinMax
+import warnings
+
+warnings.warn(DeprecationWarning(
+    "CLASSIC MNIST SHOULD NOT BE USED IN PRODUCTION SYSTEM."))
 
 
 class MNISTClassic(DatasetClassic):
