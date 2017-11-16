@@ -11,7 +11,7 @@ class CLI(click.MultiCommand):
         return sorted(self.commands.keys())
 
     def get_command(self, ctx, name):
-        from . import clicks
+        from . import commands
         if name in self.commands and self.commands[name] is None:
             self.commands[name] = getattr(clicks, name)
         return self.commands.get(name)

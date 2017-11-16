@@ -20,12 +20,18 @@ def cat():
 def hadd():
     pass
 
+@files.command()
+def fetch(source, filename):
+    
+
 
 @files.group()
 def clears():
     """
     Quick cleaner of prefab utiles
     """
+
+
 
 
 @clears.option("--name", "-n", type=str, help="Name of prefab utiles.")
