@@ -116,9 +116,16 @@ class Model(Graph):
     def register_child_model(self, name, model):
         self._child_models[name] = model
         self.register_node('child_model/{}'.format(name), model)
+        return model
 
-    def child_model(self, key):
-        return self._child_models.get(key)
+    def get_model(self, name, create_func=None):
+        if self._child_models.get(name) is None:
+            if create_func is not None:
+                self.register_child_model(name, create_func(self.name / name))
+            else:
+                fmt = "Can not found child model {} in {}."
+                raise KeyError(fmt.format(name, str(self.name)))
+        return self._child_models.get(name)
 
     def __create_non_tensor_inputs(self):
         from .tensor import PlaceHolder
@@ -207,6 +214,7 @@ class Model(Graph):
         from .tensor import PlaceHolder
         if tensors is None:
             return dict()
+
         if isinstance(tensors, (tf.Tensor, PlaceHolder)):
             return {default_key: tensors}
         result = dict()
@@ -215,7 +223,7 @@ class Model(Graph):
                 result[n] = tensors[n]
         return result
 
-    def _inputs_standardization(self, inputs=None):        
+    def _inputs_standardization(self, inputs=None):
         result = self._default_inputs()
         if hasattr(self, 'inputs'):
             result.update(self.inputs)
@@ -233,6 +241,11 @@ class Model(Graph):
         if self.param('simple_output') and len(results) == 1 and list(results.keys())[0] == NodeKeys.MAIN:
             return results[NodeKeys.MAIN]
         return results
+
+
+class ModelPipe(Model):
+    def __init__(self, input_tensor, name, **config):
+        super().__init__(name, {NodeKeys.INPUT: input_tensor}, **config)
 
 
 models = dict()

@@ -49,6 +49,10 @@ class SRStackCNN(Net):
         result[NodeKeys.LOSS] = l
         return result
 
+
+
+
+
 def main():
     import numpy as np
     import tensorflow as tf
@@ -58,17 +62,18 @@ def main():
     from dxpy.learn.graph import NodeKeys
     from dxpy.learn.train.summary_writer import SummaryWriter, SummaryItem
     from dxpy.learn.session import Session
-    from dxpy.learn.model.tensor import PlaceHolder    
+    from dxpy.learn.model.tensor import PlaceHolder
     from dxpy.learn.dataset.petsino import PhantomSinograms
     from dxpy.learn.dataset.mnist import MNISTTFRecords
     from dxpy.learn.zoo.super_resolution import SRStackCNN
     from dxpy.learn.dataset.super_resolution import SuperResolutionDataset
     from dxpy.numpy_extension.visual.image import grid_view
 
-    files = ['/home/hongxwing/Datas/phantom/phantom.{}.tfrecord'.format(i) for i in range(10)]
+    files = [
+        '/home/hongxwing/Datas/phantom/phantom.{}.tfrecord'.format(i) for i in range(10)]
     config_sinogram = {
         'batch_size': 8,
-        'files': files,    
+        'files': files,
     }
     config_mnist = {
         'batch_size': 32,
@@ -89,10 +94,12 @@ def main():
     }
     create_global_scalars()
 
-    dataset = SuperResolutionDataset('dataset', lambda : MNISTTFRecords('dataset/mnist'), input_key='image', nb_down_sample=1)
+    dataset = SuperResolutionDataset('dataset', lambda: MNISTTFRecords(
+        'dataset/mnist'), input_key='image', nb_down_sample=1)
     network = SRStackCNN('network', dataset['image2x'], dataset['image1x'])
     summary_loss = SummaryItem(network[NodeKeys.LOSS], 'scalar')
-    summary = SummaryWriter(name='summary/train', tensors_to_summary={'loss': summary_loss}, path='./summary/train/')
+    summary = SummaryWriter(
+        name='summary/train', tensors_to_summary={'loss': summary_loss}, path='./summary/train/')
     session = Session()
     with session.as_tensor().as_default():
         session.post_session_created()
@@ -101,14 +108,13 @@ def main():
     with session.as_default():
         for i in range(2000):
             network.train()
-            if i%100 == 0:    
+            if i % 100 == 0:
                 summary.summary()
         network.nodes[NodeKeys.TRAINER].decay_learning_rate(0.1)
         for i in range(2000):
             network.train()
-            if i%100 == 0:                
+            if i % 100 == 0:
                 summary.summary()
 
-    with session.as_default():    
+    with session.as_default():
         imginf = network.inference(feeds={NodeKeys.INPUT: img2x})
-    

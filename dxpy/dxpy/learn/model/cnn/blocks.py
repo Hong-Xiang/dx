@@ -1,40 +1,36 @@
 import tensorflow as tf
-from ..base import Model, NodeKeys
-from ..activation import get_activation
+from ..base import Model, NodeKeys, ModelPipe
+from .. import activation
 
 
 class Conv2D(Model):
-    def __init__(self, name='conv2d', input_tensor=None, kernel_size=None, strides=None, padding=None, activation=None, pre_activation=None, post_activation=None, **config):
-        super().__init__(name, inputs={NodeKeys.INPUT: input_tensor}, kernel_size=kernel_size, strides=strides, padding=padding,
-                         activation=activation, pre_activation=pre_activation, post_activation=post_activation, **config)
+    def __init__(self, name='conv2d', input_tensor=None, filters=None, kernel_size=None,
+                 *, strides=None, padding=None, activation=None, **config):
+        super().__init__(name, inputs={NodeKeys.INPUT: input_tensor}, kernel_size=kernel_size, strides=strides, padding=padding, filters=filters,
+                         activation=activation, **config)
 
     @classmethod
     def _default_config(cls):
         from dxpy.collections.dicts import combine_dicts
-        cfg = {
+        return combine_dicts({
             'kernel_size': 3,
             'strides': (1, 1),
             'padding': 'same',
             'reuse': False,
-            'activation': 'relu',
+            'activation': 'basic',
             'pre_activation': False,
-            'post_activation': False,
-            'kernel_name': 'conv2d'
-        }
-        return combine_dicts(cfg, super()._default_config())
+            'post_activation': False
+        }, super()._default_config())
 
     def _kernel(self, feeds):
         x = feeds[NodeKeys.INPUT]
-        if self.param('pre_activation', feeds):
-            with tf.name_scope('pre_activation'):
-                x = get_activation(self.param('activation', feeds))(x)
+        acc = activation.unified_config(self.param('activation', feeds))
+        activation.apply(acc, x, 'pre')        
         x = tf.layers.conv2d(x, self.param('filters', feeds),
                              self.param('kernel_size', feeds),
                              self.param('strides', feeds),
-                             self.param('padding', feeds), name='conv')
-        if self.param('post_activation', feeds):
-            with tf.name_scope('post_activation'):
-                x = get_activation(self.param('activation', feeds))(x)
+                             self.param('padding', feeds), name='convolution')
+        activation.apply(acc, x, 'post')
         return x
 
 

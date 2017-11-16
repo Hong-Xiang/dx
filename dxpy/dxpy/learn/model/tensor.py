@@ -19,8 +19,7 @@ class MultiGPUSplitor(Model):
         result.update({
             'lazy_create': True,
             'register_inputs': False,
-            'register_outputs': False,
-            'pure': True,
+            'register_outputs': False
         })
         return result
 
@@ -69,6 +68,8 @@ class PlaceHolder(Graph):
 
     def __init__(self, shape, dtype=None, name='placeholder'):
         dtype = self._unified_dtype(dtype)
+        if isinstance(shape, tf.TensorShape):
+            shape = shape.as_list()
         super().__init__(name, shape=shape, dtype=dtype)
 
     @classmethod
@@ -97,6 +98,13 @@ class PlaceHolder(Graph):
     @property
     def dtype(self):
         return self.param('dtype')
+
+    def as_tensor(self):
+        if not NodeKeys.MAIN in self.nodes:
+            self.register_main_node(tf.placeholder(self.dtype,
+                                                   self.shape,
+                                                   self.basename))
+        return self.nodes[NodeKeys.MAIN]
 
 
 class ShapeEnsurer(Model):
