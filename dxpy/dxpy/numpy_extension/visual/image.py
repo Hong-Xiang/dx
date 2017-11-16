@@ -12,6 +12,9 @@ def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, h
     Returns:
         Return figure if return_figure is true, else None.
     """
+    if not isinstance(image_lists, (list, tuple)):
+        raise TypeError(
+            "image_lists should be list or tuple, got {}.".format(type(image_lists)))
     nb_cata = len(image_lists)
     if windows is None:
         windows = [(None, None)] * nb_cata

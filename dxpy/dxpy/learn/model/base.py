@@ -28,6 +28,15 @@ class Model(Graph):
     You may merge input/output tensors by using 'lazy_create' option, in that case,
     model will not create placeholder inputs, and will generate output tensors in
     the first time it was called.
+
+    Examples:
+        1. Model used for only once:
+            z = UserModel('model1', {'input1': x, 'input2': y})()
+        2. Reuse model
+            m = UserModel('model1', {'input1': PlaceHolder(x.shape), 'input2': y})
+            z1 = m({input1': x1})
+            z2 = m({input1': x2})
+            y is shared for inputs of z1 and z2.
     """
 
     def __init__(self, name, inputs=None, child_models=None, *, lazy_create=None, reuse=None, register_inputs=None, register_outputs=None, simple_output=None, **config):
@@ -44,6 +53,9 @@ class Model(Graph):
                 case name: dict
                     add name: Graph.as_tensor()
             child_models: dict of str: Model|function
+
+        Args:
+            simple_output: bool, if True, return result[NodeKeys.Output] directly instead of {NodeKeys.Output: tensor}
         """
         super().__init__(name, lazy_create=lazy_create, reuse=reuse, register_inputs=register_inputs,
                          register_outputs=register_outputs, simple_output=simple_output, **config)

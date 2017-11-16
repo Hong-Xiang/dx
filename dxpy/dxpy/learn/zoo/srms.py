@@ -2,6 +2,7 @@ import tensorflow as tf
 from ..net import Net
 from ..graph import NodeKeys
 
+
 def sr_end(res, itp, ip_h, name='sr_end', is_res=True):
     """ Assuming shape(itp) == shape(ip_h)
     reps is center croped shape of itp/ip_h
@@ -52,5 +53,8 @@ class SRMultiScale(Net):
     def _gpu_kernel(self, feeds):
         pass
 
+    def _multi_scale_kernel(self, input_image, representataions):
+        pass
+
     def _sr2x_kernel(self, input_images, label_images):
-        
+        pass
