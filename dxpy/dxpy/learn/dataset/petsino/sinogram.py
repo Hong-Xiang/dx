@@ -26,8 +26,8 @@ class PhantomSinograms(DatasetTFRecords):
     @classmethod
     def _default_config(cls):
         from dxpy.collections.dicts import combine_dicts
-        fmt = '/home/hongxwing/Datas/phantom/phantom.{}.tfrecord'
-        files = [fmt.format(i) for i in range(1)]
+        fmt = '/home/hongxwing/Datas/phantom2/phantom.{}.tfrecord'
+        files = [fmt.format(i) for i in range(3)]
         return combine_dicts({
             'files': files,
             'fields': 'sinogram',
