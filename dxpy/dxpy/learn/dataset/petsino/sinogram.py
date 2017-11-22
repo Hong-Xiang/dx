@@ -10,8 +10,10 @@ class PhantomSinograms(DatasetTFRecords):
     def __init__(self, name='dataset', **config):
         from dxpy.learn.utils.tensor import ensure_shape
         super().__init__(name, **config)
-        self.nodes['image'] = ensure_shape(
-            self.nodes['image'], batch_size=self.param('batch_size'))
+        self.nodes['phantom'] = ensure_shape(
+            self.nodes['phantom'], batch_size=self.param('batch_size'))
+        self.nodes['sinogram'] = ensure_shape(
+            self.nodes['sinogram'], batch_size=self.param('batch_size'))
 
     @classmethod
     def _parse_example(cls, example):
@@ -26,7 +28,7 @@ class PhantomSinograms(DatasetTFRecords):
     @classmethod
     def _default_config(cls):
         from dxpy.collections.dicts import combine_dicts
-        fmt = '/home/hongxwing/Datas/phantom2/phantom.{}.tfrecord'
+        fmt = '/home/hongxwing/Datas/phantom/phantom.{}.tfrecord'
         files = [fmt.format(i) for i in range(3)]
         return combine_dicts({
             'files': files,
@@ -35,27 +37,14 @@ class PhantomSinograms(DatasetTFRecords):
         }, super()._default_config())
 
     def _decode_image(self, data):
-        if self.param('fields') == 'sinogram':
-            return {
-                'image': tf.decode_raw(data['sinogram'], tf.uint16),
-                'shape': data['shape_sinogram']
-            }
-        elif self.param('fields') == 'phantom':
-            return {
-                'image': tf.decode_raw(data['phantom'], tf.uint16),
-                'shape': data['shape_phantom']
-            }
-        else:
-            raise ValueError(
-                "Unsupported fields: {}.".format(self.param('fields')))
+        return {'sinogram': tf.decode_raw(data['sinogram'], tf.uint16),
+                'phantom': tf.decode_raw(data['phantom'], tf.uint16)}
 
     def _reshape_tensors(self, data):
-        if self.param('fields') == 'sinogram':
-            shape = self.SHAPE_SINOGRAM
-        else:
-            shape = self.SHAPE_PHANTOM
-        return {'image': tf.reshape(tf.cast(data['image'], tf.float32), shape),
-                'shape': data['shape']}
+        return {'sinogram': tf.reshape(tf.cast(data['sinogram'], tf.float32),
+                                       self.SHAPE_SINOGRAM),
+                'phantom': tf.reshape(tf.cast(data['phantom'], tf.float32),
+                                      self.SHAPE_PHANTOM)}
 
     def _processing(self):
         return (super()._processing()
