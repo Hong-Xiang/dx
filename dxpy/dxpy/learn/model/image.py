@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from .base import Model, NodeKeys
 
 
@@ -40,7 +41,8 @@ class DownSampler(Model):
         from dxpy.collections.dicts import combine_dicts
         cfg = {
             'method': 'mean',
-            'padding': 'same'
+            'padding': 'same',
+            'keep_energy': True,
         }
         return combine_dicts(cfg, super()._default_config())
 
@@ -52,6 +54,8 @@ class DownSampler(Model):
                                    [1] + list(self.param('ratio')) + [1],
                                    padding=self.param('padding').upper(),
                                    strides=[1] + list(self.param('ratio')) + [1])
+                if self.param('keep_energy'):
+                    x = x * np.prod(self.param('ratio'))
         else:
             raise ValueError("Unsupported down sample method")
         return x

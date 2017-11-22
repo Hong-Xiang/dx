@@ -35,8 +35,8 @@ def pet_image_super_resolution_dataset(dataset_name: str,
     #     'std': 4.36
     # }
     config_normalizer = {
-        'mean': 0.00,
-        'std': 1.00
+        'mean': 4.88,
+        'std': 4.68, 
     }
     config['dataset'] = {
         'origin': config_origin,
@@ -45,9 +45,9 @@ def pet_image_super_resolution_dataset(dataset_name: str,
     with tf.name_scope('{img_type}_dataset'.format(img_type=image_type)):
         dataset_origin = PhantomSinograms(name='dataset/origin',
                                           batch_size=batch_size,
-                                          fields=image_type)
+                                          fields=image_type)        
         dataset_summed = ReduceSum('dataset/reduce_sum',
-                                   dataset_origin['image'],
+                                   dataset_origin[image_type],
                                    fixed_summation_value=1e6).as_tensor()
         dataset = FixWhite(name='dataset/fix_white',
                            inputs=dataset_summed).as_tensor()
