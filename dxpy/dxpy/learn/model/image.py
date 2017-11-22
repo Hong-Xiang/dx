@@ -32,7 +32,7 @@ class DownSampler(Model):
                  *,
                  method=None, padding=None, name='down_sampler',
                  **config):
-        super().__init__(name, inputs={NodeKeys.INPUT: input_tensor},
+        super().__init__(name, input_tensor,
                          ratio=ratio, method=method, padding=padding, **config)
 
     @classmethod
@@ -71,7 +71,7 @@ class MultiDownSampler(Model):
                  name='multi_down_sampler',
                  **config):
         super().__init__(name,
-                         inputs={NodeKeys.INPUT: input_tensor},
+                         input_tensor,
                          down_sample_ratios=down_sample_ratios,
                          keep_original=keep_original,
                          original_key=original_key, **config)
@@ -113,3 +113,11 @@ class Padder(Model):
 
     def _kernel(self, feeds):
         x = feeds[NodeKeys.INPUT]
+
+
+def align_crop(input_, target, name='align_crop'):
+    with tf.name_scope(name):
+        shape_input = input_.shape.as_list()
+        shape_output = target.shape.as_list()
+        crop_size = ((shape_input[1] - shape_output[1]) // 2,
+                     (shape_input[2] - shape_output[2]) // 2)

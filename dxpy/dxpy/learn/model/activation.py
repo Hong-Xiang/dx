@@ -12,7 +12,10 @@ class ActivationConfig:
 class ActivationConfigs(Enum):
     basic = ActivationConfig('relu', False, True)
     linear = ActivationConfig('none')
+    none = ActivationConfig('none')
     res_celu = ActivationConfig('celu', True, False)
+    incept = ActivationConfig('celu', True, False)
+    pre = ActivationConfig('celu', True, False)
 
 
 def celu(x):
@@ -51,8 +54,7 @@ def get_activation(name):
         'elu': tf.nn.elu,
         'celu': celu,
         'crelu': tf.nn.crelu,
-        'none': lambda x: x
-    }
+        'none': lambda x: x}
     alias = {}
     for n in alias:
         if name in alias[n]:

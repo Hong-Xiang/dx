@@ -6,7 +6,9 @@ from .. import activation
 class Conv2D(Model):
     def __init__(self, name='conv2d', input_tensor=None, filters=None, kernel_size=None,
                  *, strides=None, padding=None, activation=None, **config):
-        super().__init__(name, inputs={NodeKeys.INPUT: input_tensor}, kernel_size=kernel_size, strides=strides, padding=padding, filters=filters,
+        super().__init__(name, inputs={NodeKeys.INPUT: input_tensor},
+                         kernel_size=kernel_size, strides=strides,
+                         padding=padding, filters=filters,
                          activation=activation, **config)
 
     @classmethod
@@ -16,16 +18,13 @@ class Conv2D(Model):
             'kernel_size': 3,
             'strides': (1, 1),
             'padding': 'same',
-            'reuse': False,
-            'activation': 'basic',
-            'pre_activation': False,
-            'post_activation': False
+            'activation': 'basic'
         }, super()._default_config())
 
     def _kernel(self, feeds):
         x = feeds[NodeKeys.INPUT]
         acc = activation.unified_config(self.param('activation', feeds))
-        activation.apply(acc, x, 'pre')        
+        activation.apply(acc, x, 'pre')
         x = tf.layers.conv2d(x, self.param('filters', feeds),
                              self.param('kernel_size', feeds),
                              self.param('strides', feeds),
@@ -35,40 +34,52 @@ class Conv2D(Model):
 
 
 class InceptionBlock(Model):
-    def __init__(self, name='incept', input_tensor=None, **config):
+    def __init__(self, name='incept', input_tensor=None, activation=None, **config):
+        super().__init__(name, inputs={NodeKeys.INPUT: input_tensor}, **config)
+
+    @classmethod
+    def _default_config(cls):
+        from dxpy.collections.dicts import combine_dicts
+        return combine_dicts()
+        result = dict({
+            'paths': 3,
+            'reuse': False,
+            'activation': 'basic',
+        }, super()._default_config())
+
+    def _kernel(self, feeds):
+        x = feeds[NodeKeys.INPUT]
+        filters = x.shape.as_list()[-1]
+        acc = activation.unified_config(self.param('activation', feeds))
+        activation.apply(acc, x, 'pre')
+        paths = []
+        for i_path in range(self.param('paths')):
+            with tf.variable_scope('path_{}'.format(i_path)):
+                h = Conv2D('conv2d_0', x, filters, 1,
+                           activation='linear').as_tensor()
+                for j in range(i_path):
+                    h = Conv2D('conv2d_{}'.format(j + 1), h, filters,
+                               3, activation='pre').as_tensor()
+                paths.append(h)
+        with tf.name_scope('concat'):
+            x = tf.concat(paths, axis=-1)
+        x = Conv2D('conv_end', x, filters, 1, activation='pre').as_tensor()
+        return x
+
+
+class ResidualIncept(Model):
+    def __init__(self, name, input_tensor, **config):
         super().__init__(name, inputs={NodeKeys.INPUT: input_tensor}, **config)
 
     @classmethod
     def _default_config(cls):
         result = dict()
         result.update(super()._default_config())
-        result.update({
-            'paths': 3,
-            'reuse': False,
-            'pre_activation': True,
-            'activation': 'relu'
-        })
+        result.update({'ratio': 0.3})
         return result
 
     def _kernel(self, feeds):
-        x = feeds[NodeKeys.INPUT]
-        filters = x.shape.as_list()[-1]
-        if self.param('pre_activation', feeds):
-            with tf.name_scope('pre_activation'):
-                x = get_activation(self.param('activation', feeds))(x)
-        paths = []
-        for i_path in range(self.param('paths')):
-            with tf.variable_scope('path_{}'.format(i_path)):
-                h = Conv2D('conv2d_0', x,
-                           filters=filters, kernel_size=1, pre_activation=True).as_tensor()
-                for j in range(i_path):
-                    h = Conv2D('conv2d_{}'.format(j + 1), h,
-                               filters=filters, pre_activation=True).as_tensor()
-                paths.append(h)
-        with tf.name_scope('concat'):
-            x = tf.concat(paths, axis=-1)
-        x = Conv2D('conv_end', x, filters=filters).as_tensor()
-        return x
+        pass
 
 
 class Residual(Model):
@@ -138,3 +149,9 @@ class StackedConv2D(Model):
         for i in range(self.param('nb_stacked')):
             x = self._child_models['conv2d_{}'.format(i)](x)
         return x
+
+
+def residual_incept_block(input_, filters, res_scale, name='irb'):
+    x = input_
+    with tf.variable_scope(name):
+        x = tf.layers.conv2d(x, filters, 1, padding='same', name='nin')

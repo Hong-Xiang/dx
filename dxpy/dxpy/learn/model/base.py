@@ -5,7 +5,8 @@ from ..graph import Graph, NodeKeys
 class Model(Graph):
     """
     Graphs which do not support sofiscated tasks, just acts as an function.
-
+    NOTE: Model is using Tensorflow resue scheme. Thus by using its name.
+    Sharing model is convinient within one model, but is hard (which needs supports for child model) between models.
     A Model object is mainly used for two purpose:
         1. Share weights / reuse model for different inputs
         2. Access global configs as it inherent Graph
@@ -61,7 +62,7 @@ class Model(Graph):
                          register_outputs=register_outputs, simple_output=simple_output, **config)
         self._created = False
         self._scope = None
-        self.inputs = self._inputs_standardization(inputs)
+        self._inputs = self._unified_inputs(inputs)
         self._child_models = child_models
         if not self.param('lazy_create'):
             self._construct()
@@ -72,7 +73,7 @@ class Model(Graph):
         from dxpy.collections.dicts import combine_dicts
         cfg = {
             'lazy_create': False,
-            'reuse': False,
+            'reuse': None,
             'register_inputs': True,
             'register_outputs': True,
             'simple_output': True,
@@ -108,20 +109,20 @@ class Model(Graph):
         pass
 
     def _kernel(self, feeds):
-        raise NotImplementedError
+        return feeds
 
     def apply(self, feeds=None):
         if not self._created:
-            self.inputs = self._inputs_standardization(feeds)
+            self._inputs = self._unified_inputs(feeds)
             self._construct()
-            result = self.outputs
+            result = self._outputs
         else:
             if feeds is None:
-                result = self.outputs
+                result = self._outputs
             else:
                 with tf.variable_scope(self._variable_scope, reuse=True):
-                    inputs = self._inputs_standardization(feeds)
-                    result = self._outputs_standardization(
+                    inputs = self._unified_inputs(feeds)
+                    result = self._unified_outputs(
                         self._kernel(inputs))
         return self._simplified_output(result)
 
@@ -142,7 +143,7 @@ class Model(Graph):
     def __create_non_tensor_inputs(self):
         from .tensor import PlaceHolder
         with tf.name_scope('inputs'):
-            inputs = self._inputs_standardization()
+            inputs = self._unified_inputs()
             for n in inputs:
                 if isinstance(inputs[n], tf.Tensor):
                     self.register_node(n, inputs[n])
@@ -155,7 +156,7 @@ class Model(Graph):
                         dtype = tf.float32
                     inputs[n] = self.create_placeholder_node(
                         tf.float32, inputs[n]['shape'], n)
-                    self.inputs[n] = inputs[n]
+                    self._inputs[n] = inputs[n]
 
     def __create_non_model_child_models(self):
         if self._child_models is None:
@@ -174,21 +175,21 @@ class Model(Graph):
 
     def __register_inputs(self):
         if self.param('register_inputs'):
-            for n in self.inputs:
-                self.register_node('inputs/{}'.format(n), self.inputs[n])
+            for n in self._inputs:
+                self.register_node('inputs/{}'.format(n), self._inputs[n])
 
     def __register_outputs(self):
         if self.param('register_outputs'):
-            for n in self.outputs:
+            for n in self._outputs:
                 if self.param('register_output_with_prefix'):
                     output_key = 'outputs/{}'.format(n)
                 else:
                     output_key = n
-                self.register_node(output_key, self.outputs[n])
+                self.register_node(output_key, self._outputs[n])
                 left_out_keys = [NodeKeys.MAIN,
                                  NodeKeys.LOSS, NodeKeys.INFERENCE]
                 if n in left_out_keys:
-                    self.register_node(n, self.outputs[n])
+                    self.register_node(n, self._outputs[n])
 
     def __create(self):
         if self._created:
@@ -200,10 +201,9 @@ class Model(Graph):
             self._pre_kernel_pre_inputs()
             self.__create_non_tensor_inputs()
             self.__register_inputs()
-            self.__create_non_model_child_models()
+            # self.__create_non_model_child_models()
             self._pre_kernel_post_inputs()
-            self.outputs = self._outputs_standardization(
-                self._kernel(self.inputs))
+            self._outputs = self._unified_outputs(self._kernel(self._inputs))
             self._post_kernel_pre_outputs
             self.__register_outputs()
             self._post_kernel_post_outputs()
@@ -235,18 +235,18 @@ class Model(Graph):
                 result[n] = tensors[n]
         return result
 
-    def _inputs_standardization(self, inputs=None):
+    def _unified_inputs(self, inputs=None):
         result = self._default_inputs()
-        if hasattr(self, 'inputs'):
-            result.update(self.inputs)
-        result.update(self._tensor_dict_standardization(
-            inputs, NodeKeys.INPUT))
+        if hasattr(self, '_inputs'):
+            result.update(self._inputs)
+        result.update(self._tensor_dict_standardization(inputs,
+                                                        NodeKeys.INPUT))
         return result
 
-    def _outputs_standardization(self, outputs):
+    def _unified_outputs(self, outputs):
         result = dict()
-        result.update(self._tensor_dict_standardization(
-            outputs, NodeKeys.MAIN))
+        result.update(self._tensor_dict_standardization(outputs,
+                                                        NodeKeys.MAIN))
         return result
 
     def _simplified_output(self, results):

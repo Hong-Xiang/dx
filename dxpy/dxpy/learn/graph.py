@@ -8,6 +8,35 @@ from dxpy.collections.dicts import DXDict
 RESTRICT_MODE = True
 
 
+class GraphsManager:
+    _graphs = dict()
+
+    @classmethod
+    def get_graph(cls, name):
+        return cls._graphs.get(name)
+
+    # @classmethod
+    # def get_name(cls, name):
+    #     import re
+    #     while name in _graphs:
+    #         base = name.name
+    #         p = re.compile("(\w+)_(\d+)")
+    #         mat = p.match(base)
+    #         if mat:
+    #             prefix = mat[1]
+    #             gid = mat[2]
+    #             base = "{}_{}".format(prefix, gid + 1)
+    #         else:
+    #             base = base + '_1'
+    #         return name.father_path / base
+
+    @classmethod
+    def register(cls, graph):
+        if graph.name in cls._graphs:
+            raise ValueError(
+                "Graph with name {} already registed".format(str(graph.name)))
+
+
 class NodeKeys:
     EVALUATE = 'evaluate'
     INFERENCE = 'inference'
@@ -167,12 +196,22 @@ class Graph:
                 for n in self.nodes:
                     if self.nodes[n] == key:
                         return self.nodes[n]
-            return None
         if isinstance(self.nodes[key], tf.Tensor):
             return self.nodes[key]
         elif isinstance(self.nodes[key], Graph):
             return self.nodes[key].as_tensor()
-        return None
+        raise KeyError("Key {} not found in graph {}.".format(key, self.name))
+
+    def graph(self, key=None):
+        if key is None:
+            key = NodeKeys.MAIN
+        if key in self.nodes:
+            if isinstance(self.nodes[key], Graph):
+                return self.nodes[key]
+            else:
+                raise TypeError("Type of  self.nodes[{}] of in graph {} is {}, required Graph.".format(
+                    key, self.name, type(self.nodes[key])))
+        raise KeyError("Key {} not found in graph {}.".format(key, self.name))
 
     def print_config(self, fout=None, recursive=False, indent=0):
         self._print_config_kernel(recursive, indent, fout)
@@ -200,4 +239,3 @@ class Graph:
         return combine_dicts(config_direct,
                              get_hierarchy_dict(config_global, self.name),
                              self._default_config())
-

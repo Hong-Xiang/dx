@@ -32,8 +32,8 @@ def sr_end(res, itp, ip_h, name='sr_end', is_res=True):
 class SRMultiScale(Net):
     """
     Required inputs:
-    'input/image2x', ... 'input/image8x'
-    'label/image1x', ... 'label/image4x'
+    'input/image2x'|...|'input/image8x'
+    'label/image1x', ..., 'label/image4x'
     """
 
     def __init__(self, inputs, name='network', **config):
@@ -50,10 +50,23 @@ class SRMultiScale(Net):
     def _kernel(self, feeds):
         pass
 
-    def _gpu_kernel(self, feeds):
+    def _gpu_kernel(self, image_lowest, image_labels):
+        """
+        Returns:
+            images_infer, cropped inferenced images (different scale)
+            loss (total loss)
+        """
+        rep = None
+        ipt = image_lowest
+        for i in reversed(range(self.param(nb_down_sample))):
+            inf, rep = self._multi_scale_kernel(ipt, rep,
+                                                name='srb_{}'.format(i))
+            image_infers = self._crop(inf, i)
+
+    def _crop(self, images, id_down_sample):
         pass
 
-    def _multi_scale_kernel(self, input_image, representataions):
+    def _multi_scale_kernel(self, input_image, representataions, name):
         pass
 
     def _sr2x_kernel(self, input_images, label_images):
