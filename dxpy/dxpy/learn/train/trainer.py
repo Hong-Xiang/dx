@@ -32,6 +32,7 @@ class Trainer(Graph):
             'is_multi_gpu': False,
             'learning_rate': 1e-3,
             'simple_mode': True,
+            'nb_gpu': 2,
         }
 
     def _train(self, feeds):
@@ -56,7 +57,7 @@ class Trainer(Graph):
     def _get_gradients(self):
         from ..utils.general import device_name
         results = []
-        if self.c.get('is_multi_gpu'):
+        if isinstance(self.loss, (list, tuple)):
             for i in range(self.c['nb_gpu']):
                 with tf.device(device_name('gpu', i)):
                     results.append(self.optimizer.compute_gradients(
@@ -106,7 +107,7 @@ class Trainer(Graph):
 
     def _get_train_step_full(self):
         from ..scalar import global_step
-        tower_gradients = self._get_gradients()
+        tower_gradients = self._get_gradients()        
         with tf.name_scope('train_step'), tf.device('/cpu:0'):
             average_grads = []
             for grad_and_vars in zip(*tower_gradients):
@@ -128,7 +129,7 @@ class Trainer(Graph):
             tower_grads: *list or tuple* of grads
             optimizer: optimizer
         """
-        if self.c.get('simple_mode'):
+        if not isinstance(self.loss, (list, tuple)):
             return self._get_train_step_simple()
         else:
             return self._get_train_step_full()

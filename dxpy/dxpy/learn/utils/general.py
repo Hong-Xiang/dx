@@ -1,5 +1,7 @@
 
-def device_name(device_type, device_id):
+def device_name(device_type, device_id=None):
+    if device_id is None:
+        device_id = 0
     return '/{t}:{i}'.format(t=device_type, i=device_id)
 
 

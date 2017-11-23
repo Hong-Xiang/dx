@@ -87,7 +87,8 @@ class SummaryWriter(Graph):
     @classmethod
     def _default_config(cls):
         return combine_dicts({'path': './summary',
-                              'add_prefix': False},
+                              'add_prefix': False,
+                              'max_image': 3},
                              super()._default_config())
 
     @classmethod

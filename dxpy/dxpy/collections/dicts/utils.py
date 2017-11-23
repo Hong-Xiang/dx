@@ -25,3 +25,9 @@ def get_hierarchy_dict(dct, path):
         if result is None:
             return dict()
     return result
+
+
+def swap_dict_hierarchy(dct):
+    outter_keys = list(dct.keys())
+    inner_keys = list(dct[outter_keys[0]].keys())
+    return {ki: {ko: dct[ko][ki] for ko in outter_keys} for ki in inner_keys}

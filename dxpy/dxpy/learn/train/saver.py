@@ -56,7 +56,7 @@ class Saver(Graph):
                         mat_step = ps.match(path_load)
                         if mat_step is not None:
                             paths.append([path_load, int(mat_step[1])])
-        step = self.param('step', feeds)
+        step = self.param('step', feeds, default=-1)
         if step == -1:
             step = max(list(zip(*paths))[1])
         for p, s in paths:
@@ -70,8 +70,6 @@ class Saver(Graph):
         if self._saver is None:
             self._saver = tf.train.Saver()
         sess = tf.get_default_session()
-        from dxpy.debug import dbgmsg
-        dbgmsg(feeds)
         path_load, flag = self.__resolve_path_load(feeds)
         if flag is False:
             if isinstance(path_load, int):

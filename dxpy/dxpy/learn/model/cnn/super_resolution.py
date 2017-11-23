@@ -50,10 +50,10 @@ class SuperResolutionMultiScale(Model):
         losses = []
         for i_down_sample in reversed(range(1, self.param('nb_down_sample') + 1)):
             if x is None:
-                x = self._get_node('input', i_down_sample)
+                x = self._get_node('input', i_down_sample, feeds)
             mid_result = SuperResolution2x('sr2x_{}'.format(i_down_sample),
                                            {NodeKeys.INPUT: x,
-                                            NodeKeys.LABEL: self._get_node('label', i_down_sample - 1),
+                                            NodeKeys.LABEL: self._get_node('label', i_down_sample - 1, feeds),
                                             SRKeys.REPS: r})()
             x = mid_result[NodeKeys.INFERENCE]
             if NodeKeys.LOSS in mid_result:
@@ -71,4 +71,3 @@ class SuperResolutionMultiScale(Model):
                     losses[i] = losses[i] * lw[i]
                 result[NodeKeys.LOSS] = tf.add_n(losses)
         return result
-

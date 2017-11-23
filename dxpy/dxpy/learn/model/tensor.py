@@ -20,13 +20,18 @@ class MultiGPUSplitor(Model):
         result.update({
             'lazy_create': True,
             'register_inputs': False,
-            'register_outputs': False
+            'register_outputs': False,
+            'format': 'split'
         })
         return result
 
     def _kernel(self, feeds):
-        x = feeds['input']
-        return self._slice_tensor_for_gpu(x)
+        from dxpy.collections.dicts import swap_dict_hierarchy
+        result = {k: self._slice_tensor_for_gpu(feeds[k]) for k in feeds}
+        if self.param('format') == 'name':
+            return result
+        else:
+            return swap_dict_hierarchy(result)
 
     def _get_shape_split(self, shape):
         if isinstance(shape, tf.TensorShape):
@@ -39,18 +44,22 @@ class MultiGPUSplitor(Model):
         return shape_gpu
 
     def _slice_tensor_for_gpu(self, tensor_input):
-        result = []
-        shape_gpu = self._get_shape_split(tensor_input.shape,)
+        result = dict()
+        shape_gpu = self._get_shape_split(tensor_input.shape)
         with tf.name_scope(self._get_tensor_name(tensor_input.name)):
             for id_slice in range(self.param('nb_gpu')):
                 with tf.device(device_name('gpu', id_slice)):
                     slice_start = [id_slice * shape_gpu[0]] + \
                         [0] * (len(shape_gpu) - 1)
-                    result.append(tf.slice(tensor_input, slice_start,
-                                           shape_gpu, name='part_{}'.format(id_slice)))
+                    name = 'part_{}'.format(id_slice)
+                    result[name] = tf.slice(tensor_input, slice_start,
+                                            shape_gpu, name=name)
         if len(result) == 0:
-            return [tensor_input]
+            return tensor_input
         return result
+
+    def part_names(self):
+        return ['part_{}'.format(id_slice) for id_slice in range(self.param('nb_gpu'))]
 
     def _get_tensor_name(self, name):
         prefix, idt = name.split(':')
@@ -59,6 +68,23 @@ class MultiGPUSplitor(Model):
             return prefix
         else:
             return '{}_{}'.format(prefix, idt)
+
+
+# class MultiGPUSplitorForDict(Model):
+#     def __init__(self, name='gpu_splitor_dict', nb_gpu=None):
+#         super().__init__(name, nb_gpu=nb_gpu)
+
+#     @classmethod
+#     def _default_config(cls):
+#         from dxpy.collections.dicts import combine_dicts
+#         return combine_dicts({
+#             'nb_gpu': 2
+#         }, super()._default_config())
+
+#     def _kernel(self, feeds):
+#         msp = MultiGPUSplitor(nb_gpu=self.param('nb_gpu'))
+#         result = {k: msp(feeds[k]) for k in feeds}
+#         return {p: {k: result[k][p] for k in result} for p in msp.part_names()}
 
 
 class PlaceHolder(Graph):

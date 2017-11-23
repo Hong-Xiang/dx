@@ -32,12 +32,16 @@ class Net(Model):
         if self.param('add_trainer'):
             if NodeKeys.LOSS in self.nodes:
                 self.register_node(NodeKeys.TRAINER,
-                                   Trainer(self.name / 'trainer', self.nodes[NodeKeys.LOSS]))
+                                   Trainer(self.name / 'trainer', self.nodes[NodeKeys.LOSS],
+                                           nb_gpu=self.param('nb_gpu', default=None)))
         if self.param('add_saver'):
             self.register_node(NodeKeys.SAVER, Saver(self.name / 'saver'))
 
     def post_session_created(self):
         pass
+
+    def summary_items(self):
+        return dict()
 
     @property
     def session(self):

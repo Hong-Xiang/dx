@@ -45,9 +45,6 @@ class PhantomSinograms(DatasetTFRecords):
                                        self.SHAPE_SINOGRAM),
                 'phantom': tf.reshape(tf.cast(data['phantom'], tf.float32),
                                       self.SHAPE_PHANTOM)}
-    # def _reshape_tensors(self, data):
-    #     return {'sinogram': tf.cast(data['sinogram'], tf.float32),
-    #             'phantom': tf.cast(data['phantom'], tf.float32)}
 
     def _processing(self):
         return (super()._processing()
@@ -55,4 +52,5 @@ class PhantomSinograms(DatasetTFRecords):
                 .map(self._parse_example)
                 .map(self._decode_image)
                 .map(self._reshape_tensors)
+                .shuffle(1024)
                 .batch(self.c['batch_size']))
