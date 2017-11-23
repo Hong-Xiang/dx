@@ -50,7 +50,7 @@ def pet_image_super_resolution_dataset(dataset_name: str,
         dataset_summed = ReduceSum('dataset/reduce_sum',
                                    dataset_origin[image_type],
                                    fixed_summation_value=1e6).as_tensor()
-
+        
         dataset = FixWhite(name='dataset/fix_white',
                            inputs=dataset_summed)()
         dataset = tf.random_crop(dataset,

@@ -131,6 +131,8 @@ class ShapeEnsurer(Model):
 def ensure_tensor(input_):
     if isinstance(input_, Graph):
         return input_.as_tensor()
+    if isinstance(input_, np.ndarray):
+        return tf.constant(input_, input_.dtype)
     if isinstance(input_, tf.Tensor):
         return input_
 
@@ -142,3 +144,12 @@ def shape_as_list(input_):
         return list(input_.shape)
     if isinstance(input_, (tuple, list)):
         return list(input_)
+
+
+def ensure_tensor_with_shape(input_, shape=None, *, batch_size=None, name='shape_ensurer'):
+    with tf.name_scope(name):
+        input_ = ensure_tensor(input_)
+        if shape is None and batch_size is not None:
+            shape = shape_as_list(input_)
+            shape[0] = batch_size
+        return tf.reshape(input_, shape)
