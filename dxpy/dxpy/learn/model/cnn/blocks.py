@@ -50,7 +50,6 @@ class StackedConv2D(Model):
         from dxpy.collections.dicts import combine_dicts
         cfg = {
             'activation': 'basic',
-            'filters': 32,
             'padding': 'same'
         }
         return combine_dicts(cfg, super()._default_config())
@@ -135,6 +134,10 @@ class ResidualStackedConv(Model):
 
 
 class ResidualStacked(Model):
+    """
+    Sub model name: sub_{0..nb_layers}
+    """
+
     def __init__(self, name, input_tensor, *, nb_layers=None, block_type=None, **config):
         super().__init__(name, inputs=input_tensor, nb_layers=nb_layers, **config)
 

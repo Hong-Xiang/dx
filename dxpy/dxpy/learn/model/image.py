@@ -130,9 +130,12 @@ def random_crop(input_, target_shape, name='random_crop'):
         return tf.slice(input_, random_offset, target_shape)
 
 
-def align_crop(input_, target, name='align_crop'):
+def align_crop(input_, target, offset=None, name='align_crop'):
+    from .tensor import shape_as_list
     with tf.name_scope(name):
-        shape_input = input_.shape.as_list()
-        shape_output = target.shape.as_list()
-        crop_size = ((shape_input[1] - shape_output[1]) // 2,
-                     (shape_input[2] - shape_output[2]) // 2)
+        shape_input = shape_as_list(input_)
+        shape_output = shape_as_list(target)
+        if offset is None:
+            offset = [(shape_input[i] - shape_output[i]) // 2
+                      for i in range(1, 3)]
+        return tf.slice(input_, offset, shape_output)

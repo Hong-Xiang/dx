@@ -1,33 +1,5 @@
 import tensorflow as tf
 from ..base import Net, Graph, NodeKeys
-from ...model.image import resize
-from ...model.cnn.blocks import StackedConv2D
-
-
-def sr_end(res, itp, ip_h, name='sr_end', is_res=True):
-    """ Assuming shape(itp) == shape(ip_h)
-    reps is center croped shape of itp/ip_h
-    """
-    with tf.name_scope(name):
-        spo = res.shape.as_list()[1:3]
-        spi = itp.shape.as_list()[1:3]
-        cpx = (spi[0] - spo[0]) // 2
-        cpy = (spi[1] - spo[1]) // 2
-        crop_size = (cpx, cpy)
-        itp_c = Cropping2D(crop_size)(itp)
-        with tf.name_scope('output'):
-            inf = add([res, itp_c])
-        if is_res:
-            with tf.name_scope('label_cropped'):
-                ip_c = Cropping2D(crop_size)(ip_h)
-            with tf.name_scope('res_out'):
-                res_inf = sub(ip_c, inf)
-            with tf.name_scope('res_itp'):
-                res_itp = sub(ip_c, itp_c)
-        else:
-            res_inf = None
-            res_itp = None
-        return (inf, crop_size, res_inf, res_itp)
 
 
 class SRMultiScale(Net):
@@ -101,7 +73,6 @@ class SRMultiScale(Net):
                           for k in mgs.part_names()]
                 with tf.name_scope('total_loss'):
                     loss = tf.add_n(losses)
-                # tf.placeholder(tf.float32, [], name='dummpyPH')
         return {NodeKeys.INFERENCE: infer,
                 NodeKeys.LOSS: losses,
                 NodeKeys.EVALUATE: loss}

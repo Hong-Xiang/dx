@@ -1,6 +1,10 @@
 import tensorflow as tf
 
 
+class SupportedDatasetNames:
+    AnalyticalPhantoms = 'analytical_phantoms'
+
+
 def pet_image_super_resolution_dataset(dataset_name: str,
                                        image_type: str,
                                        batch_size: int,
@@ -28,17 +32,12 @@ def pet_image_super_resolution_dataset(dataset_name: str,
     from ..super_resolution import SuperResolutionDataset
     from ...model.tensor import ShapeEnsurer
     from ...config import config
-    config_origin = {
-
+    if dataset_name is None:
+        dataset_name = 'analytical_phantoms'
+    normalizer_configs = {
+        'analytical_phantoms': {'mean': 4.88, 'std': 4.68}
     }
-    # config_normalizer = {
-    #     'mean': 4.88,
-    #     'std': 4.36
-    # }
-    config_normalizer = {
-        'mean': 4.88,
-        'std': 4.68,
-    }
+    config_normalizer = normalizer_configs[dataset_name]
     config['dataset'] = {
         'origin': config_origin,
         'fix_white': config_normalizer
@@ -50,7 +49,7 @@ def pet_image_super_resolution_dataset(dataset_name: str,
         dataset_summed = ReduceSum('dataset/reduce_sum',
                                    dataset_origin[image_type],
                                    fixed_summation_value=1e6).as_tensor()
-        
+
         dataset = FixWhite(name='dataset/fix_white',
                            inputs=dataset_summed)()
         dataset = tf.random_crop(dataset,
