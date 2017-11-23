@@ -42,7 +42,7 @@ class DownSampler(Model):
         cfg = {
             'method': 'mean',
             'padding': 'same',
-            'keep_energy': True,
+            'keep_energy': False,
         }
         return combine_dicts(cfg, super()._default_config())
 
@@ -117,6 +117,17 @@ class Padder(Model):
 
     def _kernel(self, feeds):
         x = feeds[NodeKeys.INPUT]
+
+
+def random_crop(input_, target_shape, name='random_crop'):
+    from dxpy.tensor.transform import random_crop_offset
+    from .tensor import ensure_tensor, shape_as_list
+    with tf.name_scope(name):
+        input_shape = shape_as_list(input_)
+        target_shape = shape_as_list(target_shape)
+        random_offset = tf.py_func(random_crop_offset,
+                                   [input_shape, target_shape], tf.int64)
+        return tf.slice(input_, random_offset, target_shape)
 
 
 def align_crop(input_, target, name='align_crop'):

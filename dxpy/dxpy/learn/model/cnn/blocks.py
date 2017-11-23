@@ -5,11 +5,15 @@ from .. import activation
 
 class Conv2D(Model):
     def __init__(self, name='conv2d', input_tensor=None, filters=None, kernel_size=None,
-                 *, strides=None, padding=None, activation=None, **config):
-        super().__init__(name, inputs={NodeKeys.INPUT: input_tensor},
-                         kernel_size=kernel_size, strides=strides,
-                         padding=padding, filters=filters,
-                         activation=activation, **config)
+                 *,
+                 strides=None, padding=None, activation=None, **config):
+        super().__init__(name, input_tensor,
+                         filters=filters,
+                         kernel_size=kernel_size,
+                         strides=strides,
+                         padding=padding,
+                         activation=activation,
+                         **config)
 
     @classmethod
     def _default_config(cls):
@@ -33,6 +37,33 @@ class Conv2D(Model):
         return x
 
 
+class StackedConv2D(Model):
+    def __init__(self, name, input_tensor, *,
+                 nb_layers=None,
+                 activation=None,
+                 filters=None, **config):
+        super().__init__(name, input_tensor, nb_layers=nb_layers,
+                         activation=activation, **config)
+
+    @classmethod
+    def _default_config(cls):
+        from dxpy.collections.dicts import combine_dicts
+        cfg = {
+            'activation': 'basic',
+            'filters': 32,
+            'padding': 'same'
+        }
+        return combine_dicts(cfg, super()._default_config())
+
+    def _kernel(self, feeds):
+        x = feeds[NodeKeys.INPUT]
+        for i in range(self.param('nb_layers')):
+            x = Conv2D('conv2d_{}'.format(i), x, self.param('filters'),
+                       activation=self.param('activation'),
+                       padding=self.param('padding'))()
+        return x
+
+
 class InceptionBlock(Model):
     def __init__(self, name='incept', input_tensor=None, activation=None, **config):
         super().__init__(name, inputs={NodeKeys.INPUT: input_tensor}, **config)
@@ -40,10 +71,8 @@ class InceptionBlock(Model):
     @classmethod
     def _default_config(cls):
         from dxpy.collections.dicts import combine_dicts
-        return combine_dicts()
-        result = dict({
+        return combine_dicts({
             'paths': 3,
-            'reuse': False,
             'activation': 'basic',
         }, super()._default_config())
 
@@ -69,89 +98,57 @@ class InceptionBlock(Model):
 
 class ResidualIncept(Model):
     def __init__(self, name, input_tensor, **config):
-        super().__init__(name, inputs={NodeKeys.INPUT: input_tensor}, **config)
-
-    @classmethod
-    def _default_config(cls):
-        result = dict()
-        result.update(super()._default_config())
-        result.update({'ratio': 0.3})
-        return result
-
-    def _kernel(self, feeds):
-        pass
-
-
-class Residual(Model):
-    def __init__(self, name, input_tensor, child_model=None, **config):
-        if child_model is not None:
-            child_models = {NodeKeys.CHILD_MODEL: child_model}
-        else:
-            child_models = None
-        super().__init__(name,
-                         inputs={NodeKeys.INPUT: input_tensor},
-                         child_models=child_models,
-                         **config)
-
-    @classmethod
-    def _default_config(cls):
-        result = dict()
-        result.update(super()._default_config())
-        result.update({'ratio': 0.3})
-        return result
-
-    def _kernel(self, feeds):
-        x = feeds[NodeKeys.INPUT]
-        with tf.variable_scope('main_path'):
-            y = self._child_models[NodeKeys.CHILD_MODEL](x)
-        with tf.name_scope('add'):
-            res = x + y * self.param('ratio', feeds)
-        return res
-
-
-class StackedConv2D(Model):
-    def __init__(self, name, input_tensor, nb_stacked=None, activation=None, pre_activation=None, post_activation=None, **config):
-        super().__init__(name, {NodeKeys.INPUT: input_tensor}, nb_stacked=nb_stacked,
-                         activation=activation, pre_activation=pre_activation, post_activation=post_activation, **config)
+        super().__init__(name, inputs=input_tensor, **config)
 
     @classmethod
     def _default_config(cls):
         from dxpy.collections.dicts import combine_dicts
-        cfg = {
-            'activation': 'relu',
-            'pre_activation': False,
-            'post_activation': False,
-            'filters': 32,
-        }
-        return combine_dicts(cfg, super()._default_config())
-
-    def _pre_kernel_post_inputs(self):
-        for i in range(self.param('nb_stacked')):
-            if i == 0:
-                pre_activation = self.param('pre_activation')
-            else:
-                pre_activation = False
-            if i == self.param('nb_stacked') - 1:
-                post_activation = self.param('post_activation')
-            else:
-                post_activation = True
-            model = Conv2D('conv2d_{}'.format(i),
-                           filters=self.param('filters'),
-                           input_tensor=None,
-                           activation=self.param('activation'),
-                           pre_activation=pre_activation,
-                           post_activation=post_activation,
-                           lazy_create=True)
-            self.register_child_model('conv2d_{}'.format(i), model)
+        return combine_dicts({
+            'ratio': 0.3,
+            'paths': 3,
+        }, cls._default_config())
 
     def _kernel(self, feeds):
         x = feeds[NodeKeys.INPUT]
-        for i in range(self.param('nb_stacked')):
-            x = self._child_models['conv2d_{}'.format(i)](x)
+        h = InceptionBlock('incept', x, paths=self.param('paths'))
+        x = x + h * self.param('ratio')
         return x
 
 
-def residual_incept_block(input_, filters, res_scale, name='irb'):
-    x = input_
-    with tf.variable_scope(name):
-        x = tf.layers.conv2d(x, filters, 1, padding='same', name='nin')
+class ResidualStackedConv(Model):
+    def __init__(self, name, input_tensor, **config):
+        super().__init__(name, inputs=input_tensor, **config)
+
+    @classmethod
+    def _default_config(cls):
+        from dxpy.collections.dicts import combine_dicts
+        return combine_dicts({
+            'ratio': 0.3,
+            'nb_layers': 2,
+        }, cls._default_config())
+
+    def _kernel(self, feeds):
+        x = feeds[NodeKeys.INPUT]
+        h = StackedConv2D('convs', x, nb_layers=self.param('nb_layers'))
+        with tf.name_scope('add'):
+            return x + h * self.param('ratio')
+
+
+class ResidualStacked(Model):
+    def __init__(self, name, input_tensor, *, nb_layers=None, block_type=None, **config):
+        super().__init__(name, inputs=input_tensor, nb_layers=nb_layers, **config)
+
+    @classmethod
+    def _default_config(cls):
+        from dxpy.collections.dicts import combine_dicts
+        return combine_dicts({
+            'nb_layers': 10,
+            'block_type': 'incept',
+        }, cls._default_config())
+
+    def _kernel(self, feeds):
+        x = feeds[NodeKeys.INPUT]
+        for i in range(self.param('nb_layers')):
+            if self.param('block_type') == 'incept':
+                x = ResidualIncept('res_{}'.format(i), x)
+        return x

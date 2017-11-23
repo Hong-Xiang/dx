@@ -78,7 +78,7 @@ class Model(Graph):
             'register_outputs': True,
             'simple_output': True,
             'no_new_output_for_none_feeds': True,
-            'register_output_with_prefix': True
+            'register_output_with_prefix': True,
         }
         return combine_dicts(cfg, super()._default_config())
 
@@ -222,7 +222,7 @@ class Model(Graph):
             return self._scope
 
     @classmethod
-    def _tensor_dict_standardization(cls, tensors=None, default_key=None):
+    def _tensor_dict_standardization(cls, tensors=None, default_key=None):        
         from .tensor import PlaceHolder
         if tensors is None:
             return dict()

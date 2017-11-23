@@ -1,6 +1,7 @@
 import tensorflow as tf
-from ..net import Net
-from ..graph import NodeKeys
+from ..base import Net, Graph, NodeKeys
+from ...model.image import resize
+from ...model.cnn.blocks import StackedConv2D
 
 
 def sr_end(res, itp, ip_h, name='sr_end', is_res=True):
@@ -47,10 +48,29 @@ class SRMultiScale(Net):
             'nb_down_sample': 3,
         }, super()._default_config())
 
-    def _kernel(self, feeds):
-        pass
+    def _get_node(self, node_type, down_sample_ratio, source=None):
+        if source is None:
+            source = self.nodes
+        name = "{}/image{}x".format(node_type, 2**down_sample_ratio)
+        return source[name]
 
-    def _gpu_kernel(self, image_lowest, image_labels):
+    def _kernel(self, feeds):
+        x = None
+        for i_down_sample in reversed(range(self.param('nb_down_sample'))):
+            if x is None:
+                x = self._get_node('input', i_down_sample)
+                u = resize(x, (2, 2))
+
+        with tf.name_scope('inference'):
+            y = tf.layers.conv2d(h, 1, 3, padding='same')
+        result = {NodeKeys.INFERENCE: y}
+        if NodeKeys.LABEL in feeds:
+            with tf.name_scope('loss'):
+                l = tf.losses.mean_squared_error(feeds[NodeKeys.LABEL], y)
+        result[NodeKeys.LOSS] = l
+        return result
+
+    def _kernel_multiscale(self, image_lowest, image_labels):
         """
         Returns:
             images_infer, cropped inferenced images (different scale)
@@ -58,16 +78,13 @@ class SRMultiScale(Net):
         """
         rep = None
         ipt = image_lowest
+        losses = []
         for i in reversed(range(self.param(nb_down_sample))):
-            inf, rep = self._multi_scale_kernel(ipt, rep,
-                                                name='srb_{}'.format(i))
-            image_infers = self._crop(inf, i)
+            with tf.variable_scope('sr2x_{}'.format(i)):
+                ipt, loss, rep = self._kernel_sr2x(ipt, image_labels[i], rep,
+                                                   name='srb_{}'.format(i))
+                losses.append(loss * ((0.5)**i))
+        with tf.name_scope("loss"):
+            loss = tf.add_n(losses)
+        return ipt, loss
 
-    def _crop(self, images, id_down_sample):
-        pass
-
-    def _multi_scale_kernel(self, input_image, representataions, name):
-        pass
-
-    def _sr2x_kernel(self, input_images, label_images):
-        pass

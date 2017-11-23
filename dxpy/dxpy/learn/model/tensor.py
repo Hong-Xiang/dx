@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from ..utils.general import device_name
 from .base import Model
 from ..graph import Graph, NodeKeys
@@ -66,11 +67,13 @@ class PlaceHolder(Graph):
     graph, thus may not create in tensorflow.
     """
 
-    def __init__(self, shape, dtype=None, name='placeholder'):
+    def __init__(self, shape_or_tensor, dtype=None, name='placeholder', restrict=False):
         dtype = self._unified_dtype(dtype)
-        if isinstance(shape, tf.TensorShape):
-            shape = shape.as_list()
-        super().__init__(name, shape=shape, dtype=dtype)
+        if not restrict and isinstance(shape_or_tensor, tf.Tensor):
+            shape_or_tensor = shape_or_tensor.shape
+        if isinstance(shape_or_tensor, tf.TensorShape):
+            shape_or_tensor = shape_or_tensor.as_list()
+        super().__init__(name, shape=shape_or_tensor, dtype=dtype)
 
     @classmethod
     def _default_config(cls):
@@ -123,3 +126,19 @@ class ShapeEnsurer(Model):
             else:
                 shape = self.param('shape')
             return tf.reshape(feeds[NodeKeys.INPUT], self.param('shape'))
+
+
+def ensure_tensor(input_):
+    if isinstance(input_, Graph):
+        return input_.as_tensor()
+    if isinstance(input_, tf.Tensor):
+        return input_
+
+
+def shape_as_list(input_):
+    if isinstance(input_, tf.Tensor):
+        return list(input_.shape.as_list())
+    if isinstance(input_, np.ndarray):
+        return list(input_.shape)
+    if isinstance(input_, (tuple, list)):
+        return list(input_)
