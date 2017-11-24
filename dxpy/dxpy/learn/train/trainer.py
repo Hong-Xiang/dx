@@ -30,7 +30,7 @@ class Trainer(Graph):
     def _default_config(cls):
         return {
             'is_multi_gpu': False,
-            'learning_rate': 1e-3,
+            'learning_rate': 1e-4,
             'simple_mode': True,
             'nb_gpu': 2,
         }

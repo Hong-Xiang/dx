@@ -1,5 +1,5 @@
 import tensorflow as tf
-from ..base import Net, Graph, NodeKeys
+from ...base import Net, Graph, NodeKeys
 
 
 class SRMultiScale(Net):
@@ -21,8 +21,8 @@ class SRMultiScale(Net):
         }, super()._default_config())
 
     def summary_items(self):
-        from ...train.summary import SummaryItem
-        from ...scalar import global_step
+        from ....train.summary import SummaryItem
+        from ....scalar import global_step
         result = {
             'loss':     SummaryItem(self.nodes[NodeKeys.EVALUATE]),
             'global_step': SummaryItem(global_step())}
@@ -46,9 +46,9 @@ class SRMultiScale(Net):
         super()._post_kernel_post_outputs()
 
     def _kernel(self, feeds):
-        from ...model.cnn.super_resolution import SuperResolutionMultiScale
-        from ...model.tensor import MultiGPUSplitor, PlaceHolder
-        from ...utils.general import device_name
+        from ....model.cnn.super_resolution import SuperResolutionMultiScale
+        from ....model.tensor import MultiGPUSplitor, PlaceHolder
+        from ....utils.general import device_name
         from dxpy.collections.dicts import swap_dict_hierarchy
         mgs = MultiGPUSplitor(nb_gpu=self.param('nb_gpu'))
         feeds_gpus = mgs(feeds)

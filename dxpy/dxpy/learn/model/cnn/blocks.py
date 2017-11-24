@@ -1,6 +1,7 @@
 import tensorflow as tf
 from ..base import Model, NodeKeys, ModelPipe
 from .. import activation
+from ..tensor import shape_as_list
 
 
 class Conv2D(Model):
@@ -28,7 +29,7 @@ class Conv2D(Model):
     def _kernel(self, feeds):
         x = feeds[NodeKeys.INPUT]
         acc = activation.unified_config(self.param('activation', feeds))
-        activation.apply(acc, x, 'pre')
+        x = activation.apply(acc, x, 'pre')
         x = tf.layers.conv2d(x, self.param('filters', feeds),
                              self.param('kernel_size', feeds),
                              self.param('strides', feeds),
@@ -43,14 +44,15 @@ class StackedConv2D(Model):
                  activation=None,
                  filters=None, **config):
         super().__init__(name, input_tensor, nb_layers=nb_layers,
-                         activation=activation, **config)
+                         filters=filters, activation=activation, **config)
 
     @classmethod
     def _default_config(cls):
         from dxpy.collections.dicts import combine_dicts
         cfg = {
             'activation': 'basic',
-            'padding': 'same'
+            'padding': 'same',
+            'filters': 32
         }
         return combine_dicts(cfg, super()._default_config())
 
@@ -122,13 +124,14 @@ class ResidualStackedConv(Model):
     def _default_config(cls):
         from dxpy.collections.dicts import combine_dicts
         return combine_dicts({
-            'ratio': 0.3,
+            'ratio': 0.1,
             'nb_layers': 2,
-        }, cls._default_config())
+        }, super()._default_config())
 
     def _kernel(self, feeds):
         x = feeds[NodeKeys.INPUT]
-        h = StackedConv2D('convs', x, nb_layers=self.param('nb_layers'))
+        h = StackedConv2D('convs', x, nb_layers=self.param('nb_layers'),
+                          activation='res_celu', filters=shape_as_list(x)[-1])()
         with tf.name_scope('add'):
             return x + h * self.param('ratio')
 

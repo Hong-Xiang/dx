@@ -37,6 +37,7 @@ def pet_image_super_resolution_dataset(dataset_name: str,
     normalizer_configs = {
         'analytical_phantoms': {'mean': 4.88, 'std': 4.68}
     }
+    config_origin = {}
     config_normalizer = normalizer_configs[dataset_name]
     config['dataset'] = {
         'origin': config_origin,

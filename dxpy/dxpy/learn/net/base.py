@@ -24,6 +24,11 @@ class Net(Model):
         }, super()._default_config())
 
     def _tensors_need_summary(self):
+        if NodeKeys.EVALUATE in self.nodes:
+            if isinstance(self.nodes[NodeKeys.EVALUATE], tf.Tensor):
+                return {NodeKeys.EVALUATE: self.nodes[NodeKeys.EVALUATE]}
+            elif isinstance(self.nodes[NodeKeys.EVALUATE], dict):
+                return self.nodes[NodeKeys.EVALUATE]
         return dict()
 
     def _post_kernel_post_outputs(self):
