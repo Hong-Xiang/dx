@@ -34,7 +34,7 @@ class Conv2D(Model):
                              self.param('kernel_size', feeds),
                              self.param('strides', feeds),
                              self.param('padding', feeds), name='convolution')
-        activation.apply(acc, x, 'post')
+        x = activation.apply(acc, x, 'post')
         return x
 
 
@@ -74,14 +74,14 @@ class InceptionBlock(Model):
         from dxpy.collections.dicts import combine_dicts
         return combine_dicts({
             'paths': 3,
-            'activation': 'basic',
+            'activation': 'incept',
         }, super()._default_config())
 
     def _kernel(self, feeds):
         x = feeds[NodeKeys.INPUT]
         filters = x.shape.as_list()[-1]
         acc = activation.unified_config(self.param('activation', feeds))
-        activation.apply(acc, x, 'pre')
+        x = activation.apply(acc, x, 'pre')
         paths = []
         for i_path in range(self.param('paths')):
             with tf.variable_scope('path_{}'.format(i_path)):
@@ -105,20 +105,22 @@ class ResidualIncept(Model):
     def _default_config(cls):
         from dxpy.collections.dicts import combine_dicts
         return combine_dicts({
-            'ratio': 0.3,
+            'ratio': 0.1,
             'paths': 3,
         }, cls._default_config())
 
     def _kernel(self, feeds):
         x = feeds[NodeKeys.INPUT]
         h = InceptionBlock('incept', x, paths=self.param('paths'))
-        x = x + h * self.param('ratio')
+        with tf.name_scope('add'):
+            x = x + h * self.param('ratio')
         return x
 
 
 class ResidualStackedConv(Model):
-    def __init__(self, name, input_tensor, **config):
-        super().__init__(name, inputs=input_tensor, **config)
+    def __init__(self, name, input_tensor, *, nb_layers=None, ratio=None, **config):
+        super().__init__(name, inputs=input_tensor,
+                         nb_layers=nb_layers, ratio=ratio, **config)
 
     @classmethod
     def _default_config(cls):
@@ -136,7 +138,7 @@ class ResidualStackedConv(Model):
             return x + h * self.param('ratio')
 
 
-class ResidualStacked(Model):
+class StackedResidual(Model):
     """
     Sub model name: sub_{0..nb_layers}
     """
@@ -155,6 +157,9 @@ class ResidualStacked(Model):
     def _kernel(self, feeds):
         x = feeds[NodeKeys.INPUT]
         for i in range(self.param('nb_layers')):
+            name = self.name / 'res_{}'.format(i)
             if self.param('block_type') == 'incept':
-                x = ResidualIncept('res_{}'.format(i), x)
+                x = ResidualIncept(name, x)
+            elif self.param('block_type') == 'stacked_conv':
+                x = ResidualStackedConv(name, x)
         return x

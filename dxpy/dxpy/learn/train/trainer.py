@@ -29,7 +29,8 @@ class Trainer(Graph):
         if isinstance(loss, (list, tuple)):
             for l in loss:
                 _check_tensor(l)
-        _check_tensor(loss)
+        else:
+            _check_tensor(loss)
 
     def __init__(self, name=None, loss=None, variables=None, **config):
         """
@@ -57,7 +58,7 @@ class Trainer(Graph):
     def _default_config(cls):
         return {
             'is_multi_gpu': False,
-            'learning_rate': 1e-4,
+            'learning_rate': 1e-3,
             'simple_mode': True,
             'nb_gpu': 2,
         }

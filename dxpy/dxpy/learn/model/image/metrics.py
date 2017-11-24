@@ -1,6 +1,11 @@
 import tensorflow as tf
 
 
+def mean_square_error(label, data):
+    with tf.name_scope('mean_squared_error'):
+        return tf.sqrt(tf.reduce_mean(tf.square(label - data)))
+
+
 def rmse(label, data):
     with tf.name_scope('rmse'):
         rmse = tf.sqrt(tf.reduce_mean(tf.square(label - data)))

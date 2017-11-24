@@ -15,7 +15,7 @@ class ActivationConfigs(Enum):
     none = ActivationConfig('none')
     res_celu = ActivationConfig('celu', True, False)
     incept = ActivationConfig('celu', True, False)
-    pre = ActivationConfig('celu', True, False)
+    pre = ActivationConfig('celu', True, False)    
 
 
 def celu(x):

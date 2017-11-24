@@ -149,3 +149,4 @@ def boundary_crop(input_, offset, name="boundary_crop"):
             offset = [0] + list(offset) + [0]
         shape_output = [s - 2 * o for s, o in zip(shape, offset)]
         return tf.slice(input_, offset, shape_output)
+

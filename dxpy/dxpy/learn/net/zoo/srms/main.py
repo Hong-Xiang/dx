@@ -1,5 +1,11 @@
 import tensorflow as tf
 from ...base import Net, Graph, NodeKeys
+from ....model.cnn.super_resolution import SuperResolutionMultiScale, SRKeys
+
+
+class SRNetKeys:
+    RES_INF = 'res_inf'
+    RES_ITP = 'res_itp'
 
 
 class SRMultiScale(Net):
@@ -26,13 +32,18 @@ class SRMultiScale(Net):
         result = {
             'loss':     SummaryItem(self.nodes[NodeKeys.EVALUATE]),
             'global_step': SummaryItem(global_step())}
-        for i in range(1, self.param('nb_down_sample') + 1):
-            result.update({'img{}x'.format(2**i):
-                           SummaryItem(self.nodes['input/image{}x'.format(2**i)])})
-        for i in range(self.param('nb_down_sample')):
-            result.update({'lab{}x'.format(2**i):
-                           SummaryItem(self.nodes['label/image{}x'.format(2**i)])})
+        max_down_sample = self.param('nb_down_sample')
+        result.update({'img{}x'.format(2**max_down_sample):
+                       SummaryItem(self.nodes['input/image{}x'.format(2**max_down_sample)])})
         result.update({'inf': SummaryItem(self.nodes[NodeKeys.INFERENCE])})
+        result.update(
+            {'itp': SummaryItem(self.nodes['outputs/{}'.format(SRKeys.INTERP)])})
+        result.update({'label': SummaryItem(
+            self.nodes['outputs/{}'.format(SRKeys.ALIGNED_LABEL)])})
+        result.update({'res_inf': SummaryItem(
+            self.nodes['outputs/{}'.format(SRNetKeys.RES_INF)])})
+        result.update({'res_itp': SummaryItem(
+            self.nodes['outputs/{}'.format(SRNetKeys.RES_ITP)])})
         return result
         # def _get_node(self, node_type, down_sample_ratio, source=None):
         #     if source is None:
@@ -46,9 +57,10 @@ class SRMultiScale(Net):
         super()._post_kernel_post_outputs()
 
     def _kernel(self, feeds):
-        from ....model.cnn.super_resolution import SuperResolutionMultiScale
+
         from ....model.tensor import MultiGPUSplitor, PlaceHolder
         from ....utils.general import device_name
+        from ....model.image import align_crop
         from dxpy.collections.dicts import swap_dict_hierarchy
         mgs = MultiGPUSplitor(nb_gpu=self.param('nb_gpu'))
         feeds_gpus = mgs(feeds)
@@ -69,11 +81,25 @@ class SRMultiScale(Net):
                 with tf.name_scope('inference'):
                     infer = tf.concat([result_gpus[k][NodeKeys.INFERENCE]
                                        for k in mgs.part_names()], axis=0)
+                with tf.name_scope('label'):
+                    label = tf.concat([result_gpus[k][SRKeys.ALIGNED_LABEL]
+                                       for k in mgs.part_names()], axis=0)
+                with tf.name_scope('interp'):
+                    interp = tf.concat([result_gpus[k][SRKeys.INTERP]
+                                        for k in mgs.part_names()], axis=0)
+                with tf.name_scope('residual'):
+                    res_inf = tf.abs(label - infer)
+                    res_itp = tf.abs(label - interp)
                 losses = [result_gpus[k][NodeKeys.LOSS]
                           for k in mgs.part_names()]
                 with tf.name_scope('total_loss'):
                     loss = tf.add_n(losses)
+
         return {NodeKeys.INFERENCE: infer,
+                SRKeys.ALIGNED_LABEL: label,
+                SRKeys.INTERP: interp,
+                SRNetKeys.RES_INF: res_inf,
+                SRNetKeys.RES_ITP: res_itp,
                 NodeKeys.LOSS: losses,
                 NodeKeys.EVALUATE: loss}
 
