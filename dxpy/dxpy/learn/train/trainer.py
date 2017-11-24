@@ -2,16 +2,43 @@ import tensorflow as tf
 
 from ..graph import Graph
 from ..scalar import ScalarVariable
+from ..model.tensor import shape_as_list
 
 
 class Trainer(Graph):
-    def __init__(self, name, loss, variables=None, **config):
+    """
+    Trainer which make it easier to:
+        1. Unified access for single GPU and multi GPU (auto detect);
+        2. Changing learning rate made easy;
+        3. Training partial of variables easily (TODO)
+    """
+
+    def _check_inputs(self, loss, variables):
+        def _check_tensor(l):
+            if isinstance(l, tf.Tensor):
+                shape = shape_as_list(l)
+                if len(shape) > 1 or (len(shape) == 1 and shape[0] > 1):
+                    msg = "Loss of trainer can only be scalar or list of scalar, got loss (or element of loss) of shape {}."
+                    raise ValueError(msg.format(shape))
+            else:
+                raise TypeError(
+                    "Loss (or element of loss) of trainer can only be scalar or list of scalar, not {}.".format(type(loss)))
+        if loss is None:
+            raise TypeError(
+                "Loss of trainer can only be scalar or list of scalar, not None.")
+        if isinstance(loss, (list, tuple)):
+            for l in loss:
+                _check_tensor(l)
+        _check_tensor(loss)
+
+    def __init__(self, name=None, loss=None, variables=None, **config):
         """
         Inputs:
             loss: scalar or list of scalar (multi gpu)
             variables: list of tensors
         """
         super(__class__, self).__init__(name, **config)
+        self._check_inputs(loss, variables)
         self.loss = loss
         if variables is None:
             variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
@@ -69,10 +96,6 @@ class Trainer(Graph):
 
     @classmethod
     def __analysis_grad_and_vars(cls, grad_and_vars):
-        # Note that each grad_and_vars looks like the following:
-                #   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
-
-                # for g, _ in grad_and_vars:
         nb_gpu = len(grad_and_vars)
         variables = grad_and_vars[0][1]
         grads = [g for g, _ in grad_and_vars if g is not None]
@@ -80,19 +103,6 @@ class Trainer(Graph):
             grad = tf.add_n(grads) / nb_gpu
         else:
             grad = None
-
-        #     # Add 0 dimension to the gradients to represent the tower.
-        #     expanded_g = tf.expand_dims(g, 0)
-
-        #     # Append on a 'tower' dimension which we will average over
-        #     # below.
-        #     grads.append(expanded_g)
-        # # Average over the 'tower' dimension.
-        # grad = tf.concat(axis=0, values=grads)
-        # grad = tf.reduce_mean(grad, 0)
-        # Keep in mind that the Variables are redundant because they are shared
-        # across towers. So .. we will just return the first tower's pointer to
-        # the Variable.
         return nb_gpu, grad, variables
 
     def __maybe_clip(self, grad):
@@ -107,7 +117,7 @@ class Trainer(Graph):
 
     def _get_train_step_full(self):
         from ..scalar import global_step
-        tower_gradients = self._get_gradients()        
+        tower_gradients = self._get_gradients()
         with tf.name_scope('train_step'), tf.device('/cpu:0'):
             average_grads = []
             for grad_and_vars in zip(*tower_gradients):
@@ -124,11 +134,6 @@ class Trainer(Graph):
         return self.optimizer.minimize(self.loss, global_step(), self.variables)
 
     def _get_train_step(self):
-        """
-        Inputs:
-            tower_grads: *list or tuple* of grads
-            optimizer: optimizer
-        """
         if not isinstance(self.loss, (list, tuple)):
             return self._get_train_step_simple()
         else:
