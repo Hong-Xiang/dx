@@ -1,9 +1,10 @@
 import astra
+import astra.creators as ac
 from ..config import config
 from dxpy.configs import configurable
 
 
-def _inputs_verification2d(detector, phantom, sinogram):
+def _inputs_verification2d(detector, phantom_spec, sinogram):
     from ..detector.base import Detector2D
     from ..exceptions import InputVerifacationError
     if not isinstance(detector, Detector2D):
@@ -12,27 +13,25 @@ def _inputs_verification2d(detector, phantom, sinogram):
 
 
 @configurable(config['reconstruction'])
-def reconstruction2d(detector, phantom, sinogram, *, method=None):
+def reconstruction2d(sinogram, detector, phantom_spec, *, method='FBP_CUDA', iterations=1):
     """
     Args:
         detector: Detector specifics,
-        phantom: phantom specifics
+        phantom_spec: phantom specifics
         sinogram: 2-dimensional ndarray.
     """
-    _inputs_verification2d(detector, phantom, sinogram)
-    vol_geom = astra.create_vol_geom(*phantom.shape)
-    image_id = astra.data2d.create('-vol', vol_geom)
-    sino_geom = astra.create_proj_geom('parallel',
-                                       detecotr.sensor_width,
-                                       detector.nb_sensors,
-                                       detector.views)
-    sinogram_id = astra.data2d.create('-sino', sino_geom, data=sinogram)
-    cfg = astra.astra_dict(method)
-    cfg['ReconstructionDataId'] = image_id
-    cfg['ProjectionDataId'] = sinogram_id
-    alg_id = astra.algorithm.create(cfg)
-    astra.algorithm.run(alg_id, run_time)
-    rec = astra.data2d.get(image_id)
+    _inputs_verification2d(detector, phantom_spec, sinogram)
+    vol_geom = ac.create_vol_geom(phantom_spec.shape)
+    image_id = ac.data2d.create('-vol', vol_geom)
+    proj_geom = ac.create_proj_geom('parallel',
+                                    detector.sensor_width,
+                                    detector.nb_sensors,
+                                    detector.views)
+    proj_id = ac.create_projector('linear', proj_geom, vol_geom)
+    rid, result = astra.creators.create_reconstruction(method,
+                                                       proj_id,
+                                                       sinogram,
+                                                       iterations)
     astra.data2d.clear()
     astra.projector.clear()
     astra.algorithm.clear()
