@@ -1,4 +1,27 @@
-def parse_configs(func, *args, configs_filename=None, **kwargs):
+def parse_configs(func, *args, _config_object, **kw)
+    sig = inspect.signature(func)
+    kw = ChainMap(*([kw] + _config_object))
+    func_arg_keys = [k for k in sig.parameters]
+    poped_keys = []
+    func_arg_keys_tmp = list(func_arg_keys)
+    for a, k in zip(args, func_arg_keys_tmp):
+        poped_keys.append(func_arg_keys.pop(func_arg_keys.index(k)))
+    kw_fine = {k: kw.get(k)
+               for k in func_arg_keys if kw.get(k) is not None}
+    ba = sig.bind(*args, **kw_fine)
+    ba.apply_defaults()
+    return ba.args, ba.kw, poped_keys
+
+
+class configurable:
+    def __init__(self, configs_object):
+        self._c = configs_object
+
+    def __call__(self, func, *args, **kwargs):
+        pass
+
+
+def with_configs(func, *args, **kw):
     """ Analysic func args and inputs/JSON file.
 
     Inputs:
@@ -6,7 +29,7 @@ def parse_configs(func, *args, configs_filename=None, **kwargs):
         * args: tuple of positional arguments,                
         * configs_filename: filename or list of filenames of JSON file(s), *which may
           or may not present in original function's argument list*.
-        * kwargs: dict of keyword arugments.
+        * kw: dict of keyword arugments.
 
     Returns:
         1. a tuple, positional arguments,        
@@ -25,15 +48,15 @@ def parse_configs(func, *args, configs_filename=None, **kwargs):
         with open(fn, 'r') as fin:
             json_dicts.append(json.load(fin))
     sig = inspect.signature(func)
-    kwargs['configs_filename'] = configs_filename
-    kwargs = ChainMap(*([kwargs] + json_dicts))
+    kw['configs_filename'] = configs_filename
+    kw = ChainMap(*([kw] + json_dicts))
     func_arg_keys = [k for k in sig.parameters]
     poped_keys = []
     func_arg_keys_tmp = list(func_arg_keys)
     for a, k in zip(args, func_arg_keys_tmp):
         poped_keys.append(func_arg_keys.pop(func_arg_keys.index(k)))
-    kwargs_fine = {k: kwargs.get(k)
-                   for k in func_arg_keys if kwargs.get(k) is not None}
-    ba = sig.bind(*args, **kwargs_fine)
+    kw_fine = {k: kw.get(k)
+               for k in func_arg_keys if kw.get(k) is not None}
+    ba = sig.bind(*args, **kw_fine)
     ba.apply_defaults()
-    return ba.args, ba.kwargs, poped_keys
+    return ba.args, ba.kw, poped_keys

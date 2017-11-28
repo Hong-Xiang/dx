@@ -69,24 +69,6 @@ class MultiGPUSplitor(Model):
         else:
             return '{}_{}'.format(prefix, idt)
 
-
-# class MultiGPUSplitorForDict(Model):
-#     def __init__(self, name='gpu_splitor_dict', nb_gpu=None):
-#         super().__init__(name, nb_gpu=nb_gpu)
-
-#     @classmethod
-#     def _default_config(cls):
-#         from dxpy.collections.dicts import combine_dicts
-#         return combine_dicts({
-#             'nb_gpu': 2
-#         }, super()._default_config())
-
-#     def _kernel(self, feeds):
-#         msp = MultiGPUSplitor(nb_gpu=self.param('nb_gpu'))
-#         result = {k: msp(feeds[k]) for k in feeds}
-#         return {p: {k: result[k][p] for k in result} for p in msp.part_names()}
-
-
 class PlaceHolder(Graph):
     """
     Placeholder for graph. Note this placeholder can be used to construct logic
