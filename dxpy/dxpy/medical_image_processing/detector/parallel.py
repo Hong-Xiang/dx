@@ -32,3 +32,9 @@ class Detector2DParallelRing(Detector2D):
     @property
     def views(self):
         return self._views
+
+    def assert_fit(self, data):
+        if detector.nb_sensors != data.shape[0] or detector.nb_views != data.shape[1]:
+        msg = "Shape of sinogram {} is not consisted with detector: nb_sensors: {}, nb_views: {}."
+        raise ValueError(msg.format(data.shape,
+                                    self.nb_sensors, self.nb_views))

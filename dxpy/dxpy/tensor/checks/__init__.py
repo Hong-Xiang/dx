@@ -1,1 +1,1 @@
-from .shape import check_ndim
+from .shape import assert_ndim

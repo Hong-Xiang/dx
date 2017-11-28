@@ -1,0 +1,1 @@
+export PATH_DXL_DXMAT=`pwd`/../dxmat

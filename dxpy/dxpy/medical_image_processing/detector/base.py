@@ -1,5 +1,6 @@
 class Detector:
-    pass
+    def assert_fit(self, data):
+        pass
 
 
 class Detector3D(Detector):

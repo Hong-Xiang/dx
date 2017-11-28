@@ -1,6 +1,7 @@
 config = {
     'backend': 'astra',
     'astra': {
-        'method': 'FBP_CUDA'
-    }
+    },
+    'projection': dict(),
+    'reconstruction': dict()
 }
