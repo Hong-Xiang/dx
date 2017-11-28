@@ -1,19 +1,33 @@
 from .base import Detector2D
+import numpy as np
 
 
 class Detector2DParallelRing(Detector2D):
-    def __init__(self, nb_sensors, sensor_width, views):
-        self._nb_sensors = nb_sensors
-        self._sensor_width = sensor_width
-        self._views = views
+    def __init__(self, sensors, views):
+        self._sensors = np.array(sensors)
+        self._views = np.array(views)
+        if self._sensors.ndim != 1:
+            raise ValueError('Sensor sensors spec is required to be one dimension, got {}.'.format(
+                self._sensors.ndim))
+        if self._views.ndim != 1:
+            raise ValueError('Sensor views spec is required to be one dimension, got {}.'.format(
+                self._views.ndim))
 
     @property
     def nb_sensors(self):
-        return self._nb_sensors
+        return len(self._sensors)
 
     @property
     def sensor_width(self):
-        return self._sensor_width
+        return np.mean(self._sensors[1:] - self._sensors[:-1])
+
+    @property
+    def sensors(self):
+        return self._sensors
+
+    @property
+    def nb_views(self):
+        return len(self._views)
 
     @property
     def views(self):

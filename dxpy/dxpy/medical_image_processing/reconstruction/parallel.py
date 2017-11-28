@@ -1,19 +1,17 @@
 import astra
 
+
 def _inputs_verification2d(detector, phantom, sinogram):
     from ..detector.base import Detector2D
     from ..exceptions import InputVerifacationError
     if not isinstance(detector, Detector2D):
         raise InputVerifacationError("Input detector is not Detector2D, {}.")
+    if detector.nb_sensors != sinogram.shape[0] or detector.nb_views != sinogram.shape[1]:
+        msg = "Shape of sinogram {} is not consisted with detector: nb_sensors: {}, nb_views: {}."
+        raise ValueError(msg.format(
+            sinogram.shape, detector.nb_sensors, len(detector.views)))
 
-    nb_sensors = detector.nb_sensors
 
-    if isinstance(detector, Detector2DParallelRing):
-        nb_sensors = detector.nb_sensors
-    if nb_sensors is None:
-        raise InputVerifacationError(
-            "Unknown detector, can not get nb_sensors, detecotr: {}.")
-    raise InputVerifacationError("Unknown error.")
 
 
 def reconstruction2d(detector, phantom, sinogram, *, method=None):
