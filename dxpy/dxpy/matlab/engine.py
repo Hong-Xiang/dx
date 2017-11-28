@@ -27,3 +27,11 @@ class MatlabEngine:
     @staticmethod
     def get_default_engine():
         return default_engine
+
+
+def call_matlab_api(func):
+    if MatlabEngine.get_default_engine() is None:
+        with MatlabEngine() as eng:
+            return func(eng)
+    else:
+        return func(MatlabEngine.get_default_engine())

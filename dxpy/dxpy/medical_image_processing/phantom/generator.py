@@ -1,22 +1,15 @@
 
 import numpy as np
-from dxpy.matlab import MatlabEngine
-
-
-def _generate_shepp_logans_matlab(nb_images, nb_size, sigma):
-    res = eng.GenerateSheppLogans(10, 256.0, 0.1)
+from dxpy.matlab import call_matlab_api
 
 
 def generate_shepp_logans(nb_images, nb_size, sigma, *, backend='matlab'):
-    pass
+    if backend == 'matlab':
+        return np.array(call_matlab_api(lambda e: e.GenerateSheppLogans(nb_images, float(nb_size), float(sigma))))
+    raise ValueError("Unknown backend {}.".format(backend))
 
 
 def generate_phantom(*, backend='matlab'):
     if backend == 'matlab':
-        if MatlabEngine.get_default_engine() is None:
-            with MatlabEngine() as eng:
-                result = np.array(eng.phantom())
-        else:
-            result = np.array(MatlabEngine.get_default_engine().phantom())
-        return result
+        return np.array(call_matlab_api(lambda eng: eng.phantom()))
     raise ValueError("Unknown backend {}.".format(backend))
