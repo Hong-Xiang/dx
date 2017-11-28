@@ -8,14 +8,15 @@ class ConfigsView:
 
     def __unified_keys(self, path_or_keys):
         if isinstance(path_or_keys, (list, tuple)):
-            return path_or_keys
+            return tuple(list(self.base.parts()) + list(path_or_keys))
         else:
-            return Path(path_or_keys).parts()
+            return Path(self.base / path_or_keys).parts()
 
     def __query(self, key, default=None):
         result = self.data
-        for k in self.__unified_keys(key):            
-            result = result.get(key, default)
+        for k in self.__unified_keys(key):
+            if isinstance(result, (dict, ConfigsView)):
+                result = result.get(k)
         if isinstance(result, dict):
             result = ConfigsView(self.data, self.base / key)
         path = Path(self.base)
