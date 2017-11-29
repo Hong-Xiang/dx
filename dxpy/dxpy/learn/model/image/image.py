@@ -142,11 +142,10 @@ def align_crop(input_, target, offset=None, name='align_crop'):
 
 
 def boundary_crop(input_, offset, name="boundary_crop"):
-    from ..tensor import shape_as_list    
+    from ..tensor import shape_as_list
     with tf.name_scope(name):
         shape = shape_as_list(input_)
         if len(offset) == 2:
             offset = [0] + list(offset) + [0]
         shape_output = [s - 2 * o for s, o in zip(shape, offset)]
         return tf.slice(input_, offset, shape_output)
-

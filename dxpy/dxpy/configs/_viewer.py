@@ -17,6 +17,9 @@ class ConfigsView:
         for k in self.__unified_keys(key):
             if isinstance(result, (dict, ConfigsView)):
                 result = result.get(k)
+            else:
+                result = None
+                break
         if isinstance(result, dict):
             result = ConfigsView(self.data, self.base / key)
         path = Path(self.base)

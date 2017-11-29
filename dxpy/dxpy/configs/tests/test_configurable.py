@@ -2,8 +2,9 @@ import unittest
 from dxpy.configs import configurable, ConfigsView
 from dxpy.configs._configurable import parse_configs
 
+
 class TestParseConfigs(unittest.TestCase):
-    
+
     def test_basic(self):
         def foo(a, b, *, c, d, e=4):
             pass
@@ -78,3 +79,53 @@ class TestConfigurable(unittest.TestCase):
         def foo(a, b, *, c, d, e=4, name='para'):
             return [a, b, c, d, e]
         self.assertEqual(foo(0, 1, d=3), list(range(5)))
+
+    def test_not_existed_key(self):
+        config = dict()
+        cv = ConfigsView(config)
+
+        @configurable(cv['foo'])
+        def foo(a, b=2):
+            return [a, b]
+        self.assertEqual(foo(1), [1, 2])
+
+    def test_class_init(self):
+        config = {'a': 1, 'b': 2}
+        cv = ConfigsView(config)
+
+        class A:
+            @configurable(cv)
+            def __init__(self, a):
+                self.a = a
+
+        class B(A):
+            @configurable(cv)
+            def __init__(self, b):
+                super().__init__()
+                self.b = b
+
+        b = B()
+        self.assertEqual(b.a, 1)
+        self.assertEqual(b.b, 2)
+
+    def test_class_init_with_name(self):
+        config = {'obj1': {'a': 1, 'b': 2}, 'obj2': {'a': 3, 'b': 4}}
+        cv = ConfigsView(config)
+
+        class A:
+            @configurable(cv, with_name=True)
+            def __init__(self, a, name):
+                self.a = a
+
+        class B(A):
+            @configurable(cv, with_name=True)
+            def __init__(self, b, name):
+                super().__init__(name=name)
+                self.b = b
+
+        ob1 = B(name='obj1')
+        ob2 = B(name='obj2')
+        self.assertEqual(ob1.a, 1)
+        self.assertEqual(ob1.b, 2)
+        self.assertEqual(ob2.a, 3)
+        self.assertEqual(ob2.b, 4)

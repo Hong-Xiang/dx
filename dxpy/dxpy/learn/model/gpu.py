@@ -1,5 +1,6 @@
 import tensorflow as tf
 from ..config import config
+from dxpy.configs import configurable
 
 
 def _split_feeds(feeds, nb_gpu):
@@ -45,3 +46,68 @@ def apply_multi_gpu(feeds, model_func, nb_gpu=None):
         model()
     result_gpus = _apply_on_gpus(model, feeds_gpu, part_names)
     return _merge(result_gpus, part_names)
+
+
+class MultiGPUSplitor(Model):
+    """
+    A Helper class to create
+    """
+    @configurable(config['gpu'])
+    def __init__(self, name='gpu_splitor', nb_gpu=2):
+        super().__init__(name, nb_gpu=nb_gpu)
+
+    @classmethod
+    def _default_config(cls):
+        result = dict()
+        result.update(super()._default_config())
+        result.update({
+            'lazy_create': True,
+            'register_inputs': False,
+            'register_outputs': False,
+            'format': 'split'
+        })
+        return result
+
+    def _kernel(self, feeds):
+        from dxpy.collections.dicts import swap_dict_hierarchy
+        result = {k: self._slice_tensor_for_gpu(feeds[k]) for k in feeds}
+        if self.param('format') == 'name':
+            return result
+        else:
+            return swap_dict_hierarchy(result)
+
+    def _get_shape_split(self, shape):
+        if isinstance(shape, tf.TensorShape):
+            shape_gpu = shape.as_list()
+        else:
+            shape_gpu = list(shape)
+        if shape_gpu[0] is None:
+            raise TypeError("Batch size can not be None for MultiGPUSplitor.")
+        shape_gpu[0] = shape_gpu[0] // self.param('nb_gpu')
+        return shape_gpu
+
+    def _slice_tensor_for_gpu(self, tensor_input):
+        result = dict()
+        shape_gpu = self._get_shape_split(tensor_input.shape)
+        with tf.name_scope(self._get_tensor_name(tensor_input.name)):
+            for id_slice in range(self.param('nb_gpu')):
+                with tf.device(device_name('gpu', id_slice)):
+                    slice_start = [id_slice * shape_gpu[0]] + \
+                        [0] * (len(shape_gpu) - 1)
+                    name = 'part_{}'.format(id_slice)
+                    result[name] = tf.slice(tensor_input, slice_start,
+                                            shape_gpu, name=name)
+        if len(result) == 0:
+            return tensor_input
+        return result
+
+    def part_names(self):
+        return ['part_{}'.format(id_slice) for id_slice in range(self.param('nb_gpu'))]
+
+    def _get_tensor_name(self, name):
+        prefix, idt = name.split(':')
+        idt = int(idt)
+        if idt == 0:
+            return prefix
+        else:
+            return '{}_{}'.format(prefix, idt)

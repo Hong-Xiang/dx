@@ -97,69 +97,69 @@ class InceptionBlock(Model):
         return x
 
 
-class ResidualIncept(Model):
-    def __init__(self, name, input_tensor, **config):
-        super().__init__(name, inputs=input_tensor, **config)
+# class ResidualIncept(Model):
+#     def __init__(self, name, input_tensor, **config):
+#         super().__init__(name, inputs=input_tensor, **config)
 
-    @classmethod
-    def _default_config(cls):
-        from dxpy.collections.dicts import combine_dicts
-        return combine_dicts({
-            'ratio': 0.1,
-            'paths': 3,
-        }, cls._default_config())
+#     @classmethod
+#     def _default_config(cls):
+#         from dxpy.collections.dicts import combine_dicts
+#         return combine_dicts({
+#             'ratio': 0.1,
+#             'paths': 3,
+#         }, cls._default_config())
 
-    def _kernel(self, feeds):
-        x = feeds[NodeKeys.INPUT]
-        h = InceptionBlock('incept', x, paths=self.param('paths'))
-        with tf.name_scope('add'):
-            x = x + h * self.param('ratio')
-        return x
-
-
-class ResidualStackedConv(Model):
-    def __init__(self, name, input_tensor, *, nb_layers=None, ratio=None, **config):
-        super().__init__(name, inputs=input_tensor,
-                         nb_layers=nb_layers, ratio=ratio, **config)
-
-    @classmethod
-    def _default_config(cls):
-        from dxpy.collections.dicts import combine_dicts
-        return combine_dicts({
-            'ratio': 0.1,
-            'nb_layers': 2,
-        }, super()._default_config())
-
-    def _kernel(self, feeds):
-        x = feeds[NodeKeys.INPUT]
-        h = StackedConv2D('convs', x, nb_layers=self.param('nb_layers'),
-                          activation='res_celu', filters=shape_as_list(x)[-1])()
-        with tf.name_scope('add'):
-            return x + h * self.param('ratio')
+#     def _kernel(self, feeds):
+#         x = feeds[NodeKeys.INPUT]
+#         h = InceptionBlock('incept', x, paths=self.param('paths'))
+#         with tf.name_scope('add'):
+#             x = x + h * self.param('ratio')
+#         return x
 
 
-class StackedResidual(Model):
-    """
-    Sub model name: sub_{0..nb_layers}
-    """
+# class ResidualStackedConv(Model):
+#     def __init__(self, name, input_tensor, *, nb_layers=None, ratio=None, **config):
+#         super().__init__(name, inputs=input_tensor,
+#                          nb_layers=nb_layers, ratio=ratio, **config)
 
-    def __init__(self, name, input_tensor, *, nb_layers=None, block_type=None, **config):
-        super().__init__(name, inputs=input_tensor, nb_layers=nb_layers, **config)
+#     @classmethod
+#     def _default_config(cls):
+#         from dxpy.collections.dicts import combine_dicts
+#         return combine_dicts({
+#             'ratio': 0.1,
+#             'nb_layers': 2,
+#         }, super()._default_config())
 
-    @classmethod
-    def _default_config(cls):
-        from dxpy.collections.dicts import combine_dicts
-        return combine_dicts({
-            'nb_layers': 10,
-            'block_type': 'incept',
-        }, cls._default_config())
+#     def _kernel(self, feeds):
+#         x = feeds[NodeKeys.INPUT]
+#         h = StackedConv2D('convs', x, nb_layers=self.param('nb_layers'),
+#                           activation='res_celu', filters=shape_as_list(x)[-1])()
+#         with tf.name_scope('add'):
+#             return x + h * self.param('ratio')
 
-    def _kernel(self, feeds):
-        x = feeds[NodeKeys.INPUT]
-        for i in range(self.param('nb_layers')):
-            name = self.name / 'res_{}'.format(i)
-            if self.param('block_type') == 'incept':
-                x = ResidualIncept(name, x)
-            elif self.param('block_type') == 'stacked_conv':
-                x = ResidualStackedConv(name, x)
-        return x
+
+# class StackedResidual(Model):
+#     """
+#     Sub model name: sub_{0..nb_layers}
+#     """
+
+#     def __init__(self, name, input_tensor, *, nb_layers=None, block_type=None, **config):
+#         super().__init__(name, inputs=input_tensor, nb_layers=nb_layers, **config)
+
+#     @classmethod
+#     def _default_config(cls):
+#         from dxpy.collections.dicts import combine_dicts
+#         return combine_dicts({
+#             'nb_layers': 10,
+#             'block_type': 'incept',
+#         }, cls._default_config())
+
+#     def _kernel(self, feeds):
+#         x = feeds[NodeKeys.INPUT]
+#         for i in range(self.param('nb_layers')):
+#             name = self.name / 'res_{}'.format(i)
+#             if self.param('block_type') == 'incept':
+#                 x = ResidualIncept(name, x)
+#             elif self.param('block_type') == 'stacked_conv':
+#                 x = ResidualStackedConv(name, x)
+#         return x
