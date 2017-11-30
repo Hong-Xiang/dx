@@ -3,6 +3,7 @@ import tensorflow as tf
 from contextlib import contextmanager
 from dxpy.filesystem import Path
 from dxpy.collections.dicts import DXDict
+from typing import Dict
 
 # On restrict mode, tensors as allocated to CPU memory if not specified.
 RESTRICT_MODE = True

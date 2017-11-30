@@ -22,7 +22,6 @@ def reconstruction2d(sinogram, detector, phantom_spec, *, method='FBP_CUDA', ite
     """
     _inputs_verification2d(detector, phantom_spec, sinogram)
     vol_geom = ac.create_vol_geom(phantom_spec.shape)
-    image_id = ac.data2d.create('-vol', vol_geom)
     proj_geom = ac.create_proj_geom('parallel',
                                     detector.sensor_width,
                                     detector.nb_sensors,
@@ -36,3 +35,30 @@ def reconstruction2d(sinogram, detector, phantom_spec, *, method='FBP_CUDA', ite
     astra.projector.clear()
     astra.algorithm.clear()
     return result
+
+
+class Reconstructor2DParallel:
+    @configurable(config['projection'])
+    def __init__(self, detector, phantom_spec, *, method='FBP_CUDA', projection_model='linear'):
+        vol_geom = ac.create_vol_geom(phantom_spec.shape)
+        proj_geom = ac.create_proj_geom('parallel',
+                                        detector.sensor_width,
+                                        detector.nb_sensors,
+                                        detector.views)
+        self.proj_id = ac.create_projector(
+            projection_model, proj_geom, vol_geom)
+        self.sino_id = astra.data2d.create('-sino', proj_geom)
+        self.method = method
+
+    def reconstruct(self, sinogram, iterations=1):        
+        astra.data2d.store(self.sino_id, sinogram)
+        iid, result = ac.create_reconstruction(self.method,
+                                               self.proj_id,
+                                               sinogram,
+                                               iterations)
+        astra.data2d.delete(iid)
+        return result
+
+    def clear(self):
+        astra.data2d.delete(self.phan_id)
+        astra.projector.delete(self.proj_id)

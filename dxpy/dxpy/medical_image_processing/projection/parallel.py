@@ -21,3 +21,27 @@ def projection2d(image, detector, *, method='cuda', projection_model='linear'):
     astra.projector.clear()
     astra.algorithm.clear()
     return sinogram
+
+
+class Projector2DParallel:
+    @configurable(config['projection'])
+    def __init__(self, detector, phantom_spec, *, method='cuda', projection_model='linear'):
+        vol_geom = ac.create_vol_geom(phantom_spec.shape)
+        proj_geom = ac.create_proj_geom('parallel',
+                                        detector.sensor_width,
+                                        detector.nb_sensors,
+                                        detector.views)
+        self.proj_id = ac.create_projector(
+            projection_model, proj_geom, vol_geom)
+        self.phan_id = astra.data2d.create('-vol', vol_geom)
+
+    def project(self, image):
+        assert_ndim(image, 2, 'image')
+        astra.data2d.store(self.phan_id, image)
+        sid, result = ac.create_sino(self.phan_id, self.proj_id)
+        astra.data2d.delete(sid)
+        return result
+
+    def clear(self):
+        astra.data2d.delete(self.phan_id)
+        astra.projector.delete(self.proj_id)
