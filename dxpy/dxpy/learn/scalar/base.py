@@ -22,3 +22,6 @@ class ScalarVariable(Graph):
 
     def get_value(self):
         return tf.get_default_session().run(self.as_tensor())
+
+class GlobalScalar:
+    pass

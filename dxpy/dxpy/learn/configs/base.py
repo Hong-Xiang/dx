@@ -4,6 +4,9 @@ yaml = YAML()
 
 config = TreeDict()
 
+from dxpy.configs import ConfigsView
+
+
 # TODO: Add support for global configs
 # def load_default():
 #     from dxpy.code import path_of_global_defaults

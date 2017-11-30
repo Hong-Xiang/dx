@@ -29,3 +29,7 @@ class TestConfigs(unittest.TestCase):
     def test_inherence(self):
         cv = ConfigsView(self.c, 'k3/k3_1')
         self.assertEqual(cv['k3_2'], 'v3_0')
+
+    def test_name(self):
+        cv = ConfigsView(self.c)
+        self.assertEqual(cv['k2/k2_1'], 'v2_1')

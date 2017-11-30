@@ -1,6 +1,7 @@
 import os
 from tables import *
 from dxpy.core.path import Path
+from dxpy.configs import configurable
 import h5py
 import numpy as np
 DEFAULT_FILE_NAME = 'analytical_phantom_sinogram.h5'
@@ -11,6 +12,21 @@ class AnalyticalPhantomSinogram(IsDescription):
     sinogram = UInt16Col(shape=(320, 320))
     phantom_type = UInt8Col()
 
+
+def h5filename():
+    from ..config import config
+    return str(Path(config['PATH_DATASETS']) / DEFAULT_FILE_NAME)
+
+def data(fields=('phantom', 'sinogram'), filename=None):
+    # with open_file('/tmp/aps.h5') as h5file:
+    with open_file(h5filename()) as h5file:
+        for d in h5file.root.data.iterrows():
+            for k in fields:
+                yield {k: d[k]}
+
+def tfdata():
+    import tensorflow as tf
+    pass
 
 def create_dataset_from_tf_records():
     from tqdm import tqdm

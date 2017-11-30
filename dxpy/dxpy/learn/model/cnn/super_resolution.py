@@ -85,29 +85,35 @@ class SuperResolution2x(Model):
 
 class SuperResolutionBlock(Model):
     """
+
     Inputs:
         NodeKeys.INPUT: input low resolution image
         NodeKeys.LABEL: [Optional] high resolution label image
         SRKeys.REPRESENTS: [Optional] low resolution feature representations
+
     Outputs:
         NodeKeys.INFERENCE: high resolution image (cropped)
-        NodeKeys.LOSS: <REQUIRED: Inputs[NodeKeys.LABEL], loss of inference
+        NodeKeys.LOSS: REQUIRES: Inputs[NodeKeys.LABEL], loss of inference
         SRKeys.REPRESENTS: represents befefore inference image
+
     """
 
     @configurable(config, with_name=True)
     def __init__(self, name, inputs, *,
-                 building_block: str=None,
-                 nb_layers: int=None,
-                 filters: int=None,
-                 boundary_crop=None,
-                 **config):
+                 building_block: str=BuildingBlocks.STACKEDCONV,
+                 nb_layers: int=10,
+                 filters: int=32,
+                 boundary_crop=(4, 4),
+                 down_sample_ratio=(2, 2),
+                 boundary_crop_ratio=0.1):
+        from dxpy.debug.utils import dbgmsg
+        dbgmsg(filters)
         super().__init__(name, inputs,
                          building_block=building_block,
                          nb_layers=nb_layers,
                          filters=filters,
                          boundary_crop=boundary_crop,
-                         **config)
+                         boundary_crop_ratio=boundary_crop_ratio)
 
     @classmethod
     def _default_config(cls):
@@ -117,7 +123,8 @@ class SuperResolutionBlock(Model):
             'nb_layers': 10,
             'filters': 32,
             'boundary_crop': [4, 4],
-            'boundary_crop_ratio': 0.1
+            'boundary_crop_ratio': 0.1,
+            'down_sample_ratio': (2, 2)
         }, super()._default_config())
 
     def _crop_size(self, input_=None):
@@ -132,11 +139,12 @@ class SuperResolutionBlock(Model):
     def _input(self, feeds):
         from ..image import resize
         with tf.variable_scope('input'):
-            u = resize(feeds[NodeKeys.INPUT], (2, 2))
+            u = resize(feeds[NodeKeys.INPUT], self.param('down_sample_ratio'))
             if self.param('building_block') == BuildingBlocks.INTERP:
                 return u, None
             if SRKeys.REPRESENTS in feeds:
-                r = resize(feeds[SRKeys.REPRESENTS], (2, 2))
+                r = resize(feeds[SRKeys.REPRESENTS],
+                           self.param('down_sample_ratio'))
                 r = align_crop(r, u)
                 r = tf.concat([r, u], axis=3)
             else:
@@ -184,6 +192,7 @@ class SuperResolutionBlock(Model):
             return dict()
 
     def _kernel(self, feeds):
+
         upsampled, represents = self._input(feeds)
         if self.param('building_block') == BuildingBlocks.INTERP:
             x = upsampled
@@ -196,6 +205,7 @@ class SuperResolutionBlock(Model):
         result.update(self._loss(feeds))
         return result
 
+
 class SuperResolutionMultiScale(Model):
     """
     Inputs:
@@ -207,6 +217,7 @@ class SuperResolutionMultiScale(Model):
         NodeKeys.LOSS: <REQUIRED: Inputs[NodeKeys.LABEL], loss of inference
         SRKeys.REPRESENTS: represents befefore inference image
     """
+
     def __init__(self, name, inputs, nb_down_sample, *, share_model=None, **config):
         super().__init__(name, inputs, nb_down_sample=nb_down_sample,
                          share_model=share_model, **config)
@@ -266,7 +277,6 @@ class SuperResolutionMultiScale(Model):
                     losses[i] = losses[i] * lw[i]
                 result[NodeKeys.LOSS] = tf.add_n(losses)
         return result
-
 
 
 class SuperResolutionMultiScale(Model):
