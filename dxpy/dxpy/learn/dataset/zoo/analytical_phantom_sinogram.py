@@ -1,6 +1,8 @@
+import os
 from tables import *
 
 DEFAULT_FILE_NAME = 'analytical_phantom_sinogram.h5'
+DEFAULT_PATH
 
 
 class AnalyticalPhantomSinogram(IsDescription):

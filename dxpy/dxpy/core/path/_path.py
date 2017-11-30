@@ -1,3 +1,4 @@
+import os
 import fs.path as fp
 
 
@@ -12,7 +13,10 @@ class Path:
             path: any object which is convertable to Path, including:
                 str: raw path, url path, 
         """
+
         self._path = fp.normpath(str(path))
+        if self._path.startswith('~'):
+            self._path = os.environ['HOME'] + self._path[1:]
 
     def __str__(self):
         return self._path

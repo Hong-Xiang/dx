@@ -30,14 +30,23 @@ class TestPath(unittest.TestCase):
 
     def test_name_dir(self):
         p = Path('/tmp/base/')
-        self.assertEqual(p.basename, '')
+        self.assertEqual(p.basename, 'base')
 
     def test_copy_init(self):
         p = Path('/tmp/file')
         p2 = Path(p)
-        assert p.abs == p2.abs
+        self.assertEqual(p.abs, p2.abs)
 
     def test_div(self):
         p = Path('/tmp')
         p = p / 'sub'
-        assert p.abs == '/tmp/sub'
+        self.assertEqual(p.abs, '/tmp/sub')
+
+    def test_tilde_support(self):
+        p = Path('~/x')
+        import os
+        self.assertEqual(str(p), os.environ['HOME']+'/x')
+
+    def test_mid_tilde_support(self):
+        p = Path('a/x~y')
+        self.assertEqual(str(p), 'a/x~y')
