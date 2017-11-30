@@ -7,4 +7,5 @@ def _default_dataset_path():
 
 
 config = {
-    'dataset_root_path': os.environ.get('PATHS_DATASET', _default_dataset_path())}
+    'dataset_root_path': os.environ.get('PATHS_DATASET', _default_dataset_path()),
+    'PATH_DATASETS': os.environ.get('PATHS_DATASET', _default_dataset_path())}
