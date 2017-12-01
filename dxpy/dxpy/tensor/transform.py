@@ -33,3 +33,6 @@ def maybe_unbatch(tensors: TypeVar('T', np.ndarray, List[np.ndarray])) -> List[n
         return tensors
     else:
         return unbatch(tensors)
+
+def padding(tensor: np.ndarray, target_shape: List[int], offset: TypeVar('T', int, List[int])=0, method:TypeVar('T', str, List[str])=None, *, padding_order:List[int]=None):
+    pass

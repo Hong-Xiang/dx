@@ -6,11 +6,6 @@ from ..graph import Graph, NodeKeys
 import typing
 
 
-class WithSummaryItems:
-    def create_summary_items(self) -> typing.Dict[str, SummaryItem]:
-        return dict()
-
-
 class SummaryItem:
     def __init__(self, tensor, stype=None):
         """
@@ -30,6 +25,11 @@ class SummaryItem:
                 raise TypeError(
                     "Can not auto infer summary type of {}.".format(tensor))
         self.stype = stype
+
+
+class WithSummaryItems:
+    def create_summary_items(self) -> typing.Dict[str, SummaryItem]:
+        return dict()
 
 
 class SummaryWriter(Graph):

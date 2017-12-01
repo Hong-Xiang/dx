@@ -12,20 +12,28 @@ class ConfigsView:
         else:
             return Path(self.base / path_or_keys).parts()
 
+    def _query_hard(self, key):
+        from dxpy.debug.utils import dbgmsg
+        dbgmsg(self.data)
+        dbgmsg(str(self.base))
+        dbgmsg(key)
+        keys = self.__unified_keys(key)
+        if len(keys) == 1:
+            result = self.data.get(keys[0])
+        else:
+            path = self.base / keys[0]
+            key_path = '/'.join(keys[1:])
+            result = ConfigsView(self.data, path)._query_hard(key_path)
+        return result
+
     def __query(self, key, default=None):
-        result = self.data
-        for k in self.__unified_keys(key):
-            if isinstance(result, (dict, ConfigsView)):
-                result = result.get(k)
-            else:
-                result = None
-                break
+        result = self._query_hard(key)
         if isinstance(result, dict):
             result = ConfigsView(self.data, self.base / key)
         path = Path(self.base)
-        while result is None and len(path.parts()) > 0:
+        if result is None and len(path.parts()) > 0:
             path = path.parent()
-            result = ConfigsView(self.data, path).get(key, default)
+            result = ConfigsView(self.data, path)._query_hard(key)
         if result is None:
             result = default
         return result

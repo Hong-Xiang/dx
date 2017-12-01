@@ -21,11 +21,11 @@ def ensure_shape(input_tensor, shape=None, *, batch_size=None):
 import typing
 
 
-def to_tensor(input_: typing.TypeVar('TensorConvertable', tf.Tensor, np.ndarray, Graph),
+def to_tensor(input_: typing.TypeVar('TensorConvertable', tf.Tensor, np.ndarray),
               *,
               name: str="to_tensor",
               restrict_tensorflow=False,
-              default_device='cpu') -> typing.TypeVar('Tensor') tf.Tensor:
+              default_device='cpu') -> tf.Tensor:
     """
     Helper function to convert multiple kind of Tensor-convertable objects to Tensor.
     """
@@ -35,10 +35,10 @@ def to_tensor(input_: typing.TypeVar('TensorConvertable', tf.Tensor, np.ndarray,
         return input_
     if isinstance(input_, tf.Tensor):
         return input_
-    with tf.name_scope()
+    # with tf.name_scope()
 
 
-def to_tensor_with_shape(input_, shape: Tuple[int], *, batch_size: int=None, name: str='to_tensor_with_shape') -> tf.Tensor:
+def to_tensor_with_shape(input_, shape: typing.Tuple[int], *, batch_size: int=None, name: str='to_tensor_with_shape') -> tf.Tensor:
     if shape is None and batch_size is not None:
         shape = shape_as_list(input_)
         shape[0] = batch_size
@@ -47,11 +47,11 @@ def to_tensor_with_shape(input_, shape: Tuple[int], *, batch_size: int=None, nam
     if isinstance(input_, np.ndarray):
         return input_.reshape(shape)
     elif isinstance(input_, tf.Tensor):
-    with tf.name_scope(name):
-        return tf.reshape(input_, shape)
+        with tf.name_scope(name):
+            return tf.reshape(input_, shape)
 
 
-def shape_as_list(input_) -> List[int]:
+def shape_as_list(input_) -> typing.List[int]:
     if isinstance(input_, tf.Tensor):
         return list(input_.shape.as_list())
     if isinstance(input_, np.ndarray):

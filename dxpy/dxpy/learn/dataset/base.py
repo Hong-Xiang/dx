@@ -2,6 +2,9 @@ import numpy as np
 import tensorflow as tf
 from ..graph import Graph, NodeKeys
 
+from dxpy.configs import configurable
+from ..config import get_config
+
 
 class DatasetClassic(Graph):
     """Base class of database
@@ -74,6 +77,7 @@ class DatasetBase(Graph):
         pass
 
     def _post_processing(self):
+        # for k in self.as_tensor():
         pass
 
     def post_session_created(self):
@@ -101,3 +105,46 @@ class DatasetTFRecords(DatasetBase):
 
     def _processing(self):
         return self._load_tfrecord_files()
+
+
+class DatasetBasev2(Graph):
+    @configurable(get_config(), with_name=True)
+    def __init__(self, name, batch_size=8, **config):
+        super().__init__(name, batch_size=batch_size, **config)
+        self._pre_processing()
+        with tf.name_scope(self.basename):
+            self.dataset = self._processing()
+            self.__register_dataset()
+            self._post_processing()
+
+    def _pre_processing(self):
+        pass
+
+    def _post_processing(self):
+        from dxpy.learn.utils.tensor import ensure_shape
+        for k in self.as_tensor():
+            self.nodes[k] = ensure_shape(
+                self.nodes[k], batch_size=self.param('batch_size'))
+
+    def post_session_created(self):
+        pass
+
+    def _processing(self):
+        raise NotImplementedError
+
+    def __register_dataset(self):
+        iterator = self.dataset.make_one_shot_iterator()
+        next_element = iterator.get_next()
+        self.register_main_node(next_element)
+        for k in next_element:
+            self.register_node(k, next_element[k])
+
+
+class DatasetFromTFDataset(DatasetBasev2):
+    @configurable(get_config(), with_name=True)
+    def __init__(self, name, tf_dataset, **config):
+        self.tf_dataset = tf_dataset
+        super().__init__(name, **config)
+
+    def _processing(self):
+        return self.tf_dataset

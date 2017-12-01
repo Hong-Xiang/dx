@@ -33,3 +33,15 @@ class TestConfigs(unittest.TestCase):
     def test_name(self):
         cv = ConfigsView(self.c)
         self.assertEqual(cv['k2/k2_1'], 'v2_1')
+    
+    def test_none(self):
+        cv = ConfigsView(self.c)
+        self.assertIsNone(cv['aaa'])
+
+    def test_none_inherence(self):
+        cv = ConfigsView(self.c)
+        self.assertIsNone(cv['aaa']['bbb'])
+
+    def test_none_path(self):
+        cv = ConfigsView(self.c)
+        self.assertIsNone(cv['aaa/bbb'])
