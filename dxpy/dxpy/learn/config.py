@@ -11,4 +11,5 @@ def get_config():
 
 def clear_config():
     global config
-    config = dict()
+    for k in config:
+        config.pop(k)

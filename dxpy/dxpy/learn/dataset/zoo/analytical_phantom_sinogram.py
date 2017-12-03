@@ -6,7 +6,7 @@ import h5py
 import numpy as np
 DEFAULT_FILE_NAME = 'analytical_phantom_sinogram.h5'
 from ...config import get_config
-from ..base import DatasetFromTFDataset
+from ..base import DatasetFromTFDataset, DatasetFromGenerator
 
 
 class AnalyticalPhantomSinogram(IsDescription):
@@ -77,12 +77,14 @@ def _tensorflow_raw_dataset(fields, idxs=None):
     return tf.data.Dataset.from_generator(dataset_gen, {k: data_type_tf(k) for k in fields}, {k: data_shape(k) for k in fields})
 
 
-class AnalyticalPhantomSinogramDataset(DatasetFromTFDataset):
+class AnalyticalPhantomSinogramDataset(DatasetFromGenerator):
     @configurable(get_config(), with_name=True)
     def __init__(self, name='dataset', batch_size=32, fields=('sinogram', 'phantom'), idxs=None):
         from functools import partial
         dataset_gen = partial(dataset, fields=fields, idxs=idxs)
-        super().__init__(name, dataset_gen,  batch_size=batch_size, idxs=idxs, **config)
+        output_types = {data_type_tf(k) for k in fields}
+        output_shapes = {data_shape(k) for k in fields}
+        super().__init__(name, dataset_gen, batch_size=batch_size, idxs=idxs, output_types=output_types, output_shapes=output_shapes)
 
     def _reshape_tensors(self, data):
         return {'sinogram': tf.reshape(tf.cast(data['sinogram'], tf.float32),

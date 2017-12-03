@@ -3,7 +3,7 @@ import tensorflow as tf
 from ..graph import Graph, NodeKeys
 
 from dxpy.configs import configurable
-from ..config import get_config
+from ..config import get_config, config
 
 
 class DatasetClassic(Graph):
@@ -111,6 +111,8 @@ class DatasetBasev2(Graph):
     @configurable(get_config(), with_name=True)
     def __init__(self, name, batch_size=8, **config):
         super().__init__(name, batch_size=batch_size, **config)
+        from dxpy.debug.utils import dbgmsg
+        dbgmsg(config)
         self._pre_processing()
         with tf.name_scope(self.basename):
             self.dataset = self._processing()
@@ -148,3 +150,13 @@ class DatasetFromTFDataset(DatasetBasev2):
 
     def _processing(self):
         return self.tf_dataset
+
+class DatasetFromGenerator(DatasetBasev2):
+    @configurable(config, with_name=True)
+    def __init__(self, name, generator, output_types, output_shapes, **config):
+        self.generator = generator
+        super().__init__(name, output_types=output_types, output_shapes=output_shapes, **config)
+
+    def _processing(self):
+        return tf.data.Dataset.from_generator(self.generator, self.param('output_types'), self.param('output_shapes'))
+

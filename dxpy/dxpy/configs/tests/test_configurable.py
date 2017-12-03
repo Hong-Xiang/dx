@@ -10,20 +10,17 @@ class TestParseConfigs(unittest.TestCase):
             pass
         result = parse_configs(foo, 0, _config_object=ConfigsView({'b': 1, 'c': 2}), d=3)
         expect = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4}
-        self.assertEqual(len(result), len(expect))
-        for k in result:
-            self.assertEqual(result[k], expect[k])
-
+        args = (0, 1)
+        kwargs = {'c': 2, 'd': 3, 'e': 4}
+        self.assertEqual(args, result.args)
+        self.assertEqual(kwargs, result.kwargs)
     def test_no_args(self):
         def foo(a, b, *, c, d, e=4):
             pass
         result = parse_configs(foo, _config_object=ConfigsView({
                                'a': 0, 'b': 1, 'c': 2}), d=3)
-        expect = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4}
-        self.assertEqual(len(result), len(expect))
-        for k in result:
-            self.assertEqual(result[k], expect[k])
-
+        self.assertEqual(result.args, (0, 1))
+        self.assertEqual(result.kwargs, {'c': 2, 'd':3, 'e': 4})
 
 class TestConfigurable(unittest.TestCase):
     def setUp(self):
@@ -131,8 +128,15 @@ class TestConfigurable(unittest.TestCase):
         self.assertEqual(ob2.b, 4)
     
     def test_with_name_none(self):
+        c = {'x': 1}
+        @configurable(ConfigsView(c), with_name=True)
+        def foo(x, name='name'):
+            return x, name
+        self.assertEqual(foo(), (1, 'name'))
+
+    def test_kw(self):
         c = dict()
-        @configurable(ConfigsView(c))
-        def foo(name='name'):
-            return name
-        self.assertEqual(foo(), 'name')
+        @configurable(c)
+        def foo(**kw):
+            return kw
+        self.assertEqual(foo(a=1, b=2), {'a': 1, 'b': 2})
