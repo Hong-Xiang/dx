@@ -111,8 +111,6 @@ class DatasetBasev2(Graph):
     @configurable(get_config(), with_name=True)
     def __init__(self, name, batch_size=8, **config):
         super().__init__(name, batch_size=batch_size, **config)
-        from dxpy.debug.utils import dbgmsg
-        dbgmsg(config)
         self._pre_processing()
         with tf.name_scope(self.basename):
             self.dataset = self._processing()

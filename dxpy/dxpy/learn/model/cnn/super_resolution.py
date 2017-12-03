@@ -106,8 +106,6 @@ class SuperResolutionBlock(Model):
                  boundary_crop=(4, 4),
                  down_sample_ratio=(2, 2),
                  boundary_crop_ratio=0.1):
-        from dxpy.debug.utils import dbgmsg
-        dbgmsg(filters)
         super().__init__(name, inputs,
                          building_block=building_block,
                          nb_layers=nb_layers,

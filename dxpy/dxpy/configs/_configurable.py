@@ -35,8 +35,6 @@ def parse_configs(func, *args, _config_object, **kw):
         if _config_object[k] is not None:
             kw_refined[k] = _config_object[k]
             continue
-    from dxpy.debug.utils import dbgmsg
-    dbgmsg(kw)
     left_kw = dict()
     for k in kw:
         if kw[k] is not None and not k in kw_refined:
@@ -44,10 +42,8 @@ def parse_configs(func, *args, _config_object, **kw):
     # for v in sig.parameters.values():
         # if v.kind == inspect.Parameter.VAR_KEYWORD:
             # kw_refined[v.name] = left_kw
-    dbgmsg(left_kw)
     ba = sig.bind(*args, **kw_refined, **left_kw)
     ba.apply_defaults()
-    dbgmsg(ba.arguments)
     args = dict(ba.arguments)
     args.update(left_kw)
     return ba
