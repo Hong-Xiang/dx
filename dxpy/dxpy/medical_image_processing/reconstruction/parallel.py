@@ -12,7 +12,7 @@ def _inputs_verification2d(detector, phantom_spec, sinogram):
     detector.assert_fit(sinogram)
 
 
-@configurable(config['reconstruction'])
+@configurable(config.get('reconstruction'))
 def reconstruction2d(sinogram, detector=None, phantom_spec=None, *, method='FBP', iterations=1, nb_sensors=None, nb_views=None, sensor_width=None, image_shape=None):
     """
     Args:
@@ -45,7 +45,7 @@ def reconstruction2d(sinogram, detector=None, phantom_spec=None, *, method='FBP'
 
 
 class Reconstructor2DParallel:
-    @configurable(config['projection'])
+    @configurable(config.get('projection'))
     def __init__(self, detector, phantom_spec, *, method='FBP_CUDA', projection_model='linear'):
         vol_geom = ac.create_vol_geom(phantom_spec.shape)
         proj_geom = ac.create_proj_geom('parallel',

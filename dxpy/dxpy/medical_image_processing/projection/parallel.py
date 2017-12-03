@@ -7,7 +7,7 @@ from ..config import config
 from dxpy.configs import configurable
 
 
-@configurable(config['projection'])
+@configurable(config.get('projection'))
 def projection2d(image, detector, *, method='cuda', projection_model='linear'):
     assert_ndim(image, 2, 'image')
     vol_geom = ac.create_vol_geom(image.shape)
@@ -24,7 +24,7 @@ def projection2d(image, detector, *, method='cuda', projection_model='linear'):
 
 
 class Projector2DParallel:
-    @configurable(config['projection'])
+    @configurable(config.get('projection'))
     def __init__(self, detector, phantom_spec, *, method='cuda', projection_model='linear'):
         vol_geom = ac.create_vol_geom(phantom_spec.shape)
         proj_geom = ac.create_proj_geom('parallel',

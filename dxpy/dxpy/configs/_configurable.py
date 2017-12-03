@@ -13,7 +13,7 @@ def foo(xx=None, yy=None, zz=None, name='default_name'):
 Will try to load config by c['defautl_name']
 
 Case 3:
-@configurable(c['conf_name'])
+@configurable(c.get('conf_name'))
 def foo(**kw):
     pass
 Will try to load config by c['conf_name']
@@ -32,8 +32,8 @@ def parse_configs(func, *args, _config_object, **kw):
         if k in kw and kw[k] is not None:
             kw_refined[k] = kw[k]
             continue
-        if _config_object.get(k) is not None:
-            kw_refined[k] = _config_object.get(k)
+        if _config_object[k] is not None:
+            kw_refined[k] = _config_object[k]
             continue
     ba = sig.bind(*args, **kw_refined)
     ba.apply_defaults()

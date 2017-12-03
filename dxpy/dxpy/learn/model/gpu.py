@@ -52,7 +52,7 @@ class MultiGPUSplitor(Model):
     """
     A Helper class to create
     """
-    @configurable(config['gpu'])
+    @configurable(config.get('gpu'))
     def __init__(self, name='gpu_splitor', nb_gpu=2):
         super().__init__(name, nb_gpu=nb_gpu)
 
