@@ -46,11 +46,13 @@ def get_name(func, *args, **kw):
     ba.apply_defaults()
     return ba.arguments[KEY_NAME]
 
-
 class configurable:
     def __init__(self, configs_object=None, with_name=False):
+        from ._viewer import ConfigsView
         if configs_object is None:
             configs_object = dict()
+        if isinstance(configs_object, dict):
+            configs_object = ConfigsView(configs_object)
         self._c = configs_object
         self._with_name = with_name
 
@@ -59,6 +61,6 @@ class configurable:
         def wrapper(*args, **kw):
             config = self._c
             if self._with_name:
-                config = config[get_name(func, *args, **kw)]
+                config = config.get(get_name(func, *args, **kw))
             return func(**parse_configs(func, *args, **kw, _config_object=config))
         return wrapper

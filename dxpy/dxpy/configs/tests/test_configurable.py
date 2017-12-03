@@ -8,7 +8,7 @@ class TestParseConfigs(unittest.TestCase):
     def test_basic(self):
         def foo(a, b, *, c, d, e=4):
             pass
-        result = parse_configs(foo, 0, _config_object={'b': 1, 'c': 2}, d=3)
+        result = parse_configs(foo, 0, _config_object=ConfigsView({'b': 1, 'c': 2}), d=3)
         expect = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4}
         self.assertEqual(len(result), len(expect))
         for k in result:
@@ -17,8 +17,8 @@ class TestParseConfigs(unittest.TestCase):
     def test_no_args(self):
         def foo(a, b, *, c, d, e=4):
             pass
-        result = parse_configs(foo, _config_object={
-                               'a': 0, 'b': 1, 'c': 2}, d=3)
+        result = parse_configs(foo, _config_object=ConfigsView({
+                               'a': 0, 'b': 1, 'c': 2}), d=3)
         expect = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4}
         self.assertEqual(len(result), len(expect))
         for k in result:
@@ -129,3 +129,10 @@ class TestConfigurable(unittest.TestCase):
         self.assertEqual(ob1.b, 2)
         self.assertEqual(ob2.a, 3)
         self.assertEqual(ob2.b, 4)
+    
+    def test_with_name_none(self):
+        c = dict()
+        @configurable(ConfigsView(c))
+        def foo(name='name'):
+            return name
+        self.assertEqual(foo(), 'name')
