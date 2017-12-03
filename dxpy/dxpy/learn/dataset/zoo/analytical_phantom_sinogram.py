@@ -1,4 +1,5 @@
 import os
+import tensorflow as tf
 from tables import *
 from dxpy.core.path import Path
 from dxpy.configs import configurable
@@ -54,20 +55,34 @@ def h5filename():
     return str(Path(config['PATH_DATASETS']) / DEFAULT_FILE_NAME)
 
 
-def dataset(fields=('phantom', 'sinogram'), filename=None, idxs=None):
+def _post_processing(result):
     from dxpy.medical_image_processing.projection.parallel import padding_pi2full
+    if 'sinogram' in result:
+        result['sinogram'] = padding_pi2full(result['sinogram']).T
+    for k in result:
+        result[k] = result[k].astype(data_type(k))
+    return result
+
+
+def dataset(fields=('phantom', 'sinogram'), filename=None, idxs=None):
     with open_file(h5filename()) as h5file:
         if idxs is None:
             rows = h5file.root.data.iterrows()
         else:
             rows = idxs
         for d in rows:
+            if isinstance(d, int):
+                d = h5file.root.data[d]
             result = {k: d[k] for k in fields}
-            if 'sinogram' in result:
-                result['sinogram'] = padding_pi2full(result['sinogram']).T
-            for k in result:
-                result[k] = result[k].astype(data_type(k))
+            result = _post_processing(result)
             yield result
+
+
+def dataset_multi_image(fields=('phantom', 'sinogram', 'recon1x', 'recon2x', 'recon4x', 'recon8x'), filename_sinogram=None, filename_recon=None, idxs=None):
+    if filename_recon is None:
+        filename_recon = ''
+    # TODO: finish
+    # 施工中
 
 
 def _tensorflow_raw_dataset(fields, idxs=None):
@@ -79,12 +94,13 @@ def _tensorflow_raw_dataset(fields, idxs=None):
 
 class AnalyticalPhantomSinogramDataset(DatasetFromGenerator):
     @configurable(get_config(), with_name=True)
-    def __init__(self, name='dataset', batch_size=32, fields=('sinogram', 'phantom'), idxs=None):
+    def __init__(self, name='dataset', batch_size=32, fields=('sinogram', 'phantom'), idxs=None, shuffle=True):
         from functools import partial
         dataset_gen = partial(dataset, fields=fields, idxs=idxs)
-        output_types = {data_type_tf(k) for k in fields}
-        output_shapes = {data_shape(k) for k in fields}
-        super().__init__(name, dataset_gen, batch_size=batch_size, idxs=idxs, output_types=output_types, output_shapes=output_shapes)
+        output_types = {k: data_type_tf(k) for k in fields}
+        output_shapes = {k: data_shape(k) for k in fields}
+        super().__init__(name, dataset_gen, batch_size=batch_size, idxs=idxs,
+                         output_types=output_types, output_shapes=output_shapes, shuffle=shuffle)
 
     def _reshape_tensors(self, data):
         return {'sinogram': tf.reshape(tf.cast(data['sinogram'], tf.float32),
@@ -93,11 +109,12 @@ class AnalyticalPhantomSinogramDataset(DatasetFromGenerator):
                                       data_shape('phantom'))}
 
     def _processing(self):
-        return (super()._processing()
-                .repeat()
-                .map(self._reshape_tensors)
-                .shuffle(1024)
-                .batch(self.param('batch_size')))
+        dataset = (super()._processing()
+                   .repeat()
+                   .map(self._reshape_tensors))
+        if self.param('shuffle'):
+            dataset = dataset.shuffle(1024)
+        return dataset.batch(self.param('batch_size'))
 
 
 @configurable(get_config(), with_name=True)
@@ -105,7 +122,57 @@ def get_dataset(name='dataset', fields=['sinogram']):
     from ..base import DatasetFromTFDataset
     return DatasetFromTFDataset(name, _tensorflow_raw_dataset(fields))
 
+import typing
+@configurable(get_config(), with_name=True)
+def analytical_super_resolution_dataset(image_type: str,
+                                        poission_noise: bool,
+                                        batch_size: int,
+                                        nb_down_sample: int,
+                                        target_shape: typing.List[int],
+                                        idxs: typing.List[int],
+                                        *,
+                                        name: str='dataset',
+                                        path_dataset: "str|None"=None):
+    """
+    Args:
+        -   image_type: 'sinogram' or 'image'
+        -   batch_size
+    Returns:
+        a `Graph` object, which has several nodes:
+    Raises:
+    """
+    from ...model.normalizer.normalizer import FixWhite, ReduceSum
+    from ..super_resolution import SuperResolutionDataset
+    from ...model.tensor import ShapeEnsurer
+    from ...config import config
+    normalizer_configs = {
+        'analytical_phantoms': {'mean': 4.88, 'std': 4.68}
+    }
+    config_origin = {}
+    config_normalizer = normalizer_configs[dataset_name]
+    config['dataset'] = {
+        'origin': config_origin,
+        'fix_white': config_normalizer
+    }
+    with tf.name_scope('{img_type}_dataset'.format(img_type=image_type)):
+        if image_type == 'sinogram':
+            dataset_origin = AnalyticalPhantomSinogramDataset(name=name, batch_size=batch_size, fields=['sinogram'], idxs)
+        dataset_summed = ReduceSum('dataset/reduce_sum',
+                                   dataset_origin[image_type],
+                                   fixed_summation_value=1e6).as_tensor()
 
+        dataset = FixWhite(name='dataset/fix_white',
+                           inputs=dataset_summed)()
+        if poission_noise:
+            with tf.name_scope('add_poission_noise'):
+                dataset = tf.random_poisson(dataset, shape=[])
+        dataset = tf.random_crop(dataset,
+                                 [batch_size] + list(target_shape) + [1])
+        dataset = SuperResolutionDataset('dataset/super_resolution',
+                                         lambda: {'image': dataset},
+                                         input_key='image',
+                                         nb_down_sample=3)
+    return dataset
 # def create_dataset_from_tf_records():
 #     from tqdm import tqdm
 #     from dxpy.learn.dataset.config import config
