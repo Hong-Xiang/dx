@@ -40,7 +40,7 @@ class TestConfigs(unittest.TestCase):
 
     def test_none_inherence(self):
         cv = ConfigsView(self.c)
-        self.assertIsNone(cv['aaa']['bbb'])
+        self.assertIsNone(cv.get('aaa')['bbb'])
 
     def test_none_path(self):
         cv = ConfigsView(self.c)

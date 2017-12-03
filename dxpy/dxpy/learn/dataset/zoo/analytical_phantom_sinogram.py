@@ -14,11 +14,13 @@ class AnalyticalPhantomSinogram(IsDescription):
     sinogram = UInt16Col(shape=(320, 320))
     phantom_type = UInt8Col()
 
+
 class AnalyticalPhantomMultiScaleReconstruction(IsDescription):
     recon1x = UInt16Col(shape=(256, 256))
     recon2x = UInt16Col(shape=(256, 256))
     recon4x = UInt16Col(shape=(256, 256))
     recon8x = UInt16Col(shape=(256, 256))
+
 
 def data_type(field_name):
     import tensorflow as tf
@@ -52,10 +54,14 @@ def h5filename():
     return str(Path(config['PATH_DATASETS']) / DEFAULT_FILE_NAME)
 
 
-def dataset(fields=('phantom', 'sinogram'), filename=None):
+def dataset(fields=('phantom', 'sinogram'), filename=None, idxs=None):
     from dxpy.medical_image_processing.projection.parallel import padding_pi2full
     with open_file(h5filename()) as h5file:
-        for d in h5file.root.data.iterrows():
+        if idxs is None:
+            rows = h5file.root.data.iterrows()
+        else:
+            rows = idxs
+        for d in rows:
             result = {k: d[k] for k in fields}
             if 'sinogram' in result:
                 result['sinogram'] = padding_pi2full(result['sinogram']).T
@@ -64,15 +70,19 @@ def dataset(fields=('phantom', 'sinogram'), filename=None):
             yield result
 
 
-def _tensorflow_raw_dataset(fields):
+def _tensorflow_raw_dataset(fields, idxs=None):
     import tensorflow as tf
-    return tf.data.Dataset.from_generator(dataset, {k: data_type_tf(k) for k in fields}, {k: data_shape(k) for k in fields})
+    from functools import partial
+    dataset_gen = partial(dataset, fields=fields, idxs=idxs)
+    return tf.data.Dataset.from_generator(dataset_gen, {k: data_type_tf(k) for k in fields}, {k: data_shape(k) for k in fields})
 
 
 class AnalyticalPhantomSinogramDataset(DatasetFromTFDataset):
     @configurable(get_config(), with_name=True)
-    def __init__(self, name='dataset', batch_size=32):
-        super().__init__(name, dataset,  batch_size=batch_size, **config)
+    def __init__(self, name='dataset', batch_size=32, fields=('sinogram', 'phantom'), idxs=None):
+        from functools import partial
+        dataset_gen = partial(dataset, fields=fields, idxs=idxs)
+        super().__init__(name, dataset_gen,  batch_size=batch_size, idxs=idxs, **config)
 
     def _reshape_tensors(self, data):
         return {'sinogram': tf.reshape(tf.cast(data['sinogram'], tf.float32),
