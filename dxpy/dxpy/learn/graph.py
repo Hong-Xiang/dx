@@ -1,7 +1,7 @@
 """ Base class definition """
 import tensorflow as tf
 from contextlib import contextmanager
-from dxpy.filesystem import Path
+from dxpy.core.path import Path
 from dxpy.collections.dicts import DXDict
 from typing import Dict
 
@@ -151,7 +151,7 @@ class Graph:
         """
         Get the base name of graph name. Useful for variable_scope or name_scope of graph.
         """
-        return self.name.name
+        return self.name.basename
 
     def register_node(self, name=None, tensor_or_subgraph=None):
         from .utils import refined_tensor_or_graph_name
@@ -244,7 +244,5 @@ class Graph:
 
     def __load_config(self, config_direct):
         from .config import config as config_global
-        from dxpy.collections.dicts import get_hierarchy_dict, combine_dicts
-        return combine_dicts(config_direct,
-                             get_hierarchy_dict(config_global, self.name),
-                             self._default_config())
+        from dxpy.collections.dicts import combine_dicts
+        return combine_dicts(config_direct, config_global, self._default_config())

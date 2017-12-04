@@ -4,7 +4,15 @@ datasets_configs = {
     
     'dataset_root_path': os.environ.get('PATHS_DATASET', str(Path(os.environ.get('HOME')) / 'Datas')),
     'analytical_phantom_sinogram': {
-        'path': '/home/hongxwing/Datas/Phantom'
+        'path': '/home/hongxwing/Datas/Phantom',
+    },
+    'apssr': {
+        'image_type': 'sinogram',
+        'target_shape': [320, 320],
+        'super_resolution': {
+            'nb_down_sample': 3
+        },
+        'with_poission_noise': False
     }
 }
 config = {

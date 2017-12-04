@@ -15,8 +15,8 @@ class ConfigsView:
     def _get_value_raw(self, keys):
         result = self.data
         for k in keys:
-            if result is None:
-                return result
+            if not isinstance(result, (dict, ConfigsView)):
+                return None
             result = result.get(k)
         return result
 
@@ -37,8 +37,8 @@ class ConfigsView:
         result = self._query(base_keys, local_keys)
         path = self._form_path(base_keys + local_keys)
         if result is None and len(base_keys) > 0:
-            new_path = self._form_path(base_keys[:-1] + local_keys)
-            result, _ = ConfigsView(self.data)._search(new_path)
+            new_path = self._form_path((base_keys+local_keys)[:-2])
+            result, _ = ConfigsView(self.data,new_path)._search(local_keys[-1])
         return result, path
 
     def _post_processing(self, result, path, default, restrict):

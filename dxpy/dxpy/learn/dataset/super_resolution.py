@@ -1,12 +1,13 @@
 from ..graph import Graph
 from ..model.image import MultiDownSampler
-
+from dxpy.configs import configurable
+from ..config import config
 
 class SuperResolutionDataset(Graph):
     """
     SuperResolutionDataset is a special kind of dataset which 
     """
-
+    @configurable(config, with_name=True)
     def __init__(self, name, origial_dataset_maker, input_key=None, nb_down_sample=None, with_shape_info=None, origin_shape=None, **config):
         super().__init__(name, input_key=input_key,
                          nb_down_sample=nb_down_sample,
