@@ -173,6 +173,13 @@ def analytical_super_resolution_dataset(image_type: str,
                                          input_key='image',
                                          nb_down_sample=3)
     return dataset
+
+
+
+
+# The following part is a record of dataset generator script.
+
+
 # def create_dataset_from_tf_records():
 #     from tqdm import tqdm
 #     from dxpy.learn.dataset.config import config

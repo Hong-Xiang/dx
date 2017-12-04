@@ -66,7 +66,15 @@ class Graph:
         3. An easy-to-use way of seperate/reuse subgraphs;
         4. Supports an warp of sessions.run/normal python function.
             Please add member method for tasks, and register them to tasks
-
+    
+    Config module:
+    Configs module is designed to support externel hierachy configs, thus with name of graph,
+    graph can load/search configs. This is designed to reduce complecity of config complex networks.
+    To achieve this, use more configurable than directly pass arguments to init functions.
+    For sub-models, in most cases do not pass arguments by its parent graph, directly use config system.
+    There are some exceptions to this design, for some simple/frequently used blocks, some simple arguments
+    may be passed to simplify config procedure. Another simulation is the case with lots of child models and
+    they all share simple but same configurations, you may pass the shared arguments by its parent Graph.
 
 
     Methods:

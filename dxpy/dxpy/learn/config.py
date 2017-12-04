@@ -1,7 +1,29 @@
 from dxpy.filesystem import Path
 import os
-
-config = dict()
+datasets_configs = {
+    
+    'dataset_root_path': os.environ.get('PATHS_DATASET', str(Path(os.environ.get('HOME')) / 'Datas')),
+    'analytical_phantom_sinogram': {
+        'path': '/home/hongxwing/Datas/Phantom'
+    }
+}
+config = {
+    'train': {
+        'save': {
+            'frequency': 100,
+            'method': 'step'
+        },
+        'load': {
+            'is_load': True,
+            'step': -1
+        },
+        'model_filesystem': {
+            'path_model': './model',
+            'ckpt_name': 'save'
+        },
+    },
+    'datasets': datasets_configs
+}
 
 
 def get_config():
