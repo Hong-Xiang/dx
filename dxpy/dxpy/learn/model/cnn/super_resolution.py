@@ -83,6 +83,9 @@ class SuperResolution2x(Model):
         return result
 
 
+from ...config import config as cfg
+
+
 class SuperResolutionBlock(Model):
     """
 
@@ -98,7 +101,7 @@ class SuperResolutionBlock(Model):
 
     """
 
-    @configurable(config, with_name=True)
+    @configurable(cfg, with_name=True)
     def __init__(self, name, inputs, *,
                  building_block: str=BuildingBlocks.STACKEDCONV,
                  nb_layers: int=10,
@@ -135,7 +138,11 @@ class SuperResolutionBlock(Model):
             return self.param('boundary_crop')
 
     def _input(self, feeds):
+        """
+        """
+        # TODO： add check for input shape
         from ..image import resize
+        from ..tensor import shape_as_list
         with tf.variable_scope('input'):
             u = resize(feeds[NodeKeys.INPUT], self.param('down_sample_ratio'))
             if self.param('building_block') == BuildingBlocks.INTERP:
@@ -143,11 +150,16 @@ class SuperResolutionBlock(Model):
             if SRKeys.REPRESENTS in feeds:
                 r = resize(feeds[SRKeys.REPRESENTS],
                            self.param('down_sample_ratio'))
-                r = align_crop(r, u)
+                r = align_crop(u, r)
                 r = tf.concat([r, u], axis=3)
             else:
-                r = tf.layers.conv2d(u, self.param('filters'), 5, name='stem')
-            return u, r
+                r = tf.layers.conv2d(u, self.param(
+                    'filters'), 5, name='stem', padding='same')
+            if NodeKeys.LABEL in feeds:
+                l = feeds[NodeKeys.LABEL]
+            else:
+                l = None
+            return u, r, l
 
     def _inference(self, represents, upsampled):
         from ..image import boundary_crop, align_crop
@@ -157,7 +169,7 @@ class SuperResolutionBlock(Model):
             if self.param('building_block') == BuildingBlocks.INTERP:
                 return {NodeKeys.INFERENCE: upsampled}
             residual = tf.layers.conv2d(represents, 1, 3, padding='same')
-            residual = align_crop(residual, self.param('boundary_crop'))
+            residual = align_crop(residual, upsampled)
             inference = residual + upsampled
         return {NodeKeys.INFERENCE: inference,
                 SRKeys.RESIDUAL: residual,
@@ -174,24 +186,22 @@ class SuperResolutionBlock(Model):
         else:
             block_type = StackedResidual.INCEPT_TYPE
         return StackedResidual('kernel', represents,
-                               self.param('nb_layers'),
-                               block_type)()
+                               nb_layers=self.param('nb_layers'),
+                               block_type=block_type)()
 
-    def _loss(self, feeds):
+    def _loss(self, label, inference):
         from ..image import mean_square_error, align_crop
-        if NodeKeys.LABEL in feeds:
-            label = feeds[NodeKeys.LABEL]
+        if label is not None:
             with tf.name_scope('loss'):
-                aligned_label = align_crop(feeds[NodeKeys.LABEL], y)
-                loss = mean_square_error(aligned_label, y)
+                aligned_label = align_crop(label, inference)
+                loss = mean_square_error(aligned_label, inference)
                 return {NodeKeys.LOSS: loss,
                         SRKeys.ALIGNED_LABEL: aligned_label}
         else:
             return dict()
 
     def _kernel(self, feeds):
-
-        upsampled, represents = self._input(feeds)
+        upsampled, represents, label = self._input(feeds)
         if self.param('building_block') == BuildingBlocks.INTERP:
             x = upsampled
         if self.param('building_block') == BuildingBlocks.STACKEDCONV:
@@ -200,7 +210,7 @@ class SuperResolutionBlock(Model):
             x = self._kernel_stacked_residual(represents)
         result = {SRKeys.REPRESENTS: x}
         result.update(self._inference(x, upsampled))
-        result.update(self._loss(feeds))
+        result.update(self._loss(label, result[NodeKeys.INFERENCE]))
         return result
 
 
@@ -277,7 +287,7 @@ class SuperResolutionMultiScale(Model):
         return result
 
 
-class SuperResolutionMultiScale(Model):
+class SuperResolutionMultiScalev2(Model):
     def __init__(self, name, inputs, nb_down_sample, *, share_model=None, **config):
         super().__init__(name, inputs, nb_down_sample=nb_down_sample,
                          share_model=share_model, **config)

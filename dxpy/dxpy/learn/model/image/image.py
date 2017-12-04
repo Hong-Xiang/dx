@@ -131,6 +131,12 @@ def random_crop(input_, target_shape, name='random_crop'):
 
 
 def align_crop(input_, target, offset=None, name='align_crop'):
+    """
+    Args:
+        input_: tensor to be cropped
+        target: tensor to fit (provide target shape)
+        offset: start crop offset of dim 1 and 2, if `None`, auto calculated to perform center crop
+    """
     from ..tensor import shape_as_list
     with tf.name_scope(name):
         shape_input = shape_as_list(input_)
