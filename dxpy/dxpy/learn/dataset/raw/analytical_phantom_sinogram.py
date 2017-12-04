@@ -21,13 +21,13 @@ DEFAULT_FILE_NAME = 'analytical_phantom_sinogram.h5'
 NB_IMAGES = 786543
 
 
-class _AnalyticalPhantomSinogram(IsDescription):
+class AnalyticalPhantomSinogram(IsDescription):
     phantom = UInt16Col(shape=(256, 256))
     sinogram = UInt16Col(shape=(320, 320))
     phantom_type = UInt8Col()
 
 
-class _AnalyticalPhantomMultiScaleReconstruction(IsDescription):
+class AnalyticalPhantomMultiScaleReconstruction(IsDescription):
     recon1x = UInt16Col(shape=(256, 256))
     recon2x = UInt16Col(shape=(256, 256))
     recon4x = UInt16Col(shape=(256, 256))
@@ -101,9 +101,11 @@ def _get_example(idx, fields, h5sino, h5recon):
     return result
 
 
-def dataset_generator(fields=('sinogram'), ids=None):
+def dataset_generator(fields=('sinogram',), ids=None):
     if ids is None:
         ids = range(0, int(NB_IMAGES * 0.8))
+    if isinstance(fields, str):
+        fields = (fields, )
     fn_sino, fn_recon = _h5files()
     with open_file(fn_sino) as h5sino, open_file(fn_recon) as h5recon:
         for idx in ids:
@@ -113,14 +115,17 @@ def dataset_generator(fields=('sinogram'), ids=None):
 
 
 class Dataset(Graph):
-    SINO_STAT = {'mean': 4.88, 'std': 4.68}
-    LOG_SINO_STAT = {'mean': 0.0, 'std': 1.0}
+    # Statistics are calculated after fixed summation (total events) to 1e6, with minimum noise 0.4 (+0.4 to all)
+    SINO_STAT = {'mean': 4.88, 'std': 4.37}
+    LOG_SINO_STAT = {'mean': 0.93, 'std': 1.46}
     RECON_STAT = {'mean': 0.0, 'std': 1.0}
     LOG_RECON_STAT = {'mean': 0.0, 'std': 1.0}
 
     @configurable(config, with_name=True)
     def __init__(self, name='analytical_phantom_sinogram_dataset', *,
                  batch_size=32, fields=('sinogram', ), ids=None, shuffle=True):
+        if isinstance(fields, str):
+            fields = (fields, )
         super().__init__(name, batch_size=batch_size,
                          ids=ids, fields=fields, shuffle=shuffle)
         dataset = self._create_dataset()
@@ -148,11 +153,13 @@ class Dataset(Graph):
         return dataset.batch(self.param('batch_size'))
 
     def _register_dataset(self):
+        from ...utils.tensor import ensure_shape
         iterator = self.dataset.make_one_shot_iterator()
         next_element = iterator.get_next()
         self.register_main_node(next_element)
         for k in self.param('fields'):
-            self.register_node(k, next_element[k])
+            shape = [self.param('batch_size')] + list(data_shape(k)) + [1]
+            self.register_node(k, ensure_shape(next_element[k], shape=shape))
 
     def data_shape(self, key):
         return data_shape(key)
