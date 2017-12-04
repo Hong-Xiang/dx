@@ -12,7 +12,6 @@ datasets_configs = {
         'super_resolution': {
             'nb_down_sample': 3
         },
-        'with_poission_noise': False
     }
 }
 config = {

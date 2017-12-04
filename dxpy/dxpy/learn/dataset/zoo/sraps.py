@@ -73,8 +73,8 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                                         input_key='image')
         keys = ['image{}x'.format(2**i) for i in range(dataset.param('nb_down_sample')+1)]
         if self.param('with_poission_noise'):
-            result = {'input/' + k: dataset[k][:shape_as_list(dataset[k])[0], ...] for k in keys}
-            result.update({'label/' + k: dataset[k][:shape_as_list(dataset[k])[0], ...] for k in keys})
+            result = {'input/' + k: dataset[k][:shape_as_list(dataset[k])[0]//2, ...] for k in keys}
+            result.update({'label/' + k: dataset[k][shape_as_list(dataset[k])[0]//2:, ...] for k in keys})
         else:
             result = {'input/'+k: dataset[k] for k in keys}
             result.update({'label/'+k: dataset[k] for k in keys})
