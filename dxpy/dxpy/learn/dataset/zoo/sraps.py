@@ -18,7 +18,8 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                  image_type: str='sinogram',
                  *,
                  log_sinogram: bool=False,
-                 with_poission_noise: bool=True,
+                 with_white_normalization: bool=True,
+                 with_poission_noise: bool=False,
                  target_shape: List[int]=None,
                  **kw):
                  
@@ -30,7 +31,11 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
             a `Graph` object, which has several nodes:
         Raises:
         """
-        super().__init__(name, image_type=image_type, log_sinogram=log_sinogram, with_poission_noise=with_poission_noise, target_shape=target_shape, **kw)
+        super().__init__(name, image_type=image_type,
+                         log_sinogram=log_sinogram,
+                         with_poission_noise=with_poission_noise,
+                         target_shape=target_shape,
+                         with_white_normalization=with_white_normalization, **kw)
         from ...model.normalizer.normalizer import FixWhite, ReduceSum
         from ...model.tensor import ShapeEnsurer
         from dxpy.core.path import Path
@@ -64,7 +69,8 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                 dataset = tf.concat([noise, dataset], axis=0)
         if self.param('log_sinogram'):
             dataset = tf.log(dataset)
-        dataset = FixWhite(name=self.name / 'fix_white',
+        if self.param('with_white_normalization'):
+            dataset = FixWhite(name=self.name / 'fix_white',
                         inputs=dataset, mean=stat['mean'], std=stat['std']).as_tensor()
         dataset = tf.random_crop(dataset,
                                  [shape_as_list(dataset)[0]]+ list(self.param('target_shape')) + [1])
