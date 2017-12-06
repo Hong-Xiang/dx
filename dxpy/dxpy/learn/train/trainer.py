@@ -4,7 +4,8 @@ from ..graph import Graph
 from ..scalar import ScalarVariable
 from ..model.tensor import shape_as_list
 
-
+from dxpy.configs import configurable
+from ..config import config
 class Trainer(Graph):
     """
     Trainer which make it easier to:
@@ -31,14 +32,14 @@ class Trainer(Graph):
                 _check_tensor(l)
         else:
             _check_tensor(loss)
-
-    def __init__(self, name=None, loss=None, variables=None, **config):
+    @configurable(config, with_name=True)
+    def __init__(self, name=None, loss=None, variables=None, **kw):
         """
         Inputs:
             loss: scalar or list of scalar (multi gpu)
             variables: list of tensors
         """
-        super(__class__, self).__init__(name, **config)
+        super(__class__, self).__init__(name, **kw)
         self._check_inputs(loss, variables)
         self.loss = loss
         if variables is None:
@@ -58,7 +59,7 @@ class Trainer(Graph):
     def _default_config(cls):
         return {
             'is_multi_gpu': False,
-            'learning_rate': 1e-5,
+            'learning_rate': 1e-3,
             'simple_mode': True,
             'nb_gpu': 2,
         }

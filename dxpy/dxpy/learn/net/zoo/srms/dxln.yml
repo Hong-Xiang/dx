@@ -1,0 +1,49 @@
+nb_down_sample: 3
+use_noise_label: false
+datasets:
+  image_type: sinogram
+  batch_size: 4
+  with_poission_noise: false
+  log_scale: false
+  target_shape: [256, 256]
+network:
+  nb_down_sample: 3
+  trainer:
+    learning_rate: 0.001 
+model:
+  building_block: res_incept
+  filters: 32
+  nb_down_sample: 3
+  loss_weight: 1.0
+  with_poi_loss: False
+  poi_loss_weight: 0.5
+  mse_loss_weight: 0.5
+  srb_1:
+    kernel:
+      filters: 32
+      nb_layers: 10
+      loss:
+        poi:
+          with_log: false
+          mean: 4.88
+          std: 4.37
+  srb_2:
+    kernel:
+      filters: 32
+      nb_layers: 10
+      loss:
+        poi:
+          with_log: false
+          mean: 4.88
+          std: 4.37
+  srb_3:
+    kernel:
+      filters: 32
+      nb_layers: 10
+      loss:
+        poi:
+          with_log: false
+          mean: 4.88
+          std: 4.37
+train:
+  steps: 1000000

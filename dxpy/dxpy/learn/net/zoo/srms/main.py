@@ -6,7 +6,8 @@ from ....model.cnn.super_resolution import SuperResolutionMultiScale, SRKeys
 class SRNetKeys:
     RES_INF = 'res_inf'
     RES_ITP = 'res_itp'
-
+from dxpy.configs import configurable
+from ....config import config
 
 class SRMultiScale(Net):
     """
@@ -14,17 +15,11 @@ class SRMultiScale(Net):
     'input/image2x'|...|'input/image8x'
     'label/image1x', ..., 'label/image4x'
     """
+    @configurable(config, with_name=True)
+    def __init__(self, inputs, name='network', nb_gpu=2, nb_down_sample=3, **kw):
+        super().__init__(name, inputs, nb_gpu=nb_gpu, nb_down_sample=nb_down_sample, **kw)
 
-    def __init__(self, inputs, name='network', **config):
-        super().__init__(name, inputs, **config)
 
-    @classmethod
-    def _default_config(cls):
-        from dxpy.collections.dicts import combine_dicts
-        return combine_dicts({
-            'nb_gpu': 2,
-            'nb_down_sample': 3,
-        }, super()._default_config())
 
     def summary_items(self):
         from ....train.summary import SummaryItem
@@ -44,6 +39,10 @@ class SRMultiScale(Net):
             self.nodes['outputs/{}'.format(SRNetKeys.RES_INF)])})
         result.update({'res_itp': SummaryItem(
             self.nodes['outputs/{}'.format(SRNetKeys.RES_ITP)])})
+        
+        if 'outputs/'+SRKeys.POI_LOSS in self.nodes is not None:
+            result.update({'poi_loss': SummaryItem(self.noddes['outputs/'+SRKeys.POI_LOSS])})
+            result.update({'mse_loss': SummaryItem(self.noddes['outputs/'+SRKeys.MSE_LOSS])})
         return result
         # def _get_node(self, node_type, down_sample_ratio, source=None):
         #     if source is None:
@@ -92,16 +91,35 @@ class SRMultiScale(Net):
                     res_itp = tf.abs(label - interp)
                 losses = [result_gpus[k][NodeKeys.LOSS]
                           for k in mgs.part_names()]
+                if SRKeys.POI_LOSS in result_gpus[mgs.part_names()[0]]:
+                    losses_poi = [result_gpus[k][SRKeys.POI_LOSS]
+                                  for k in mgs.part_names()]
+                    losses_mse = [result_gpus[k][SRKeys.MSE_LOSS]
+                                  for k in mgs.part_names()]
+                else:
+                    losses_poi = None
+                    losses_mse = None
+
                 with tf.name_scope('total_loss'):
                     loss = tf.add_n(losses)
+                    if losses_poi is not None:
+                        loss_poi = tf.add_n(losses_poi)
+                        loss_mse = tf.add_n(losses_mse)
+                    else:
+                        loss_poi = None
+                        loss_mse = None
 
-        return {NodeKeys.INFERENCE: infer,
-                SRKeys.ALIGNED_LABEL: label,
-                SRKeys.INTERP: interp,
-                SRNetKeys.RES_INF: res_inf,
-                SRNetKeys.RES_ITP: res_itp,
-                NodeKeys.LOSS: losses,
-                NodeKeys.EVALUATE: loss}
+        result = {NodeKeys.INFERENCE: infer,
+                  SRKeys.ALIGNED_LABEL: label,
+                  SRKeys.INTERP: interp,
+                  SRNetKeys.RES_INF: res_inf,
+                  SRNetKeys.RES_ITP: res_itp,
+                  NodeKeys.LOSS: loss,
+                  NodeKeys.EVALUATE: loss}
+        if loss_poi is not None:
+            result.update({SRKeys.MSE_LOSS: loss_mse,
+                           SRKeys.POI_LOSS: loss_poi})
+        return result
 
     # def _kernel_multiscale(self, image_lowest, image_labels):
     #     """

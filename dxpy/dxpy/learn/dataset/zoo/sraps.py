@@ -68,6 +68,7 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
             stat = dataset.SINO_STAT
         # dataset = ReduceSum(self.name / 'reduce_sum', dataset['sinogram'],
                             # fixed_summation_value=1e6).as_tensor()
+        dataset = dataset['sinogram']
         if self.param('with_poission_noise'):
             with tf.name_scope('add_with_poission_noise'):
                 noise = tf.random_poisson(dataset, shape=[])
