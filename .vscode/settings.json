@@ -5,5 +5,5 @@
     "python.unitTest.pyTestArgs": [
         "dxpy"
     ],
-    "python.unitTest.pyTestEnabled": true
+    "python.unitTest.pyTestEnabled": false
 }

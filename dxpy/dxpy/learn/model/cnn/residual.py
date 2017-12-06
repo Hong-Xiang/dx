@@ -72,3 +72,26 @@ class StackedResidual(Model):
             elif self.param('block_type') == self.STACKED_CONV_TYPE:
                 x = ResidualStackedConv(name, x)()
         return x
+
+from dxpy.configs import configurable
+from ...config import config
+class StackedResidualv2(Model):
+    """
+    Sub model name: sub_{0..nb_layers}
+    """
+    INCEPT_TYPE = 'incept'
+    STACKED_CONV_TYPE = 'stacked_conv'
+    @configurable(config, with_name=True)
+    def __init__(self, name, input_tensor, *, nb_layers=10, block_type='incept', **config):
+        super().__init__(name, inputs=input_tensor,
+                         nb_layers=nb_layers, block_type=block_type, **config)
+
+    def _kernel(self, feeds):
+        x = feeds[NodeKeys.INPUT]
+        for i in range(self.param('nb_layers')):
+            name = self.name / 'res_{}'.format(i)
+            if self.param('block_type') == self.INCEPT_TYPE:
+                x = ResidualIncept(name, x)()
+            elif self.param('block_type') == self.STACKED_CONV_TYPE:
+                x = ResidualStackedConv(name, x)()
+        return x

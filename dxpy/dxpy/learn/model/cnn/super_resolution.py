@@ -103,35 +103,20 @@ class SuperResolutionBlock(Model):
     @configurable(cfg, with_name=True)
     def __init__(self, name, inputs, *,
                  building_block: str=BuildingBlocks.STACKEDCONV,
-                 nb_layers: int=10,
-                 filters: int=32,
                  boundary_crop=(4, 4),
                  down_sample_ratio=(2, 2),
                  boundary_crop_ratio=0.1,
                  with_poi_loss=False,
                  poi_loss_weight=0.0,
-                 **config):
+                 **kw):
         super().__init__(name, inputs,
                          building_block=building_block,
-                         nb_layers=nb_layers,
-                         filters=filters,
+                         down_sample_ratio=down_sample_ratio,
                          boundary_crop=boundary_crop,
                          boundary_crop_ratio=boundary_crop_ratio,
                          with_poi_loss=with_poi_loss,
                          poi_loss_weight=poi_loss_weight, 
-                         **config)
-
-    @classmethod
-    def _default_config(cls):
-        from dxpy.collections.dicts import combine_dicts
-        return combine_dicts({
-            'building_block': BuildingBlocks.STACKEDCONV,
-            'nb_layers': 10,
-            'filters': 32,
-            'boundary_crop': [4, 4],
-            'boundary_crop_ratio': 0.1,
-            'down_sample_ratio': (2, 2)
-        }, super()._default_config())
+                         **kw)
 
     def _crop_size(self, input_=None):
         from ..tensor import shape_as_list
@@ -193,19 +178,26 @@ class SuperResolutionBlock(Model):
         return StackedResidual(self.name / 'kernel', represents,
                                nb_layers=self.param('nb_layers'),
                                block_type=block_type)()
+    def _mse_loss(self, label, infer):
+        from ..image import mean_square_error
+        return mean_square_error(label, infer) 
 
-    def _loss(self, label, inference):
+    def _poi_loss(self, label, infer):
+        from ..losses import PoissionLossWithDenorm
+        return PoissionLossWithDenorm(self.name/'loss'/'poi',
+                                      {NodeKeys.INPUT: infer,
+                                       NodeKeys.LABEL: label}).as_tensor()
+    def _loss(self, label, infer):
         from ..image import mean_square_error, align_crop
         from ..losses import PoissionLossWithDenorm
         if label is not None:
             with tf.name_scope('loss'):
-                aligned_label = align_crop(label, inference)
-                loss_mse = mean_square_error(aligned_label, inference)
+                aligned_label = align_crop(label, infer)
+                loss_mse = self._mse_loss(aligned_label, infer)
                 loss = loss_mse
                 if self.param('with_poi_loss'):
-                    loss_poi = PoissionLossWithDenorm(self.name / 'loss' / 'poi', 
-                    {NodeKeys.INPUT: inference, NodeKeys.LABEL: aligned_label}).as_tensor()
-                    loss = loss + self.param('poi_loss_weight')
+                    loss_poi = self._poi_loss(aligned_label, infer) 
+                    loss = loss + self.param('poi_loss_weight')*loss_poi
                 return {NodeKeys.LOSS: loss,
                         SRKeys.ALIGNED_LABEL: aligned_label}
         else:

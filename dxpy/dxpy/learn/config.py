@@ -37,6 +37,9 @@ def get_config():
     from dxpy.configs import ConfigsView
     return ConfigsView(config)
 
+def get_configs_view():
+    from dxpy.configs import ConfigsView
+    return ConfigsView(config)
 
 def clear_config():
     global config
