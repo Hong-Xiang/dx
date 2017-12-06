@@ -81,10 +81,12 @@ def _h5files(path: str, sino_fn='analytical_phantom_sinogram.h5', recon_fn='reco
 
 def _post_processing(result):
     from dxpy.medical_image_processing.projection.parallel import padding_pi2full
+    from ...model.normalizer.normalizer import ReduceSum
     if 'sinogram' in result:
         result['sinogram'] = padding_pi2full(result['sinogram']).T
     for k in result:
         result[k] = result[k].astype(data_type_np(k))
+        result[k] = result[k] / np.sum(result[k]) * 1e6 
     return result
 
 
@@ -115,11 +117,13 @@ def dataset_generator(fields=('sinogram',), ids=None):
 
 
 class Dataset(Graph):
-    # Statistics are calculated after fixed summation (total events) to 1e6, with minimum noise 0.4 (+0.4 to all)
+    # Statistics are calculated after fixed summation (total events) to 1e6, 
+    # sinogram with minimum noise 0.4 (+0.4 to all)
+    # recons with minimum noise 1.0 (+1.0 to all)
     SINO_STAT = {'mean': 4.88, 'std': 4.37}
     LOG_SINO_STAT = {'mean': 0.93, 'std': 1.46}
-    RECON_STAT = {'mean': 0.0, 'std': 1.0}
-    LOG_RECON_STAT = {'mean': 0.0, 'std': 1.0}
+    RECON_STAT = {'mean': 15.25, 'std': 20.0}
+    LOG_RECON_STAT = {'mean': 1.90, 'std': 1.50}
 
     @configurable(config, with_name=True)
     def __init__(self, name='analytical_phantom_sinogram_dataset', *,
