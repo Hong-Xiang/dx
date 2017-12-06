@@ -3,6 +3,8 @@ from ..base import Model, NodeKeys, ModelPipe
 from .. import activation
 from ..tensor import shape_as_list
 
+from dxpy.configs import configurable
+from ...config import get_configs_view
 
 class Conv2D(Model):
     def __init__(self, name='conv2d', input_tensor=None, filters=None, kernel_size=None,
@@ -39,6 +41,7 @@ class Conv2D(Model):
 
 
 class StackedConv2D(Model):
+    @configurable(get_configs_view(), with_name=True)
     def __init__(self, name, input_tensor, *,
                  nb_layers=None,
                  activation=None,

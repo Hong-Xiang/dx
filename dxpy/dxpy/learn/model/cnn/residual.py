@@ -2,11 +2,13 @@ import tensorflow as tf
 from .blocks import Conv2D, StackedConv2D, InceptionBlock
 from ..base import Model, NodeKeys
 from ..tensor import shape_as_list
-
+from dxpy.configs import configurable
+from ...config import get_configs_view
 
 class ResidualIncept(Model):
-    def __init__(self, name, input_tensor, **config):
-        super().__init__(name, inputs=input_tensor, **config)
+    @configurable(get_configs_view(), with_name=True)
+    def __init__(self, name, input_tensor, ratio=0.3, paths=3, **kw):
+        super().__init__(name, inputs=input_tensor, ratio=ratio, paths=paths, **kw)
 
     @classmethod
     def _default_config(cls):
@@ -25,8 +27,9 @@ class ResidualIncept(Model):
 
 
 class ResidualStackedConv(Model):
-    def __init__(self, name, input_tensor, *, nb_layers=None, block_type=None, **config):
-        super().__init__(name, inputs=input_tensor, nb_layers=nb_layers, **config)
+    @configurable(get_configs_view(), with_name=True)
+    def __init__(self, name, input_tensor, *, nb_layers=None, block_type=None, ratio=0.1, **config):
+        super().__init__(name, inputs=input_tensor, nb_layers=nb_layers, ratio=ratio, **config)
 
     @classmethod
     def _default_config(cls):
@@ -51,6 +54,7 @@ class StackedResidual(Model):
     INCEPT_TYPE = 'incept'
     STACKED_CONV_TYPE = 'stacked_conv'
 
+    @configurable(get_configs_view(), with_name=True)
     def __init__(self, name, input_tensor, *, nb_layers=None, block_type=None, **config):
         super().__init__(name, inputs=input_tensor,
                          nb_layers=nb_layers, block_type=block_type, **config)

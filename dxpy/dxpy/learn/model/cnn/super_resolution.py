@@ -12,6 +12,8 @@ class SRKeys:
     RESIDUAL = 'resi'
     ALIGNED_LABEL = 'aligned_label'
     INTERP = 'interp'
+    POI_LOSS = 'poi_loss'
+    MSE_LOSS = 'mse_loss'
 
 
 class BuildingBlocks:
@@ -103,19 +105,23 @@ class SuperResolutionBlock(Model):
     @configurable(cfg, with_name=True)
     def __init__(self, name, inputs, *,
                  building_block: str=BuildingBlocks.STACKEDCONV,
+                 filters: int=32,
                  boundary_crop=(4, 4),
                  down_sample_ratio=(2, 2),
                  boundary_crop_ratio=0.1,
                  with_poi_loss=False,
                  poi_loss_weight=0.0,
+                 mse_loss_weight=1.0,
                  **kw):
         super().__init__(name, inputs,
                          building_block=building_block,
+                         filters=filters,
                          down_sample_ratio=down_sample_ratio,
                          boundary_crop=boundary_crop,
                          boundary_crop_ratio=boundary_crop_ratio,
                          with_poi_loss=with_poi_loss,
-                         poi_loss_weight=poi_loss_weight, 
+                         poi_loss_weight=poi_loss_weight,
+                         mse_loss_weight=mse_loss_weight,
                          **kw)
 
     def _crop_size(self, input_=None):
@@ -166,39 +172,42 @@ class SuperResolutionBlock(Model):
                 SRKeys.INTERP: upsampled}
 
     def _kernel_stacked_convolution(self, represents):
-        return StackedConv2D(self.name / 'kernel', represents,
-                             nb_layers=self.param('nb_layers'),
-                             filters=self.param('filters'))()
+        return StackedConv2D(self.name / 'kernel', represents)()
 
     def _kernel_stacked_residual(self, represents):
+        from ..cnn.residual import StackedResidualv2
         if self.param('building_block') == BuildingBlocks.RESCONV:
             block_type = StackedResidual.STACKED_CONV_TYPE
         else:
             block_type = StackedResidual.INCEPT_TYPE
-        return StackedResidual(self.name / 'kernel', represents,
-                               nb_layers=self.param('nb_layers'),
-                               block_type=block_type)()
+        return StackedResidualv2(self.name / 'kernel', represents, block_type=block_type)()
+
     def _mse_loss(self, label, infer):
         from ..image import mean_square_error
-        return mean_square_error(label, infer) 
+        return mean_square_error(label, infer)
 
     def _poi_loss(self, label, infer):
         from ..losses import PoissionLossWithDenorm
-        return PoissionLossWithDenorm(self.name/'loss'/'poi',
+        return PoissionLossWithDenorm(self.name / 'loss' / 'poi',
                                       {NodeKeys.INPUT: infer,
                                        NodeKeys.LABEL: label}).as_tensor()
+
     def _loss(self, label, infer):
         from ..image import mean_square_error, align_crop
         from ..losses import PoissionLossWithDenorm
         if label is not None:
             with tf.name_scope('loss'):
                 aligned_label = align_crop(label, infer)
-                loss_mse = self._mse_loss(aligned_label, infer)
+                loss_mse = self._mse_loss(
+                    aligned_label, infer) * self.param('mse_loss_weight')
                 loss = loss_mse
                 if self.param('with_poi_loss'):
-                    loss_poi = self._poi_loss(aligned_label, infer) 
-                    loss = loss + self.param('poi_loss_weight')*loss_poi
+                    loss_poi = self._poi_loss(
+                        aligned_label, infer) * self.param('poi_loss_weight')
+                    loss = loss + loss_poi
                 return {NodeKeys.LOSS: loss,
+                        SRKeys.POI_LOSS: loss_poi,
+                        SRKeys.MSE_LOSS: loss_mse,
                         SRKeys.ALIGNED_LABEL: aligned_label}
         else:
             return dict()
@@ -207,7 +216,7 @@ class SuperResolutionBlock(Model):
         upsampled, represents, label = self._input(feeds)
         if self.param('building_block') == BuildingBlocks.INTERP:
             x = upsampled
-        if self.param('building_block') == BuildingBlocks.STACKEDCONV:
+        elif self.param('building_block') == BuildingBlocks.STACKEDCONV:
             x = self._kernel_stacked_convolution(represents)
         elif self.param('building_block') in [BuildingBlocks.RESCONV, BuildingBlocks.RESINCEPT]:
             x = self._kernel_stacked_residual(represents)
@@ -317,7 +326,6 @@ class SuperResolutionMultiScalev2(Model):
                          loss_weight=loss_weight,
                          **config)
 
-
     @classmethod
     def multi_scale_input(cls, images, nb_down_sample=None, labels=None):
         """
@@ -360,7 +368,7 @@ class SuperResolutionMultiScalev2(Model):
         for i_down_sample in reversed(range(1, self.param('nb_down_sample') + 1)):
             if x is None:
                 x = self._get_node('input', i_down_sample, feeds)
-            mid_result = SuperResolution2x(self.name/'srb_{}'.format(i_down_sample),
+            mid_result = SuperResolution2x(self.name / 'srb_{}'.format(i_down_sample),
                                            {NodeKeys.INPUT: x,
                                             NodeKeys.LABEL: self._get_node('label', i_down_sample - 1, feeds),
                                             SRKeys.REPRESENTS: r})()

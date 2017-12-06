@@ -10,6 +10,7 @@ def mean_square_error(label, data):
 
 def poission_loss(label, data):
     with tf.name_scope('poission_loss'):
+        label = tf.maximum(label, 0.0)
         return log_possion_loss(tf.log(label), data)
                                 
 
@@ -51,4 +52,4 @@ class PoissionLossWithDenorm(Model):
         else:
             with tf.name_scope('loss'):
                 loss = poission_loss(label, infer) 
-        return {NodeKeys.OUTPUT: loss}
+        return {NodeKeys.MAIN: loss}
