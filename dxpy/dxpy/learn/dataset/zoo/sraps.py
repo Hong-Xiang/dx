@@ -96,7 +96,7 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
         from ...model.normalizer.normalizer import ReduceSum, FixWhite
         from ..super_resolution import SuperResolutionDataset
         from ...utils.tensor import shape_as_list
-        keys = ['recon{}x'.format(2**i) for i in range(self.param('nb_down_sample')+1)]
+        keys = ['recon{}x'.format(2**i) for i in range(self.param('nb_down_sample')+1)] + ['phantom']
         if self.param('log_scale'):
             stat = dataset.LOG_RECON_STAT
         else:
@@ -113,5 +113,6 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
         for i, k in enumerate(keys):
             result['input/image{}x'.format(2**i)] = dataset[k]
             result['label/image{}x'.format(2**i)] = result['input/image{}x'.format(2**i)] 
+        result['label/phantom'] = dataset['phantom']
         return result
 
