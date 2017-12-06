@@ -1,6 +1,6 @@
 import tensorflow as tf
 from ...base import Net, Graph, NodeKeys
-from ....model.cnn.super_resolution import SuperResolutionMultiScale, SRKeys
+from ....model.cnn.super_resolution import SuperResolutionMultiScalev2, SRKeys
 
 
 class SRNetKeys:
@@ -68,8 +68,7 @@ class SRMultiScale(Net):
             cpu_placeholders = {k: PlaceHolder(
                 first_part[k]).as_tensor() for k in first_part}
         with tf.device(device_name('cpu')):
-            model = SuperResolutionMultiScale('model', cpu_placeholders,
-                                              self.param('nb_down_sample'))
+            model = SuperResolutionMultiScalev2(name='model', inputs=cpu_placeholders)
             model()
         result_gpus = {}
         for i, k in enumerate(mgs.part_names()):
@@ -114,7 +113,7 @@ class SRMultiScale(Net):
                   SRKeys.INTERP: interp,
                   SRNetKeys.RES_INF: res_inf,
                   SRNetKeys.RES_ITP: res_itp,
-                  NodeKeys.LOSS: loss,
+                  NodeKeys.LOSS: losses,
                   NodeKeys.EVALUATE: loss}
         if loss_poi is not None:
             result.update({SRKeys.MSE_LOSS: loss_mse,

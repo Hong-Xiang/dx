@@ -97,23 +97,35 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
         from ...model.normalizer.normalizer import ReduceSum, FixWhite
         from ..super_resolution import SuperResolutionDataset
         from ...utils.tensor import shape_as_list
-        keys = ['recon{}x'.format(2**i) for i in range(self.param('nb_down_sample')+1)] + ['phantom']
+        keys = ['recon{}x'.format(2**i) for i in range(self.param('nb_down_sample')+1)]
         if self.param('log_scale'):
             stat = dataset.LOG_RECON_STAT
         else:
             stat = dataset.RECON_STAT
+        phantom = dataset['phantom']
         dataset = {k: dataset[k] for k in keys}
+        for i, k in enumerate(keys):
+            if i == 0:
+                continue
+            dataset[k] = tf.nn.avg_pool(dataset[k],
+                        [1] + [2**i, 2**i] + [1],
+                        padding='SAME',
+                        strides=[1] + [2**i, 2**i] + [1]) * (2.0**i*2.0**i)
+         
         # dataset = {k: ReduceSum(self.name / 'reduce_sum' / k, dataset[k], fixed_summation_value=1e6).as_tensor() for k in keys}
         if self.param('log_scale'):
             for k in keys:
                 dataset[k] = tf.log(dataset[k]+1.0)
+            phantom = tf.log(phantom+1.0)
         if self.param('with_white_normalization'):
             for i, k in enumerate(keys):
                 dataset[k] = FixWhite(name = self.name / 'fix_white' / k, inputs=dataset[k], mean=stat['mean'], std=stat['std']).as_tensor()
+            phantom = FixWhite(name = self.name / 'fix_white' / 'phantom', inputs=dataset[k], mean=stat['mean'], std=stat['std']).as_tensor()
+
         result = dict()
         for i, k in enumerate(keys):
             result['input/image{}x'.format(2**i)] = dataset[k]
             result['label/image{}x'.format(2**i)] = result['input/image{}x'.format(2**i)] 
-        result['label/phantom'] = dataset['phantom']
+        result['label/phantom'] = phantom 
         return result
 

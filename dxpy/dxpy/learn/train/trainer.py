@@ -60,7 +60,7 @@ class Trainer(Graph):
         return {
             'is_multi_gpu': False,
             'learning_rate': 1e-3,
-            'simple_mode': True,
+            'simple_mode': False,
             'nb_gpu': 2,
         }
 

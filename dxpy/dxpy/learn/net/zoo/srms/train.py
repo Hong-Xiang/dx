@@ -30,10 +30,14 @@ for i in range(dataset.param('nb_down_sample') + 1):
         inputs.update({'label/image{}x'.format(2**i): dataset['input/image{}x'.format(2**i)]})
     else:
         inputs.update({'label/image{}x'.format(2**i): dataset['label/image{}x'.format(2**i)]})
+        if dataset.param('image_type') == 'image':
+            inputs['label/image1x'] = dataset['label/phantom']
 #     if i < 3:
 #         inputs.update({'label/image{}x'.format(2**i)                       : dataset['image{}x'.format(2**i)]})
 # images = [dataset['image{}x'.format(2**i)] for i in range(dataset.param('nb_down_sample') + 1)]
 # inputs = SuperResolutionMultiScale.multi_scale_input(images)
+from dxpy.debug.utils import dbgmsg
+dbgmsg(inputs)
 network = SRMultiScale(inputs, name='network')
 summary = SummaryWriter(
     name='train', tensors_to_summary=network.summary_items(), path='./summary/train')
@@ -51,7 +55,7 @@ with session.as_default():
             summary.summary()
         if i % 100 == 0:
             summary.flush()
-        if i % 1000 == 0:
+        if i % 1000 == 0 and i > 0:
             network.save()
 
 with session.as_default():

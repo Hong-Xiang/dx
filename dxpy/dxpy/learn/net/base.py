@@ -12,8 +12,8 @@ class Net(Model):
         4. save/load
     """
 
-    def __init__(self, name, inputs=None, **config):
-        super().__init__(name, inputs, **config)
+    def __init__(self, name, inputs=None, **kw):
+        super().__init__(name, inputs, **kw)
 
     @classmethod
     def _default_config(cls):
