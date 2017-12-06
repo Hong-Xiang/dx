@@ -4,7 +4,7 @@ from .blocks import StackedConv2D
 from .residual import StackedResidual
 from ..image import align_crop
 from dxpy.configs import configurable
-from ...configs import config
+from ...config import config
 
 
 class SRKeys:
@@ -146,7 +146,7 @@ class SuperResolutionBlock(Model):
             if SRKeys.REPRESENTS in feeds:
                 r = resize(feeds[SRKeys.REPRESENTS],
                            self.param('down_sample_ratio'))
-                r = align_crop(u, r)
+                r = align_crop(r, u)
                 r = tf.concat([r, u], axis=3)
             else:
                 r = tf.layers.conv2d(u, self.param(
@@ -205,10 +205,12 @@ class SuperResolutionBlock(Model):
                     loss_poi = self._poi_loss(
                         aligned_label, infer) * self.param('poi_loss_weight')
                     loss = loss + loss_poi
-                return {NodeKeys.LOSS: loss,
-                        SRKeys.POI_LOSS: loss_poi,
-                        SRKeys.MSE_LOSS: loss_mse,
-                        SRKeys.ALIGNED_LABEL: aligned_label}
+                result = {NodeKeys.LOSS: loss,
+                          SRKeys.MSE_LOSS: loss_mse,
+                          SRKeys.ALIGNED_LABEL: aligned_label}
+                if self.param('with_poi_loss'):
+                    result.update({SRKeys.POI_LOSS: loss_poi})
+                return result
         else:
             return dict()
 
@@ -311,6 +313,10 @@ class SuperResolutionMultiScalev2(Model):
     'input/clean[1, 2, 4, 8]x': labels, may be noisy.
     Outputs:
     NodeKeys.INFERENCE: inference image
+    'interp': interp image(cropped)
+    'aligned_label': label image (cropped)
+    'mse_loss': mse loss (if with_poi_loss)
+    'poi_loss': poi loss (if with_poi_loss)
     NodeKeys.LOSS: scalar loss 
     SRKeys.ALIGNED_LABEL: cropped label (useful for calculating residual)
     """
@@ -318,13 +324,13 @@ class SuperResolutionMultiScalev2(Model):
     def __init__(self, name, inputs, *,
                  nb_down_sample: int=3,
                  share_model=False,
-                 loss_weight: typing.TypeVar('T', float, typing.List[float]),
-                 **config):
+                 loss_weight: typing.TypeVar('T', float, typing.List[float]) = 1.0,
+                 **kw):
         super().__init__(name, inputs,
                          nb_down_sample=nb_down_sample,
                          share_model=share_model,
                          loss_weight=loss_weight,
-                         **config)
+                         **kw)
 
     @classmethod
     def multi_scale_input(cls, images, nb_down_sample=None, labels=None):
@@ -358,23 +364,28 @@ class SuperResolutionMultiScalev2(Model):
 
         if source is None:
             source = self.nodes
-        name = "{}/image{}x".format(node_type, 2**down_sample_ratio)
+        name = "{}/image{}x".format(node_type, 2**down_sample_level)
         return source[name]
 
     def _kernel(self, feeds):
         x = None
         r = None
         losses = []
+        losses_mse = []
+        losses_poi = []
         for i_down_sample in reversed(range(1, self.param('nb_down_sample') + 1)):
             if x is None:
                 x = self._get_node('input', i_down_sample, feeds)
-            mid_result = SuperResolution2x(self.name / 'srb_{}'.format(i_down_sample),
-                                           {NodeKeys.INPUT: x,
-                                            NodeKeys.LABEL: self._get_node('label', i_down_sample - 1, feeds),
-                                            SRKeys.REPRESENTS: r})()
+            mid_result = SuperResolutionBlock(self.name / 'srb_{}'.format(i_down_sample),
+                                              {NodeKeys.INPUT: x,
+                                               NodeKeys.LABEL: self._get_node('label', i_down_sample - 1, feeds),
+                                               SRKeys.REPRESENTS: r})()
             x = mid_result[NodeKeys.INFERENCE]
             if NodeKeys.LOSS in mid_result:
                 losses.append(mid_result[NodeKeys.LOSS])
+                if SRKeys.POI_LOSS in mid_result:
+                    losses_poi.append(mid_result[SRKeys.POI_LOSS])
+                    losses_mse.append(mid_result[SRKeys.MSE_LOSS])
             r = mid_result[SRKeys.REPRESENTS]
         result = {k: mid_result[k] for k in mid_result}
         if len(losses) > 0:
@@ -386,5 +397,11 @@ class SuperResolutionMultiScalev2(Model):
                     lw = self.param('loss_weight')
                 for i, l in enumerate(losses):
                     losses[i] = losses[i] * lw[i]
+                    if len(losses_poi) > 0: 
+                        losses_poi[i] = losses_poi[i] * lw[i]
+                        losses_mse[i] = losses_mse[i] * lw[i]
                 result[NodeKeys.LOSS] = tf.add_n(losses)
+                if len(losses_poi) > 0:
+                    result[SRKeys.POI_LOSS] = tf.add_n(losses_poi)
+                    result[SRKeys.MSE_LOSS] = tf.add_n(losses_mse)
         return result
