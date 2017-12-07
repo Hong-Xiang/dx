@@ -1,14 +1,22 @@
 import click
 
+class CLI(click.MultiCommand):
+    """
+    Helper of learn module.
+    """
+    commands = {'train': None}
 
-@click.group()
-def tf():
-    pass
+    def __init__(self):
+        super(__class__, self).__init__(name='tf', help=__class__.__doc__)
+
+    def list_commands(self, ctx):
+        return sorted(self.commands.keys())
+
+    def get_command(self, ctx, name):
+        from . import commands
+        if name in self.commands and self.commands[name] is None:
+            self.commands[name] = getattr(commands, name)
+        return self.commands.get(name)
 
 
-@tf.command()
-@click.option('--config', '-c', type=str, help='configs .yml filename')
-@click.option('--net', '-n', type=str, help='name of main net')
-def train(net, config):    
-    main_net = get_main_net(net)
-    main_net.train()
+main = CLI()
