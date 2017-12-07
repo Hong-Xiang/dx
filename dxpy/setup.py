@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 setup(name='dxl-dxpy',
-      version='0.7.2',
+      version='0.7.3',
       description='Duplicate components library python library.',
       url='https://github.com/Hong-Xiang/dxl',
       author='Hong Xiang',
@@ -15,7 +15,9 @@ setup(name='dxl-dxpy',
           'fs',
           'apscheduler',
           'ruamel.yaml',
-          'arrow'
+          'arrow',
+          'click',
+          'tqdm',
       ],
       scripts=['bin/dxpy'],
       zip_safe=False)
