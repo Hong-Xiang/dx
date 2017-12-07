@@ -1,8 +1,13 @@
 import tensorflow as tf
 from dxpy.filesystem import Path
 from ..graph import Graph
+import arrow
 
 _instance = None
+
+
+from dxpy.configs import configurable
+from ..config import config
 
 
 def get_saver():
@@ -13,16 +18,15 @@ def get_saver():
 
 
 class Saver(Graph):
-    def __init__(self, name='/saver', **config):
-        super(__class__, self).__init__(name, **config)
+    @configurable(config, with_name=True)
+    def __init__(self, name='saver', model_dir='./save/', ckpt_name='save',
+                 *, auto_save_interval=600, **config):
+        super(__class__, self).__init__(name, model_dir=model_dir,
+                                        ckpt_name=ckpt_name, auto_save_interval=auto_save_interval, **config)
         self._saver = None
+        self.last_save = None
         self.register_task('save', self.save)
         self.register_task('load', self.load)
-
-    @classmethod
-    def _default_config(cls):
-        return {'model_dir': './save/',
-                'ckpt_name': 'save'}
 
     def _model_path(self):
         return (Path(self.param('model_dir')) / self.param('ckpt_name')).abs
@@ -35,6 +39,11 @@ class Saver(Graph):
         step = sess.run(global_step())
         print("[SAVE] model to: {}.".format(self._model_path()))
         self._saver.save(sess, self._model_path(), global_step=step)
+
+    def auto_save(self, feeds):
+        if self.last_save is None or (arrow.now() - self.last_save).seconds > self.param('auto_save_interval'):
+            self.save(feeds)
+            self.last_save = arrow.now()
 
     def __resolve_path_load(self, feeds):
         from fs.osfs import OSFS

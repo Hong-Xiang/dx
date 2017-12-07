@@ -14,7 +14,8 @@ setup(name='dxl-dxpy',
           'graphviz',
           'fs',
           'apscheduler',
-          'ruamel.yaml'
+          'ruamel.yaml',
+          'arrow'
       ],
       scripts=['bin/dxpy'],
       zip_safe=False)
