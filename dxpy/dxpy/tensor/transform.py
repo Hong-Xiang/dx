@@ -34,5 +34,88 @@ def maybe_unbatch(tensors: TypeVar('T', np.ndarray, List[np.ndarray])) -> List[n
     else:
         return unbatch(tensors)
 
-def padding(tensor: np.ndarray, target_shape: List[int], offset: TypeVar('T', int, List[int])=0, method:TypeVar('T', str, List[str])=None, *, padding_order:List[int]=None):
-    pass
+
+def padding(tensor: np.ndarray, target_shape: List[int], offset: TypeVar('T', int, List[int])=0, method: TypeVar('T', str, List[str])=None, *, padding_order: List[int]=None, constant_value: float=None):
+    """
+    Supported method:
+        period: periodically padding tensor, assuming period equals to tensor shape.
+        mirror: mirror reflect
+        constant: pad with constant value
+    """
+    for i, v in enumerate(target_shape):
+        if v is None:
+            target_shape[i] = tensor.shape[i]
+    if isinstance(offset, int):
+        offset = [offset] * tensor.ndim
+    if isinstance(method, str):
+        method = [method] * tensor.ndim
+    if padding_order is None:
+        padding_order = list(range(tensor.ndim))
+
+    def padding_one_block(source, target, idx, ids, method, mirror_axis=None):
+        if method is None:
+            target[idx] = source[ids]
+        elif method.lower() == 'constant':
+            target[idx] = constant_value
+        elif method.lower() == 'period':
+            target[idx] = source[ids]
+        elif method.lower() == 'mirror':
+            ids[mirror_axis] = slice(ids[mirror_axis].stop-1, None, -1)
+            target[idx] = source[ids]
+
+    def index(tensor, target_size, axis, offset):
+        ids = list()
+        idt = list()
+        for i in range(tensor.ndim):
+            if i == axis:
+                max_idx = target_size
+                slice_min = min([max([offset, 0]), max_idx])
+
+                slice_max = min(
+                [max([offset + tensor.shape[i], 0]), max_idx])
+            else:
+                slice_min = 0
+                slice_max = tensor.shape[i]
+            idt.append(slice(slice_min, slice_max))
+            ids.append(slice(0, slice_max - slice_min))
+        return idt, ids
+
+    def current_method(method, is_mirror):
+        if method == 'mirror':
+            if is_mirror:
+                c_method = 'mirror'
+                is_mirror = False
+            else:
+                c_method = 'period'
+                is_mirror = True
+        else:
+            c_method = method
+        return c_method, is_mirror
+
+    def padding_one_dim(tensor, axis, target_size, offset, method):
+        offset_start = offset
+        offset_now = offset_start
+        next_shape = list(tensor.shape)
+        next_shape[axis] = target_size
+        result = np.zeros(next_shape)
+        is_mirror = False
+        while offset_now < target_size:
+            idt, ids = index(tensor, target_size, i, offset_now)
+            c_method, is_mirror = current_method(method, is_mirror)
+            padding_one_block(tensor, result, idt, ids, c_method, axis)
+            offset_now += tensor.shape[axis]
+        is_mirror = True
+        offset_now = offset_start - tensor.shape[axis]
+        while offset_now > - tensor.shape[axis]:
+            idt, ids = index(tensor, target_size, i, offset_now)
+            c_method, is_mirror = current_method(method, is_mirror)
+            padding_one_block(tensor, result, idt, ids, c_method, axis)
+            offset_now -= tensor.shape[axis]
+        return result
+    result = np.array(tensor)
+    for i in padding_order:
+        if method[i] is None:
+            continue
+        result = padding_one_dim(
+            result, i, target_shape[i], offset[i], method[i])
+    return result
