@@ -55,7 +55,7 @@ def main():
                 summary.summary()
             if i % 100 == 0:
                 summary.flush()
-            if i % 1000 == 0 and i > 0:
+            if i % 10000 == 0 and i > 0:
                 network.save()
 
     with session.as_default():

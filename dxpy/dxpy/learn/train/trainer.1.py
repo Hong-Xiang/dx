@@ -6,7 +6,10 @@ from ..model.tensor import shape_as_list
 
 from dxpy.configs import configurable
 from ..config import config
-class Trainer(Graph):
+
+from .summary import WithSummaryItems
+import typing
+class Trainer_v2(Graph, WithSummaryItems):
     """
     Trainer which make it easier to:
         1. Unified access for single GPU and multi GPU (auto detect);
@@ -32,14 +35,14 @@ class Trainer(Graph):
                 _check_tensor(l)
         else:
             _check_tensor(loss)
-    @configurable(config, with_name=True)
-    def __init__(self, name=None, loss=None, variables=None, learning_rate=1e-3, **kw):
+
+    def __init__(self, name:str=None, loss=None, variables=None, **config):
         """
         Inputs:
             loss: scalar or list of scalar (multi gpu)
             variables: list of tensors
         """
-        super(__class__, self).__init__(name, learning_rate=learning_rate, **kw)
+        super(__class__, self).__init__(name, **config)
         self._check_inputs(loss, variables)
         self.loss = loss
         if variables is None:
@@ -59,7 +62,7 @@ class Trainer(Graph):
     def _default_config(cls):
         return {
             'is_multi_gpu': False,
-            'learning_rate': 1e-3,
+            'learning_rate': 1e-5,
             'simple_mode': True,
             'nb_gpu': 2,
         }
