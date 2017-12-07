@@ -37,8 +37,7 @@ class Net(Model):
         if self.param('add_trainer'):
             if NodeKeys.LOSS in self.nodes:
                 self.register_node(NodeKeys.TRAINER,
-                                   Trainer(self.name / 'trainer', self.nodes[NodeKeys.LOSS],
-                                           nb_gpu=self.param('nb_gpu', default=None)))
+                                   Trainer(self.name / 'trainer', self.nodes[NodeKeys.LOSS]))
         if self.param('add_saver'):
             self.register_node(NodeKeys.SAVER, Saver(self.name / 'saver'))
 

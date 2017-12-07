@@ -76,6 +76,8 @@ class Graph:
     may be passed to simplify config procedure. Another simulation is the case with lots of child models and
     they all share simple but same configurations, you may pass the shared arguments by its parent Graph.
 
+    In most cases, Graph should communicat(connect) with others via dict of Tensors.
+
 
     Methods:
 

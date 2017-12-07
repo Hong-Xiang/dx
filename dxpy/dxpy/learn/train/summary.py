@@ -156,3 +156,21 @@ class SummaryWriterForNet(SummaryWriter):
             tensors_to_summary = dict()
         super().__init__(name, combine_dicts(tensors_to_summary, automatic_summary_tensors),
                          inputs, **config)
+
+
+from dxpy.configs import configurable
+from dxpy.learn.config import config
+
+
+class SummaryWriterV2(Graph):
+    # TODO: Target features:
+    # 1. summary_switch, within summary content, summaries will be added, otherwise ignored.
+    # 2. get_summary_writer(), global access to summary writer, convinient for adding summries
+    # 3. graph_name_filter: only response to summaries from given graph paths
+    @configurable(config, with_name=True)
+    def __init__(self, name='summary', tensors_to_summary=None, inputs=None,
+                 *, valid_paths=None,
+                 additional_paths=None,
+                 **kw):
+        super().__init__(name, valid_paths=valid_paths,
+                         additional_paths=additional_paths, **kw)
