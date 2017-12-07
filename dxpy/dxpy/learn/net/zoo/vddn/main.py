@@ -3,6 +3,7 @@ from ...base import Net, NodeKeys
 from ....model.cnn.residual import StackedResidualv2 
 from dxpy.configs import configurable
 from dxpy.learn.config import config
+
 class VeryDeepDenoiseNetwork(Net):
     @configurable(config, with_name=True)
     def __init__(self, name='VDDN', inputs=None, filters=32, **kw):

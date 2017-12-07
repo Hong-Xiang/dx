@@ -10,7 +10,18 @@ class Net(Model):
         2. inference
         3. evaluate
         4. save/load
+
+    Net will add these supports based on result of _kernel() calls.
+    - NodeKeys.LOSS: scalar or List[scalar]
+        If NodeKeys.Loss presented in self.nodes (automatically registed by model),
+        a trainer will be added with name self.name / 'trainer'. Depending on type
+        of loss, trainer will switch between single GPU and multi GPU version.
+    - NodeKeys.INFERENCE: output of net, will run with self.inference(feeds)
+        NOTE: feeds supports both registered name in self.nodes (str) and tf.Tensor
+    - NodeKeys.EVALUATE: used for evaluate performace, will run in self.evaluate(feeds)
+        NOTE: if no NodeKeys.EVALUATE in self.nodes, self.nodes[NodeKeys.LOSS] will be used. 
     """
+
 
     def __init__(self, name, inputs=None, **kw):
         super().__init__(name, inputs, **kw)

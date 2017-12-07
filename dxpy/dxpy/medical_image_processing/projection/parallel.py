@@ -51,9 +51,4 @@ def padding_pi2full(sinogram):
     """
     Padding sinogram of [0, np.pi) to full [0, 2*np.pi)
     """
-    sinogram_full = np.zeros([sinogram.shape[0], sinogram.shape[1] * 2],
-                             dtype=sinogram.dtype)
-    nb_views = sinogram.shape[1]
-    sinogram_full[:, :nb_views] = sinogram
-    sinogram_full[:, nb_views:] = sinogram[::-1, :]
-    return sinogram_full
+    return np.concatenate([sinogram, np.flip(sinogram, 0)], axis=1)
