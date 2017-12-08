@@ -31,6 +31,8 @@ class ResidualStackedConv(Model):
     def __init__(self, name, input_tensor, *, nb_layers=None, block_type=None, ratio=0.1, **config):
         super().__init__(name, inputs=input_tensor, nb_layers=nb_layers, ratio=ratio, **config)
 
+
+
     @classmethod
     def _default_config(cls):
         from dxpy.collections.dicts import combine_dicts
@@ -86,9 +88,9 @@ class StackedResidualv2(Model):
     INCEPT_TYPE = 'incept'
     STACKED_CONV_TYPE = 'stacked_conv'
     @configurable(config, with_name=True)
-    def __init__(self, name, input_tensor, *, nb_layers=10, block_type='incept', **config):
+    def __init__(self, name, input_tensor, *, nb_layers=10, block_type='incept', **kw):
         super().__init__(name, inputs=input_tensor,
-                         nb_layers=nb_layers, block_type=block_type, **config)
+                         nb_layers=nb_layers, block_type=block_type, **kw)
 
     def _kernel(self, feeds):
         x = feeds[NodeKeys.INPUT]
