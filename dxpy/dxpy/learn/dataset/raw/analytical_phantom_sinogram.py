@@ -106,6 +106,9 @@ def _get_example(idx, fields, h5sino, h5recon):
 def dataset_generator(fields=('sinogram',), ids=None):
     if ids is None:
         ids = range(0, int(NB_IMAGES * 0.8))
+        ids = list(ids)
+        import random
+        random.shuffle(ids)
     if isinstance(fields, str):
         fields = (fields, )
     fn_sino, fn_recon = _h5files()
