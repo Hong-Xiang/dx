@@ -6,6 +6,7 @@ from ....model.cnn.super_resolution import SuperResolutionMultiScalev2, SRKeys
 class SRNetKeys:
     RES_INF = 'res_inf'
     RES_ITP = 'res_itp'
+    LOSS_ITP = 'loss_itp'
 
 
 from dxpy.configs import configurable
@@ -135,6 +136,7 @@ class SRMultiScale(Net):
         from ....train.summary import SummaryItem
         from ....scalar import global_step
         result = {'loss':     SummaryItem(self.nodes[NodeKeys.EVALUATE])}
+        result.update{'loss_itp': SummaryItem(self.nodes['outputs/{}'.format(SRNetKeys.LOSS_ITP)])}
         max_down_sample = self.param('nb_down_sample')
         result.update({'img{}x'.format(2**max_down_sample):
                        SummaryItem(self.nodes['input/image{}x'.format(2**max_down_sample)])})
@@ -169,6 +171,7 @@ class SRMultiScale(Net):
         from ....model.tensor import MultiGPUSplitor, PlaceHolder
         from ....utils.general import device_name
         from ....model.image import align_crop
+        from dxpy.learn.model.losses import mean_square_error
         from dxpy.collections.dicts import swap_dict_hierarchy
         result = SuperResolutionMultiScalev2(name='model', inputs=feeds)()
         with tf.name_scope('residuals'):
@@ -176,6 +179,9 @@ class SRMultiScale(Net):
                 result[SRKeys.ALIGNED_LABEL] - result[NodeKeys.INFERENCE])
             res_itp = tf.abs(
                 result[SRKeys.ALIGNED_LABEL] - result[SRKeys.INTERP])
+        if NodeKeys.LOSS in result:
+            loss_itp = mean_square_error(result[SRKeys.ALIGNED_LABEL], result[SRKeys.INTERP])
+            result.update({SRNetKeys.LOSS_ITP: loss_itp})
         result.update({SRNetKeys.RES_INF: res_inf})
         result.update({SRNetKeys.RES_ITP: res_inf})
         result.update({NodeKeys.EVALUATE: result[NodeKeys.LOSS]})

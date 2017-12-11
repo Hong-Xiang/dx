@@ -31,7 +31,13 @@ class Session(Graph):
     def run_func(self, func):
         with self.nodes[NodeKeys.MAIN].as_default():
             return func()
-
+    
+    @property
+    def session(self):
+        return self.nodes[NodeKeys.MAIN]
+    @property
+    def graph(self):
+        return self.session.graph
     @contextmanager
     def as_default(self):
         with self.nodes[NodeKeys.MAIN].as_default():

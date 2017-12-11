@@ -2,7 +2,8 @@ import tensorflow as tf
 from ..model import Model
 from ..graph import Graph, NodeKeys
 
-
+from dxpy.configs import configurable
+from dxpy.learn.config import config 
 class Net(Model):
     """ Base class of nets.
     Net add some special tasks based on graph:
@@ -22,9 +23,9 @@ class Net(Model):
         NOTE: if no NodeKeys.EVALUATE in self.nodes, self.nodes[NodeKeys.LOSS] will be used. 
     """
 
-
-    def __init__(self, name, inputs=None, **kw):
-        super().__init__(name, inputs, **kw)
+    @configurable(config, with_name=True)
+    def __init__(self, name, inputs=None, nb_evaluate_runs=32, **kw):
+        super().__init__(name, inputs, nb_evaluate_runs=nb_evaluate_runs, **kw)
 
     @classmethod
     def _default_config(cls):
@@ -70,6 +71,7 @@ class Net(Model):
 
     def evaluate(self, feeds=None):
         return self.session.run(self.tensor(NodeKeys.EVALUATE), self.get_feed_dict(feeds))
+
 
     def save(self, feeds=None):
         return self.nodes[NodeKeys.SAVER].run('save', feeds)
