@@ -66,6 +66,7 @@ class Net(Model):
         return tf.get_default_session()
 
     def train(self, feeds=None):
+        self.nodes[NodeKeys.TRAINER].run('set_learning_rate')
         return self.nodes[NodeKeys.TRAINER](feeds)
 
     def inference(self, feeds=None):

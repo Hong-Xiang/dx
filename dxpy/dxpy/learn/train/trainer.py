@@ -77,8 +77,7 @@ class Trainer(Graph):
         self.run('multiply_learning_rate', feeds={'ratio': ratio})
 
     def _set_learning_rate(self, feeds):
-        self.nodes['learning_rate'].set_value(self.param('learning_rate'),
-                                              feeds)
+        self.nodes['learning_rate'].set_value(self.param('learning_rate'))
 
     def _get_optimizer(self):
         return tf.train.AdamOptimizer(self.nodes['learning_rate'].as_tensor())
