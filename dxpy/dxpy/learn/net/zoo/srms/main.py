@@ -136,7 +136,7 @@ class SRMultiScale(Net):
         from ....train.summary import SummaryItem
         from ....scalar import global_step
         result = {'loss':     SummaryItem(self.nodes[NodeKeys.EVALUATE])}
-        result.update{'loss_itp': SummaryItem(self.nodes['outputs/{}'.format(SRNetKeys.LOSS_ITP)])}
+        result.update({'loss_itp': SummaryItem(self.nodes['outputs/{}'.format(SRNetKeys.LOSS_ITP)])})
         max_down_sample = self.param('nb_down_sample')
         result.update({'img{}x'.format(2**max_down_sample):
                        SummaryItem(self.nodes['input/image{}x'.format(2**max_down_sample)])})

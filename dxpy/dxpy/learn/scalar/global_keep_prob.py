@@ -43,4 +43,5 @@ class _KeepProb(Graph):
 
 def create():
     global _instance
-    _instance = _KeepProb('keep_prob')
+    if _instance is None:
+        _instance = _KeepProb('keep_prob')

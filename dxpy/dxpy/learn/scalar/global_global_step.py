@@ -42,4 +42,5 @@ class _GlobalStep(Graph):
 
 def create():
     global _instance
-    _instance = _GlobalStep()
+    if _instance is None:
+        _instance = _GlobalStep()

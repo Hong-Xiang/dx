@@ -13,53 +13,26 @@ from dxpy.learn.model.cnn.super_resolution import SuperResolutionMultiScale, Bui
 from tqdm import tqdm
 from dxpy.learn.config import config
 import yaml
+from .summ import SRSummaryWriter
+from dxpy.learn.run.train import train
 
-def main():
-    with open('dxln.yml') as fin:
-        ycfg = yaml.load(fin)
-    config.update(ycfg)
-    logging.info('LOADED CONFIGS:')
-    logging.info(config)
+def train_defs(external_configs):
     dataset = AnalyticalPhantomSinogramDatasetForSuperResolution()
-    logging.info('Dataset initialized.')
-    pre_work()
     inputs = {}
     for i in range(dataset.param('nb_down_sample') + 1):
         inputs.update({'input/image{}x'.format(2**i): dataset['input/image{}x'.format(2**i)]})
-        if ycfg['use_noise_label']:
+        if external_configs['use_noise_label']:
             inputs.update({'label/image{}x'.format(2**i): dataset['input/image{}x'.format(2**i)]})
         else:
             inputs.update({'label/image{}x'.format(2**i): dataset['label/image{}x'.format(2**i)]})
             if dataset.param('image_type') == 'image':
                 inputs['label/image1x'] = dataset['label/phantom']
-    #     if i < 3:
-    #         inputs.update({'label/image{}x'.format(2**i)                       : dataset['image{}x'.format(2**i)]})
-    # images = [dataset['image{}x'.format(2**i)] for i in range(dataset.param('nb_down_sample') + 1)]
-    # inputs = SuperResolutionMultiScale.multi_scale_input(images)
-    from dxpy.debug.utils import dbgmsg
-    dbgmsg(inputs)
     network = SRMultiScale(inputs, name='network')
-    summary = SummaryWriter(
-        name='train', tensors_to_summary=network.summary_items(), path='./summary/train')
-    session = Session()
-    with session.as_default():
-        network.post_session_created()
-        summary.post_session_created()
-        session.post_session_created()
-
-    with session.as_default():
-        network.load()
-        for i in tqdm(range(ycfg['train']['steps'])):
-            network.train()
-            if i % 10 == 0:
-                summary.summary()
-            if i % 100 == 0:
-                summary.flush()
-            if i % 10000 == 0 and i > 0:
-                network.save()
-
-    with session.as_default():
-        network.save()
+    summary = SRSummaryWriter(name='summary/train', network=network)
+    return network, summary
+    
+def main():
+    train(train_defs)
 
 
 if __name__ == "__main__":

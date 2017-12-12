@@ -1,11 +1,14 @@
+from typing import Dict, List, TypeVar
+import arrow
+
 import tensorflow as tf
 
 from dxpy.collections.dicts import combine_dicts
+from dxpy.configs import configurable
 from dxpy.core.path import Path
+from dxpy.learn.config import config
 
 from ..graph import Graph, NodeKeys
-
-from typing import List, Dict, TypeVar
 
 
 def get_summary_type(tensor, summary_type):
@@ -70,7 +73,7 @@ class SummaryWriter(Graph):
                     summary.summary({'input': input_ndarray, 'label': label_ndarray})
             summary.flust()
     """
-
+    @configurable(config, with_name=True)
     def __init__(self, name: str='summary',
                  tensors: Dict[str, tf.Tensor]=None,
                  additional_inputs: Dict[str, tf.Tensor]=None,
@@ -160,6 +163,8 @@ class SummaryWriter(Graph):
             self.nodes[SummaryKeys.MERGED], feed_dict=feed_dict)
         self.nodes['summary_writer'].add_summary(value, current_step())
 
+    def auto_summary(self, feeds):
+        pass
 
     def flush(self):
         self.nodes['summary_writer'].flush()
@@ -168,4 +173,3 @@ class SummaryWriter(Graph):
         self.register_node('summary_writer',
                            tf.summary.FileWriter(self.param('path', feeds),
                                                  tf.get_default_session().graph))
-

@@ -160,7 +160,7 @@ def to_tensor_with_shape(input_, shape: Tuple[int], *, batch_size: int=None, nam
 
 
 def shape_as_list(input_) -> List[int]:
-    if isinstance(input_, tf.Tensor):
+    if isinstance(input_, (tf.Tensor, tf.Variable)):
         return list(input_.shape.as_list())
     if isinstance(input_, np.ndarray):
         return list(input_.shape)
