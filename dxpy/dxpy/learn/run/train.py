@@ -25,7 +25,7 @@ def train(definition_func):
         network.load()
         for i in tqdm(range(ycfg['train']['steps'])):
             network.train()
-            if i % 100 == 0:
+            if i % 1000 == 0:
                 summary.summary()
                 summary.flush()
             if i % 10000 == 0 and i > 0:

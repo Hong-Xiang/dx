@@ -174,6 +174,8 @@ class SRMultiScale(Net):
         from dxpy.learn.model.losses import mean_square_error
         from dxpy.collections.dicts import swap_dict_hierarchy
         result = SuperResolutionMultiScalev2(name='model', inputs=feeds)()
+        from dxpy.debug.utils import dbgmsg
+        dbgmsg(result)
         with tf.name_scope('residuals'):
             res_inf = tf.abs(
                 result[SRKeys.ALIGNED_LABEL] - result[NodeKeys.INFERENCE])

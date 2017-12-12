@@ -33,13 +33,13 @@ class Trainer(Graph):
         else:
             _check_tensor(loss)
     @configurable(config, with_name=True)
-    def __init__(self, name=None, loss=None, variables=None, learning_rate=1e-3, **kw):
+    def __init__(self, name=None, loss=None, variables=None, learning_rate=1e-3, simple_mode=True, **kw):
         """
         Inputs:
             loss: scalar or list of scalar (multi gpu)
             variables: list of tensors
         """
-        super(__class__, self).__init__(name, learning_rate=learning_rate, **kw)
+        super(__class__, self).__init__(name, learning_rate=learning_rate, simple_mode=True, **kw)
         self._check_inputs(loss, variables)
         self.loss = loss
         if variables is None:

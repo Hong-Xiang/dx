@@ -324,14 +324,13 @@ class SuperResolutionMultiScalev2(Model):
     def __init__(self, name, inputs, *,
                  nb_down_sample: int=3,
                  share_model=False,
-                 loss_weight: typing.TypeVar('T', float, typing.List[float]) = 1.0,
+                 loss_weight: typing.TypeVar('T', float, typing.List[float]) = 2.0,
                  **kw):
         super().__init__(name, inputs,
                          nb_down_sample=nb_down_sample,
                          share_model=share_model,
                          loss_weight=loss_weight,
                          **kw)
-
     @classmethod
     def multi_scale_input(cls, images, nb_down_sample=None, labels=None):
         """
@@ -342,6 +341,7 @@ class SuperResolutionMultiScalev2(Model):
         -   nb_down_sample: number of down sample operations, if is `None`, `len(images) -1` will be used.
         -   labels: list of label tensors. 
         """
+        
         if nb_down_sample is None:
             nb_down_sample = len(images) - 1
         if labels is None:
@@ -388,6 +388,8 @@ class SuperResolutionMultiScalev2(Model):
                     losses_mse.append(mid_result[SRKeys.MSE_LOSS])
             r = mid_result[SRKeys.REPRESENTS]
         result = {k: mid_result[k] for k in mid_result}
+        from dxpy.debug.utils import dbgmsg
+        dbgmsg(losses)
         if len(losses) > 0:
             with tf.name_scope('loss'):
                 if not isinstance(self.param('loss_weight'), (list, tuple)):
@@ -404,4 +406,5 @@ class SuperResolutionMultiScalev2(Model):
                 if len(losses_poi) > 0:
                     result[SRKeys.POI_LOSS] = tf.add_n(losses_poi)
                     result[SRKeys.MSE_LOSS] = tf.add_n(losses_mse)
+        dbgmsg(result)
         return result

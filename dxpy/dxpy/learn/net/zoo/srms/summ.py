@@ -17,7 +17,10 @@ class SRSummaryWriter(SummaryWriter):
             'learning_rate': network['trainer']['learning_rate']['value']
         }
         nb_runs = {
-            'loss': 32
+            'loss': 32,
+            'mes_inf': 32,
+            'mse_itp': 32,
+            'mse_inf_to_itp_ratio': 32,
         }
         super().__init__(name=name, tensors=summary_tensors, nb_runs=nb_runs, **kw)
 
