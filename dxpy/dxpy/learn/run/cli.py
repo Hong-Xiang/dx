@@ -4,7 +4,7 @@ class CLI(click.MultiCommand):
     """
     Helper of learn module.
     """
-    commands = {'train': None}
+    commands = {'train': None, 'dataset': None}
 
     def __init__(self):
         super(__class__, self).__init__(name='tf', help=__class__.__doc__)

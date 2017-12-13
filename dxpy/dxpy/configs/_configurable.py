@@ -24,8 +24,8 @@ from functools import wraps
 KEY_NAME = 'name'
 
 
-def parse_configs(func, *args, _config_object, **kw):
-    sig = inspect.signature(func)
+def parse_configs(_func, *args, _config_object, **kw):
+    sig = inspect.signature(_func)
     parameter_keys_not_in_args = list(sig.parameters.keys())[len(args):]
     kw_refined = dict()
     for k in parameter_keys_not_in_args:
@@ -49,8 +49,8 @@ def parse_configs(func, *args, _config_object, **kw):
     return ba
 
 
-def get_name(func, *args, **kw):
-    sig = inspect.signature(func)
+def get_name(_func, *args, **kw):
+    sig = inspect.signature(_func)
     ba = sig.bind_partial(*args, **kw)
     ba.apply_defaults()
     return ba.arguments[KEY_NAME]
@@ -65,12 +65,12 @@ class configurable:
         self._c = configs_object
         self._with_name = with_name
 
-    def __call__(self, func):
-        @wraps(func)
+    def __call__(self, _func):
+        @wraps(_func)
         def wrapper(*args, **kw):
             config = self._c
             if self._with_name:
-                config = config.get(get_name(func, *args, **kw))
-            ba = parse_configs(func, *args, **kw, _config_object=config)
-            return func(*ba.args, **ba.kwargs)
+                config = config.get(get_name(_func, *args, **kw))
+            ba = parse_configs(_func, *args, **kw, _config_object=config)
+            return _func(*ba.args, **ba.kwargs)
         return wrapper

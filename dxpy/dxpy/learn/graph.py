@@ -39,6 +39,9 @@ class GraphsManager:
 
 
 class NodeKeys:
+    """
+    Pre-defined frequently used keys
+    """
     EVALUATE = 'evaluate'
     INFERENCE = 'inference'
     TRAINER = 'trainer'
@@ -66,7 +69,7 @@ class Graph:
         3. An easy-to-use way of seperate/reuse subgraphs;
         4. Supports an warp of sessions.run/normal python function.
             Please add member method for tasks, and register them to tasks
-    
+
     Config module:
     Configs module is designed to support externel hierachy configs, thus with name of graph,
     graph can load/search configs. This is designed to reduce complecity of config complex networks.
@@ -76,7 +79,7 @@ class Graph:
     may be passed to simplify config procedure. Another simulation is the case with lots of child models and
     they all share simple but same configurations, you may pass the shared arguments by its parent Graph.
 
-    In most cases, Graph should communicat(connect) with others via dict of Tensors.
+    In most cases, Graph should communicate(connect) with others via dict of Tensors/Graph.
 
 
     Methods:
@@ -110,10 +113,22 @@ class Graph:
     def _default_config(cls):
         """ Override this method to provide default configs. """
         return dict()
+
+    def __hash__(self):
+        return self.name.__hash__()
+
     def keys(self):
         return self.nodes.keys()
+
+    def values(self):
+        return self.nodes.values()
+
+    def items(self):
+        return self.nodes.items()
+
     def __iter__(self):
         return self.nodes.__iter__()
+
     def _externel_feeds(self):
         return dict()
 

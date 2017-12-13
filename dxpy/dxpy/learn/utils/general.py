@@ -1,4 +1,3 @@
-
 def device_name(device_type, device_id=None):
     if device_id is None:
         device_id = 0
