@@ -110,7 +110,10 @@ class Graph:
     def _default_config(cls):
         """ Override this method to provide default configs. """
         return dict()
-
+    def keys(self):
+        return self.nodes.keys()
+    def __iter__(self):
+        return self.nodes.__iter__()
     def _externel_feeds(self):
         return dict()
 

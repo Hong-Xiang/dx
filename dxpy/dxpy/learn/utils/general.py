@@ -14,3 +14,10 @@ def refined_tensor_or_graph_name(tensor_or_graph):
 def pre_work():
     from dxpy.learn.scalar import create_global_scalars
     create_global_scalars()
+
+def load_yaml_config(filename):
+    from ..config import config
+    import yaml
+    with open(filename) as fin:
+        cfg = yaml.load(fin)
+    config.update(cfg)

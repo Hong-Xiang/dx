@@ -46,3 +46,9 @@ def train(definition_func):
 
     with session.as_default():
         network.save()
+        
+
+def train_dist(definition_func):
+    from dxpy.learn.utils.general import load_yaml_config
+    load_yaml_config('dxln.yml')
+    

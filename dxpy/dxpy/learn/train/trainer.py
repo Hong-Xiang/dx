@@ -6,6 +6,7 @@ from ..model.tensor import shape_as_list
 
 from dxpy.configs import configurable
 from ..config import config
+
 class Trainer(Graph):
     """
     Trainer which make it easier to:

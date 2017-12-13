@@ -1,5 +1,6 @@
 import tensorflow as tf
-
+from dxpy.configs import configurable
+from dxpy.learn.config import config
 from ..graph import Graph
 
 
@@ -25,8 +26,16 @@ _instance = None
 
 
 class _GlobalStep(Graph):
-    def __init__(self, name='global_step'):
-        super(__class__, self).__init__(name)
+    @configurable(config, with_name=True)
+    def __init__(self, name='global_step', is_dist=False):
+        super(__class__, self).__init__(name=name, is_dist=is_dist)
+        if is_dist:
+            with tf.device('/job:ps/task:0'):
+                self._create_variable_and_ops()
+        else:
+            self._create_variable_and_ops()
+
+    def _create_variable_and_ops(self):
         self.register_main_node(tf.Variable(0, dtype=tf.int64, trainable=False,
                                             name='global_step'))
         with tf.name_scope('global_step_setter'):
