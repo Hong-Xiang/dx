@@ -7,6 +7,7 @@ from dxpy.collections.dicts import combine_dicts
 from dxpy.configs import configurable
 from dxpy.core.path import Path
 from dxpy.learn.config import config
+from dxpy.learn.session import get_default_session
 
 from ..graph import Graph, NodeKeys
 
@@ -147,7 +148,7 @@ class SummaryWriter(Graph):
     def _get_multiple_run_feeds(self, feeds=None):
         result = dict()
         for i in range(self.nb_max_runs):
-            current_result = tf.get_default_session().run(self.inputs, self.get_feed_dict(feeds))
+            current_result = get_default_session().run(self.inputs, self.get_feed_dict(feeds))
             for k in self.inputs:
                 if k in self.nb_runs and self.nb_runs[k] > i:
                     result[self.multi_runs[k][i]] = current_result[k]
@@ -159,7 +160,7 @@ class SummaryWriter(Graph):
         mrf = self._get_multiple_run_feeds(feeds)
         feed_dict = self.get_feed_dict(feeds)
         feed_dict.update(mrf)
-        value = tf.get_default_session().run(
+        value = get_default_session().run(
             self.nodes[SummaryKeys.MERGED], feed_dict=feed_dict)
         self.nodes['summary_writer'].add_summary(value, current_step())
 
@@ -172,4 +173,4 @@ class SummaryWriter(Graph):
     def _create_writer(self, feeds):
         self.register_node('summary_writer',
                            tf.summary.FileWriter(self.param('path', feeds),
-                                                 tf.get_default_session().graph))
+                                                get_default_session().graph))

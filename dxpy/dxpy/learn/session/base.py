@@ -4,6 +4,19 @@ from contextlib import contextmanager
 from dxpy.configs import configurable
 from dxpy.learn.config import config
 
+_session = None
+
+
+def set_default_session(session):
+    global _session
+    _session = session
+
+
+def get_default_session():
+    if _session is None:
+        set_default_session(tf.get_default_session())
+    return _session
+
 
 class Session(Graph):
     def __init__(self, name='session', **config):
@@ -62,4 +75,5 @@ class SessionDist(Session):
             config.gpu_options.allow_growth = True
         if self.param('log_device_placement'):
             config.log_device_placement = True
+
         self.register_main_node(tf.Session(self._target, config=config))

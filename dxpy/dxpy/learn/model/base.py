@@ -40,7 +40,7 @@ class Model(Graph):
             y is shared for inputs of z1 and z2.
     """
 
-    def __init__(self, name, inputs=None, child_models=None, *, lazy_create=None, reuse=None, register_inputs=None, register_outputs=None, simple_output=None, **config):
+    def __init__(self, name, inputs=None, child_models=None, *, lazy_create=None, scope=None, reuse=None, register_inputs=None, register_outputs=None, simple_output=None, **config):
         """
         Inputs:
             name: Path, name of model.
@@ -61,7 +61,7 @@ class Model(Graph):
         super().__init__(name, lazy_create=lazy_create, reuse=reuse, register_inputs=register_inputs,
                          register_outputs=register_outputs, simple_output=simple_output, **config)
         self._created = False
-        self._scope = None
+        self._scope = scope
         self._inputs = self._unified_inputs(inputs)
         self._child_models = child_models
         if not self.param('lazy_create'):
@@ -190,23 +190,30 @@ class Model(Graph):
                                  NodeKeys.LOSS, NodeKeys.INFERENCE]
                 if n in left_out_keys:
                     self.register_node(n, self._outputs[n])
-
+    def __create_kernel_in_scope(self):
+        self._pre_kernel_pre_inputs()
+        self.__create_non_tensor_inputs()
+        self.__register_inputs()
+        # self.__create_non_model_child_models()
+        self._pre_kernel_post_inputs()
+        self._outputs = self._unified_outputs(self._kernel(self._inputs))
+        self._post_kernel_pre_outputs
+        self.__register_outputs()
+        self._post_kernel_post_outputs()       
     def __create(self):
         if self._created:
             raise ValueError(
                 "Model {} is created. Can not recreate.".format(self.name))
-        assert self._scope is None
-        with tf.variable_scope(self._variable_scope, reuse=False) as scope:
-            self._scope = scope
-            self._pre_kernel_pre_inputs()
-            self.__create_non_tensor_inputs()
-            self.__register_inputs()
-            # self.__create_non_model_child_models()
-            self._pre_kernel_post_inputs()
-            self._outputs = self._unified_outputs(self._kernel(self._inputs))
-            self._post_kernel_pre_outputs
-            self.__register_outputs()
-            self._post_kernel_post_outputs()
+        if self.param('reuse', raise_key_error=False):
+            if self._scope is None:
+                raise TypeError("Need scope for explicit reuse models")
+            with tf.variable_scope(self._variable_scope, reuse=True):
+                self.__create_kernel_in_scope()
+        else:
+            with tf.variable_scope(self._variable_scope, reuse=False) as scope:
+            # with tf.variable_scope(self._variable_scope) as scope:
+                self._scope = scope
+                self.__create_kernel_in_scope()
         self._created = True
 
     def _construct(self):

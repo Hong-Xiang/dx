@@ -63,7 +63,8 @@ class Net(Model):
 
     @property
     def session(self):
-        return tf.get_default_session()
+        from dxpy.learn.session import get_default_session
+        return get_default_session()
 
     def train(self, feeds=None):
         self.nodes[NodeKeys.TRAINER].run('set_learning_rate')

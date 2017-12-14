@@ -19,16 +19,19 @@ from dxpy.learn.config import config
 #     server.join()
 
 @configurable(config, with_name=True)
-def get_dist_network(job_name='dataset', task_index=0, network_config=None, dataset=None, name='cluster/ps/task0'):
+def get_dist_network(job_name='dataset', task_index=0, network_config=None, dataset=None, network_ps=None, name='cluster/ps/task0'):
+    import tf.train.replica_device_setter
     if network_config is None:
         network_config = name
     from dxpy.learn.net.api import get_network
     with tf.device('/job:{}/task:{}'.format(job_name, task_index)):
-        network = get_network(name=network_config, dataset=dataset, reuse=True)
-    return network
+    # with tf.device()
+        network = get_network(name=network_config, dataset=dataset, network_ps=network_ps, reuse=True, scope=network_ps._scope)
+        result = network()
+    return network, result
 
 @configurable(config, with_name=True)
-def apply_dist_network(job_name='dataset', task_index=0, network=None, dataset=None, name='cluster/ps/task0'):
+def apply_dist_network(job_name='worker', task_index=0, network=None, dataset=None, name='cluster/ps/task0'):
     with tf.device('/job:{}/task:{}'.format(job_name, task_index)):
         return network(dataset)
 

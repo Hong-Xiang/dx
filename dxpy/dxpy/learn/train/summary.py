@@ -5,7 +5,7 @@ from dxpy.collections.dicts import combine_dicts
 from ..graph import Graph, NodeKeys
 import typing
 
-
+from dxpy.learn.session import get_default_session
 class SummaryItem:
     def __init__(self, tensor, stype=None):
         """
@@ -108,7 +108,7 @@ class SummaryWriter(Graph):
         from ..scalar import current_step
         if self.as_tensor() is None:
             return
-        value = tf.get_default_session().run(self.as_tensor(), self.get_feed_dict(feeds))
+        value = get_default_session().run(self.as_tensor(), self.get_feed_dict(feeds))
         self.nodes['summary_writer'].add_summary(value, current_step())
 
     def flush(self):
@@ -125,7 +125,7 @@ class SummaryWriter(Graph):
     def __create_writer(self, feeds):
         self.register_node('summary_writer',
                            tf.summary.FileWriter(self.param('path', feeds),
-                                                 tf.get_default_session().graph))
+                                                 get_default_session().graph))
 
     def __add_tensors_to_summary(self):
         for n, v in self._tensors.items():

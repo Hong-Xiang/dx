@@ -8,7 +8,7 @@ class SinNet(Net):
     @configurable(config, with_name=True)
     def __init__(self, name, inputs, nb_layers, nb_units, **kw):
         super().__init__(name=name, inputs=inputs, nb_layers=nb_layers,
-                         nb_units=nb_units, add_trainer=True, add_saver=False, **kw)
+                         nb_units=nb_units, add_trainer=True, add_saver=True, **kw)
 
     def _post_kernel_post_outputs(self):
         from dxpy.learn.train.trainer_2 import Trainer

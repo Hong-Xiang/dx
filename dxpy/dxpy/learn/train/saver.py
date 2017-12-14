@@ -35,7 +35,8 @@ class Saver(Graph):
         from ..scalar import global_step
         if self._saver is None:
             self._saver = tf.train.Saver()
-        sess = tf.get_default_session()
+        from dxpy.learn.session import get_default_session
+        sess = get_default_session()
         step = sess.run(global_step())
         print("[SAVE] model to: {}.".format(self._model_path()))
         self._saver.save(sess, self._model_path(), global_step=step)
@@ -78,7 +79,8 @@ class Saver(Graph):
         import sys
         if self._saver is None:
             self._saver = tf.train.Saver()
-        sess = tf.get_default_session()
+        from dxpy.learn.session import get_default_session
+        sess = get_default_session()
         path_load, flag = self.__resolve_path_load(feeds)
         if flag is False:
             if isinstance(path_load, int):

@@ -14,7 +14,8 @@ def graph():
 
 
 def get_value():
-    return tf.get_default_session().run(keep_prob())
+    from dxpy.learn.session import get_default_session
+    return get_default_session().run(keep_prob())
 
 
 def set_value(value):
@@ -37,7 +38,8 @@ class _KeepProb(Graph):
         self.register_task('set', self.set_value)
 
     def set_value(self, feeds):
-        tf.get_default_session().run(self.assign_op, feed_dict={
+        from dxpy.learn.session import get_default_session
+        get_default_session().run(self.assign_op, feed_dict={
             self.nodes['new_value']: feeds})
 
 

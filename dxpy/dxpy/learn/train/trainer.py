@@ -6,6 +6,7 @@ from ..model.tensor import shape_as_list
 
 from dxpy.configs import configurable
 from ..config import config
+from dxpy.learn.session import get_default_session
 
 class Trainer(Graph):
     """
@@ -66,7 +67,7 @@ class Trainer(Graph):
         }
 
     def _train(self, feeds):
-        sess = tf.get_default_session()
+        sess = get_default_session()
         sess.run(self.as_tensor(), feed_dict=feeds)
 
     def _multiply_learning_rate(self, feeds):
