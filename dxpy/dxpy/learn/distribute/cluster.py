@@ -15,6 +15,10 @@ def get_cluster_spec_raw(config_filename):
         result[job_name] = ["{}:{}".format(v['ip'], v['port']) for v in spec[job_name]]
     return result
 
+def get_nb_tasks(cluster_filename, job_name):
+    cfg = get_cluster_spec_raw(cluster_filename)
+    return len(cfg[job_name])
+
 def get_server(cluster_spec, job_name, task_index=0):
     if isinstance(cluster_spec, dict):
         cluster_spec = tf.train.ClusterSpec(cluster_spec)

@@ -27,13 +27,30 @@ _instance = None
 
 class _GlobalStep(Graph):
     @configurable(config, with_name=True)
-    def __init__(self, name='global_step', is_dist=False):
+    def __init__(self, name='global_step', old_version=True, is_dist=False):
         super(__class__, self).__init__(name=name, is_dist=is_dist)
-        if is_dist:
-            with tf.device('/job:ps/task:0'):
+        if old_version:
+            if is_dist:
+                with tf.device('/job:ps/task:0'):
+                    self._create_variable_and_ops()
+            else:
                 self._create_variable_and_ops()
         else:
-            self._create_variable_and_ops()
+            if is_dist:
+                with tf.device('/job:ps/task:0'):
+                    self._create_variable_and_ops_new()
+            else:
+                self._create_variable_and_ops_new()          
+    
+    def _create_variable_and_ops_new(self):
+        with tf.variable_scope('global_step', reuse=tf.AUTO_REUSE):
+            gs = tf.get_variable('value', [], tf.int64)
+            self.register_main_node(gs)
+            self.create_placeholder_node(tf.int64, [], 'new_value')
+            self.assign_op = self.as_tensor().assign(self.nodes['new_value'])
+            self.register_node('setter', self.assign_op)
+            self.register_task('set', self.set_value)
+
 
     def _create_variable_and_ops(self):
         self.register_main_node(tf.Variable(0, dtype=tf.int64, trainable=False,

@@ -10,9 +10,14 @@ def refined_tensor_or_graph_name(tensor_or_graph):
         return tensor_or_graph.name.replace(':', '_')
     return tensor_or_graph.name
 
-def pre_work():
+def pre_work(device=None):
+    import tensorflow as tf
     from dxpy.learn.scalar import create_global_scalars
-    create_global_scalars()
+    if device is None:
+        create_global_scalars()
+    else:
+        with tf.device(device):
+            create_global_scalars()
 
 def load_yaml_config(filename):
     from ..config import config

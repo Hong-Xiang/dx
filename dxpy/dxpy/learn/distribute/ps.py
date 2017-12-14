@@ -19,9 +19,11 @@ def start_parameter_server(cluster_spec_file='cluster.yml', job_name='ps', task_
     server.join()
 
 @configurable(config, with_name=True)
-def get_dist_network(job_name='dataset', task_index=0, network_name=None, dataset=None, name='cluster/ps/task0'):
-    from dxpy.learn.net import get_network
+def get_dist_network(job_name='ps', task_index=0, network_config=None, dataset=None, name='cluster/ps/task0'):
+    if network_config is None:
+        network_config = name
+    from dxpy.learn.net.api import get_network
     with tf.device('/job:{}/task:{}'.format(job_name, task_index)):
-        network = get_network(name=dataset_name, dataset=dataset)
+        network = get_network(name=network_config, dataset=dataset)
     return network
 
