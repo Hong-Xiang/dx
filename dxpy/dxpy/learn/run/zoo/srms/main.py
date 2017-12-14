@@ -37,7 +37,8 @@ def main(task='train', job_name='worker', task_index=0, cluster_config='cluster.
         if job_name == 'worker':
             hooks = [tf.train.StepCounterHook()]
             with tf.train.MonitoredTrainingSession(master=server.target,
-                                                   is_chief=(task_index == 0),
+                                                #    is_chief=(task_index == 0),
+                                                   is_chief=True,
                                                    checkpoint_dir="./save",
                                                    config=config,
                                                    hooks=hooks) as sess:
