@@ -383,12 +383,13 @@ class SuperResolutionMultiScalev2(Model):
                 x = self._get_node('input', i_down_sample, feeds)
             if itp is None:
                 itp = x
-            mid_result = SuperResolutionBlock(self.name / 'srb_{}'.format(i_down_sample),
+            srb = SuperResolutionBlock(self.name / 'srb_{}'.format(i_down_sample),
                                               {NodeKeys.INPUT: x,
                                                NodeKeys.LABEL: self._get_node('label', i_down_sample - 1, feeds),
-                                               SRKeys.REPRESENTS: r})()
+                                               SRKeys.REPRESENTS: r})
+            mid_result = srb()
             x = mid_result[NodeKeys.INFERENCE]
-            itp = resize(itp, self.param('down_sample_ratio'))
+            itp = resize(itp, srb.param('down_sample_ratio'))
             itp = align_crop(itp, x)
             if NodeKeys.LOSS in mid_result:
                 losses.append(mid_result[NodeKeys.LOSS])

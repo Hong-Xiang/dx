@@ -20,3 +20,8 @@ def load_yaml_config(filename):
     with open(filename) as fin:
         cfg = yaml.load(fin)
     config.update(cfg)
+    if 'include' in cfg:
+        for f in cfg['include']:
+            with open(f) as fin:
+                cfg_i = yaml.load(fin)
+                config.update(cfg_i)
