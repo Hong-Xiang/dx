@@ -16,18 +16,8 @@ datasets_configs = {
 }
 config = {
     'train': {
-        'save': {
-            'frequency': 100,
-            'method': 'step'
-        },
-        'load': {
-            'is_load': True,
-            'step': -1
-        },
-        'model_filesystem': {
-            'path_model': './model',
-            'ckpt_name': 'save'
-        },
+        'summary_freq': 60,
+        'ckpt_path': './save'
     },
     'datasets': datasets_configs
 }

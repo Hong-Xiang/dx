@@ -8,7 +8,8 @@ from dxpy.configs import configurable
 from dxpy.core.path import Path
 from dxpy.learn.config import config
 from dxpy.learn.session import get_default_session
-
+import arrow
+import time
 from ..graph import Graph, NodeKeys
 
 
@@ -83,6 +84,7 @@ class SummaryWriter(Graph):
                  *,
                  path: str='./summary/train',
                  nb_max_image: int=3,
+                 interval: int=600,
                  with_prefix: bool=False,
                  **kw):
         """
@@ -91,7 +93,8 @@ class SummaryWriter(Graph):
             inputs: tensors required to run summary (will used for feeds)
         """
         super().__init__(name, path=path,
-                         nb_max_image=nb_max_image, with_prefix=with_prefix, **kw)
+                         nb_max_image=nb_max_image, with_prefix=with_prefix,
+                         interval=interval, **kw)
         if tensors is None:
             tensors = dict()
         if additional_inputs is None:
@@ -113,6 +116,7 @@ class SummaryWriter(Graph):
                                    tf.summary.merge(summary_ops))
         self.register_task('create_writer', self._create_writer)
         self.register_task('flush', self.flush)
+        self._pre_summ = arrow.now()
 
     def _processing(self, tensors: Dict[str, tf.Tensor]) -> Dict[str, tf.Tensor]:
         result = dict()
@@ -126,11 +130,12 @@ class SummaryWriter(Graph):
                         self.nb_max_runs = self.nb_runs[k]
                     mm = get_merge_method(tensors[k], self.merge_method.get(k))
                     if mm == 'mean':
-                        reduce_mean = tf.add_n(self.multi_runs[k]) / len(self.multi_runs[k])
+                        reduce_mean = tf.add_n(
+                            self.multi_runs[k]) / len(self.multi_runs[k])
                         result[k] = reduce_mean
                     elif mm == 'concat':
                         concat = tf.concat(self.multi_runs[k], axis=0)
-                        result[k] = concat 
+                        result[k] = concat
             else:
                 result[k] = tensors[k]
         return result
@@ -141,20 +146,20 @@ class SummaryWriter(Graph):
             summ_op = create_summary_op(k, tensors[k])
             result.append(summ_op)
         return result
-            
+
     def post_session_created(self):
         self.run('create_writer')
 
     def _get_multiple_run_feeds(self, feeds=None):
         result = dict()
         for i in range(self.nb_max_runs):
-            current_result = get_default_session().run(self.inputs, self.get_feed_dict(feeds))
+            current_result = get_default_session().run(
+                self.inputs, self.get_feed_dict(feeds))
             for k in self.inputs:
                 if k in self.nb_runs and self.nb_runs[k] > i:
                     result[self.multi_runs[k][i]] = current_result[k]
         return result
 
- 
     def summary(self, feeds=None):
         from ..scalar import current_step
         mrf = self._get_multiple_run_feeds(feeds)
@@ -164,8 +169,15 @@ class SummaryWriter(Graph):
             self.nodes[SummaryKeys.MERGED], feed_dict=feed_dict)
         self.nodes['summary_writer'].add_summary(value, current_step())
 
-    def auto_summary(self, feeds):
-        pass
+    def auto_summary(self, feeds=None):
+        time_now = arrow.now()
+        dtime = (time_now - self._pre_summ).seconds
+        if dtime > self.param('interval'):
+            self.summary(feeds)
+            print('Add Summary at {}'.format(arrow.now()))
+            self._pre_summ = time_now
+        else:
+            time.sleep(self.param('interval') - dtime)
 
     def flush(self):
         self.nodes['summary_writer'].flush()
@@ -173,4 +185,4 @@ class SummaryWriter(Graph):
     def _create_writer(self, feeds):
         self.register_node('summary_writer',
                            tf.summary.FileWriter(self.param('path', feeds),
-                                                get_default_session().graph))
+                                                 get_default_session().graph))

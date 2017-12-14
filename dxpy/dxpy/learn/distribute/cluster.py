@@ -30,11 +30,11 @@ def get_nb_tasks(cluster_filename, job_name):
     cfg = get_cluster_spec_raw(cluster_filename)
     return len(cfg[job_name])
 
-def get_server(cluster_spec, job_name, task_index=0):
+def get_server(cluster_spec, job_name, task_index=0, config=None):
     if isinstance(cluster_spec, dict):
         cluster_spec = tf.train.ClusterSpec(cluster_spec)
     cluster = tf.train.ClusterSpec(cluster_spec)
-    server = tf.train.Server(cluster, job_name, task_index)
+    server = tf.train.Server(cluster, job_name, task_index, config=config)
     return server
 
 

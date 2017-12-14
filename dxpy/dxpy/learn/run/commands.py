@@ -33,3 +33,8 @@ def main(name, job_name, task_index, run, config):
     if name == 'sin':
         from .zoo.sin.main import main
         main(run, job_name, task_index)
+    elif name == 'srms':
+        from .zoo.srms.main import main
+        main(run, job_name, task_index)
+    else:
+        raise ValueError("Unknown name {} for dxpy.ln.main CLI.".format(name))

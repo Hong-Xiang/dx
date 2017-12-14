@@ -129,14 +129,16 @@ class SRMultiScale(Net):
     'label/image1x', ..., 'label/image4x'
     """
     @configurable(config, with_name=True)
-    def __init__(self, inputs, name='network', nb_gpu=2, nb_down_sample=3, **kw):
-        super().__init__(name, inputs, nb_gpu=nb_gpu, nb_down_sample=nb_down_sample, **kw)
+    def __init__(self, inputs, name='network', nb_gpu=2, nb_down_sample=3, new_trainer=False, **kw):
+        super().__init__(name, inputs, nb_gpu=nb_gpu,
+                         nb_down_sample=nb_down_sample, new_trainer=new_trainer, **kw)
 
     def summary_items(self):
         from ....train.summary import SummaryItem
         from ....scalar import global_step
         result = {'loss':     SummaryItem(self.nodes[NodeKeys.EVALUATE])}
-        result.update({'loss_itp': SummaryItem(self.nodes['outputs/{}'.format(SRNetKeys.LOSS_ITP)])})
+        result.update({'loss_itp': SummaryItem(
+            self.nodes['outputs/{}'.format(SRNetKeys.LOSS_ITP)])})
         max_down_sample = self.param('nb_down_sample')
         result.update({'img{}x'.format(2**max_down_sample):
                        SummaryItem(self.nodes['input/image{}x'.format(2**max_down_sample)])})
@@ -165,7 +167,11 @@ class SRMultiScale(Net):
     def _post_kernel_post_outputs(self):
         self.register_node(NodeKeys.EVALUATE,
                            self.nodes['outputs/{}'.format(NodeKeys.EVALUATE)])
-        super()._post_kernel_post_outputs()
+        # super()._post_kernel_post_outputs()
+        from dxpy.learn.train.trainer_2 import Trainer
+        if NodeKeys.LOSS in self.nodes:
+            self.register_node(NodeKeys.TRAINER,
+                               Trainer(self.name / 'trainer', self.nodes[NodeKeys.LOSS]))
 
     def _kernel(self, feeds):
         from ....model.tensor import MultiGPUSplitor, PlaceHolder
@@ -174,15 +180,14 @@ class SRMultiScale(Net):
         from dxpy.learn.model.losses import mean_square_error
         from dxpy.collections.dicts import swap_dict_hierarchy
         result = SuperResolutionMultiScalev2(name='model', inputs=feeds)()
-        from dxpy.debug.utils import dbgmsg
-        dbgmsg(result)
         with tf.name_scope('residuals'):
             res_inf = tf.abs(
                 result[SRKeys.ALIGNED_LABEL] - result[NodeKeys.INFERENCE])
             res_itp = tf.abs(
                 result[SRKeys.ALIGNED_LABEL] - result[SRKeys.INTERP])
         if NodeKeys.LOSS in result:
-            loss_itp = mean_square_error(result[SRKeys.ALIGNED_LABEL], result[SRKeys.INTERP])
+            loss_itp = mean_square_error(
+                result[SRKeys.ALIGNED_LABEL], result[SRKeys.INTERP])
             result.update({SRNetKeys.LOSS_ITP: loss_itp})
         result.update({SRNetKeys.RES_INF: res_inf})
         result.update({SRNetKeys.RES_ITP: res_inf})
