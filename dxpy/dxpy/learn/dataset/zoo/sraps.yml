@@ -12,3 +12,7 @@ dataset:
     with_poission_noise: false
     log_scale: false
     target_shape: [256, 256]
+network:
+  srms:
+    nb_layers: 10
+    

@@ -273,12 +273,15 @@ class SuperResolutionMultiScale(Model):
         return source[name]
 
     def _kernel(self, feeds):
+        
         x = None
         r = None
+ 
         losses = []
         for i_down_sample in reversed(range(1, self.param('nb_down_sample') + 1)):
             if x is None:
                 x = self._get_node('input', i_down_sample, feeds)
+
             mid_result = SuperResolution2x('sr2x_{}'.format(i_down_sample),
                                            {NodeKeys.INPUT: x,
                                             NodeKeys.LABEL: self._get_node('label', i_down_sample - 1, feeds),
@@ -368,19 +371,25 @@ class SuperResolutionMultiScalev2(Model):
         return source[name]
 
     def _kernel(self, feeds):
+        from ..image import resize
         x = None
         r = None
+        itp = None
         losses = []
         losses_mse = []
         losses_poi = []
         for i_down_sample in reversed(range(1, self.param('nb_down_sample') + 1)):
             if x is None:
                 x = self._get_node('input', i_down_sample, feeds)
+            if itp is None:
+                itp = x
             mid_result = SuperResolutionBlock(self.name / 'srb_{}'.format(i_down_sample),
                                               {NodeKeys.INPUT: x,
                                                NodeKeys.LABEL: self._get_node('label', i_down_sample - 1, feeds),
                                                SRKeys.REPRESENTS: r})()
             x = mid_result[NodeKeys.INFERENCE]
+            itp = resize(itp, self.param('down_sample_ratio'))
+            itp = align_crop(itp, x)
             if NodeKeys.LOSS in mid_result:
                 losses.append(mid_result[NodeKeys.LOSS])
                 if SRKeys.POI_LOSS in mid_result:
@@ -388,8 +397,7 @@ class SuperResolutionMultiScalev2(Model):
                     losses_mse.append(mid_result[SRKeys.MSE_LOSS])
             r = mid_result[SRKeys.REPRESENTS]
         result = {k: mid_result[k] for k in mid_result}
-        from dxpy.debug.utils import dbgmsg
-        dbgmsg(losses)
+        result[SRKeys.INTERP] = itp
         if len(losses) > 0:
             with tf.name_scope('loss'):
                 if not isinstance(self.param('loss_weight'), (list, tuple)):
@@ -406,5 +414,4 @@ class SuperResolutionMultiScalev2(Model):
                 if len(losses_poi) > 0:
                     result[SRKeys.POI_LOSS] = tf.add_n(losses_poi)
                     result[SRKeys.MSE_LOSS] = tf.add_n(losses_mse)
-        dbgmsg(result)
         return result

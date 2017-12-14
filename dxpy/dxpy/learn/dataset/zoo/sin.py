@@ -12,15 +12,16 @@ class SinDataset(Graph):
 
     def _construct_dataset(self):
         from dxpy.learn.utils.tensor import ensure_shape
-        x = tf.random_uniform(shape=[self.param('batch_size'), 1], minval=0, maxval=2*np.pi)
-        y = tf.sin(x*self.param('frequency')+self.param('phase'))*self.param('amplitude')
-        # dataset = tf.data.Dataset.from_tensors({'x': x, 'y': y})
-        # dataset = dataset.batch(self.param('batch_size'))
-        # iterator = dataset.make_one_shot_iterator()
-        # next_element = iterator.get_next()
-        shape = [self.param('batch_size'), 1]
-        self.register_node('x', ensure_shape(x, shape=shape))
-        self.register_node('y', ensure_shape(y, shape=shape))
+        with tf.name_scope(str(self.name)):
+            x = tf.random_uniform(shape=[self.param('batch_size'), 1], minval=0, maxval=2*np.pi)
+            y = tf.sin(x*self.param('frequency')+self.param('phase'))*self.param('amplitude')
+            # dataset = tf.data.Dataset.from_tensors({'x': x, 'y': y})
+            # dataset = dataset.batch(self.param('batch_size'))
+            # iterator = dataset.make_one_shot_iterator()
+            # next_element = iterator.get_next()
+            shape = [self.param('batch_size'), 1]
+            self.register_node('x', ensure_shape(x, shape=shape))
+            self.register_node('y', ensure_shape(y, shape=shape))
 
     
 
