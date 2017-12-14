@@ -54,7 +54,7 @@ def main(task='train', job_name='worker', task_index=0, cluster_config='cluster.
         name = 'cluster/summary/task{}'.format(task_index)
         result = apply_dist_network(
             network=network, dataset=datasets[-1], name=name)
-        result.update(dataset[-1].nodes)
+        result.update(datasets[-1].nodes)
         sw = get_dist_summary(tensors=result, network=network, name=name)
         sess = SessionDist(target=server.target)
         with sess.as_default():
