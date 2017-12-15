@@ -48,6 +48,7 @@ def main(task='train', job_name='worker', task_index=0, cluster_config='cluster.
                                                    hooks=hooks) as sess:
                 from dxpy.learn.session import set_default_session
                 set_default_session(sess)
+                network.nodes['trainer'].run('set_learning_rate')
             # sess = SessionDist(target=server.target)
                 # with sess._sess.as_default():
                 for _ in tqdm(range(10000000000000), ascii=True):
