@@ -24,7 +24,8 @@ def main(task='train', job_name='worker', task_index=0, cluster_config='cluster.
     datasets = []
     nb_datasets = get_nb_tasks(cluster_config, 'dataset')
     for i in range(nb_datasets):
-        datasets.append(get_dist_dataset(name='cluster/dataset/task{}'.format(i)))
+        datasets.append(get_dist_dataset(
+            name='cluster/dataset/task{}'.format(i)))
     if job_name == 'dataset':
         server.join()
         return
@@ -34,13 +35,14 @@ def main(task='train', job_name='worker', task_index=0, cluster_config='cluster.
     elif job_name in ['worker', 'summary']:
         with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:{}".format(task_index), cluster=cluster)):
             pre_work()
-            network = get_network(name='network/srms', dataset=datasets[task_index % nb_datasets])
+            network = get_network(name='network/srms',
+                                  dataset=datasets[task_index % nb_datasets])
             result = network()
         if job_name == 'worker':
             hooks = [tf.train.StepCounterHook()]
             with tf.train.MonitoredTrainingSession(master=server.target,
                                                    is_chief=(task_index == 0),
-                                                #    is_chief=True,
+                                                   #    is_chief=True,
                                                    checkpoint_dir="./save",
                                                    config=config,
                                                    hooks=hooks) as sess:
@@ -56,9 +58,20 @@ def main(task='train', job_name='worker', task_index=0, cluster_config='cluster.
             network=network, dataset=datasets[-1], name=name)
         result.update(datasets[-1].nodes)
         sw = get_dist_summary(tensors=result, network=network, name=name)
-        sess = SessionDist(target=server.target)
-        with sess.as_default():
+        hooks = [tf.train.StepCounterHook()]
+        with tf.train.MonitoredTrainingSession(master=server.target,
+                                               is_chief=False,
+                                               config=config,
+                                               hooks=hooks) as sess:
+            from dxpy.learn.session import set_default_session
+            set_default_session(sess)
             sw.post_session_created()
             while True:
                 sw.auto_summary()
+            #
+        # sess = SessionDist(target=server.target)
+        # with sess.as_default():
+        #     sw.post_session_created()
+        #     while True:
+        #         sw.auto_summary()
         return

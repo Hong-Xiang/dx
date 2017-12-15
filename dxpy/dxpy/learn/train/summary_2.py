@@ -1,6 +1,6 @@
 from typing import Dict, List, TypeVar
 import arrow
-
+import sys
 import tensorflow as tf
 
 from dxpy.collections.dicts import combine_dicts
@@ -11,6 +11,7 @@ from dxpy.learn.session import get_default_session
 import arrow
 import time
 from ..graph import Graph, NodeKeys
+import click
 
 
 def get_summary_type(tensor, summary_type):
@@ -175,6 +176,7 @@ class SummaryWriter(Graph):
         if dtime > self.param('interval'):
             self.summary(feeds)
             print('Add Summary at {}'.format(arrow.now()))
+            sys.stdout.flush()
             self._pre_summ = time_now
         else:
             time.sleep(self.param('interval') - dtime)
