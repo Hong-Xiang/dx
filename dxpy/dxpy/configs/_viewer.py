@@ -62,6 +62,15 @@ class ConfigsView:
     def __getitem__(self, key):
         return self.get(key, restrict=True)
 
+    def __iter__(self):
+        dct = self._get_value_raw(self.base.parts())
+        if dct is None:
+            return list().__iter__()
+        else:
+            return dct.__iter__()
+
+    
+
 
 def child_view(configs_view, extend_path):
     return ConfigsView(configs_view.base_path / str(extend_path), configs_view.data)

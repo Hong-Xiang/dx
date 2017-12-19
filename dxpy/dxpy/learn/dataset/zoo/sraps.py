@@ -22,6 +22,7 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                  with_white_normalization: bool=True,
                  with_poission_noise: bool=False,
                  with_noise_label: bool=False,
+                 with_phase_shift: bool=False,
                  target_shape: List[int]=None,
                  **kw):
         """
@@ -41,20 +42,25 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                          target_shape=target_shape,
                          with_white_normalization=with_white_normalization,
                          with_noise_label=with_noise_label,
+                         with_phase_shift=with_phase_shift,
                          nb_down_sample=nb_down_sample, **kw)
         from ...model.normalizer.normalizer import FixWhite, ReduceSum
         from ...model.tensor import ShapeEnsurer
         from dxpy.core.path import Path
         name = Path(name)
+        from dxpy.debug.utils import dbgmsg
+        dbgmsg(image_type)
         if image_type == 'sinogram':
             fields = ['sinogram']
+        elif image_type == 'sinogram_with_phantom':
+            fields = ['sinogram', 'phantom']
         else:
             fields = ['phantom'] + ['recon{}x'.format(2**i)
                                     for i in range(self.param('nb_down_sample') + 1)]
         with tf.name_scope('aps_{img_type}_dataset'.format(img_type=image_type)):
             dataset_origin = Dataset(
                 self.name / 'analytical_phantom_sinogram', fields=fields)
-            if image_type == 'sinogram':
+            if image_type in ['sinogram', 'sinogram_with_phantom']:
                 dataset = self._process_sinogram(dataset_origin)
             else:
                 dataset = self._process_recons(dataset_origin)
@@ -69,6 +75,8 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                 self.register_node('label/image{}x'.format(2**i), dataset['input/image{}x'.format(2**i)])
             else:
                 self.register_node('label/image{}x'.format(2**i), dataset['label/image{}x'.format(2**i)])
+        if 'phantom' in dataset:
+            self.register_node('phantom', dataset['phantom'])
    
 
     def _process_sinogram(self, dataset):
@@ -81,6 +89,10 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
             stat = dataset.SINO_STAT
         # dataset = ReduceSum(self.name / 'reduce_sum', dataset['sinogram'],
             # fixed_summation_value=1e6).as_tensor()
+        if 'phantom' in dataset:
+            phan = dataset['phantom']
+        else:
+            phan = None
         dataset = dataset['sinogram']
         if self.param('with_poission_noise'):
             with tf.name_scope('add_with_poission_noise'):
@@ -91,6 +103,12 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
         if self.param('with_white_normalization'):
             dataset = FixWhite(name=self.name / 'fix_white',
                                inputs=dataset, mean=stat['mean'], std=stat['std']).as_tensor()
+        #random phase shift
+        if self.param('with_phase_shift'):
+            phase_view = tf.random_uniform([], 0, shape_as_list(dataset)[1], dtype=tf.int64)
+            dataset_l = dataset[:, phase_view:, :, :]
+            dataset_r = dataset[:, :phase_view, :, :]
+            dataset = tf.concat([dataset_l, dataset_r], axis=1)
         dataset = tf.random_crop(dataset,
                                  [shape_as_list(dataset)[0]] + list(self.param('target_shape')) + [1])
         dataset = SuperResolutionDataset(self.name / 'super_resolution',
@@ -107,6 +125,8 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
         else:
             result = {'input/' + k: dataset[k] for k in keys}
             result.update({'label/' + k: dataset[k] for k in keys})
+        if phan is not None:
+            result.update({'phantom': phan}) 
         return result
 
     def _process_recons(self, dataset):

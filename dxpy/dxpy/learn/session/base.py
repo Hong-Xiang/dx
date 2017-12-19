@@ -77,3 +77,6 @@ class SessionDist(Session):
             config.log_device_placement = True
 
         self.register_main_node(tf.Session(self._target, config=config))
+
+
+

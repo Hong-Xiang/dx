@@ -119,3 +119,14 @@ def padding(tensor: np.ndarray, target_shape: List[int], offset: TypeVar('T', in
         result = padding_one_dim(
             result, i, target_shape[i], offset[i], method[i])
     return result
+
+def rotate(tensor, offset, axis):
+    slis = [slice(0, s) for s in tensor.shape]
+    slil = list(slis)
+    slir = list(slis)
+    slil[axis] = slice(offset, tensor.shape[axis])
+    slir[axis] = slice(0, offset)
+    tl = tensor[slil]
+    tr = tensor[slir]
+    result = np.concatenate([tl, tr], axis=axis)
+    return result

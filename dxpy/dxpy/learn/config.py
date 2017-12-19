@@ -1,7 +1,6 @@
 from dxpy.filesystem import Path
 import os
 datasets_configs = {
-    
     'dataset_root_path': os.environ.get('PATHS_DATASET', str(Path(os.environ.get('HOME')) / 'Datas')),
     'analytical_phantom_sinogram': {
         'path': '/home/hongxwing/Datas/Phantom',
@@ -14,6 +13,7 @@ datasets_configs = {
         },
     }
 }
+
 config = {
     'train': {
         'summary_freq': 60,

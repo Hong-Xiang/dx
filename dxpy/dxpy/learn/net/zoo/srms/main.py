@@ -167,11 +167,12 @@ class SRMultiScale(Net):
     def _post_kernel_post_outputs(self):
         self.register_node(NodeKeys.EVALUATE,
                            self.nodes['outputs/{}'.format(NodeKeys.EVALUATE)])
-        # super()._post_kernel_post_outputs()
         from dxpy.learn.train.trainer_2 import Trainer
         if NodeKeys.LOSS in self.nodes:
             self.register_node(NodeKeys.TRAINER,
                                Trainer(self.name / 'trainer', self.nodes[NodeKeys.LOSS]))
+        super()._post_kernel_post_outputs()
+        
 
     def _kernel(self, feeds):
         from ....model.tensor import MultiGPUSplitor, PlaceHolder

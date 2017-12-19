@@ -130,20 +130,23 @@ class Dataset(Graph):
 
     @configurable(config, with_name=True)
     def __init__(self, name='analytical_phantom_sinogram_dataset', *,
-                 batch_size=32, fields=('sinogram', ), ids=None, shuffle=True):
+                 batch_size=32, fields=('sinogram', ), ids=None, shuffle=True, dataset_type='train', **kw):
         if isinstance(fields, str):
             fields = (fields, )
         super().__init__(name, batch_size=batch_size,
-                         ids=ids, fields=fields, shuffle=shuffle)
+                         ids=ids, fields=fields, shuffle=shuffle, dataset_type=dataset_type, **kw)
         dataset = self._create_dataset()
         self.dataset = self._processing(dataset)
         self._register_dataset()
 
     def _create_dataset(self):
         from functools import partial
+        ids = self.param('ids', raise_key_error=False) 
+        if self.param('dataset_type') == 'test' and ids is None:
+            ids = list(range(int(NB_IMAGES*0.8), NB_IMAGES))
         dataset_gen_partial = partial(dataset_generator,
                                       fields=self.param('fields'),
-                                      ids=self.param('ids', raise_key_error=False))
+                                      ids=ids)
         output_types = {k: data_type_tf(k) for k in self.param('fields')}
         output_shapes = {k: data_shape(k) for k in self.param('fields')}
         return tf.data.Dataset.from_generator(dataset_gen_partial, output_types, output_shapes)

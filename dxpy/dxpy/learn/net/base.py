@@ -49,7 +49,7 @@ class Net(Model):
         if self.param('add_trainer'):
             from dxpy.debug.utils import dbgmsg
             dbgmsg(self.nodes[NodeKeys.LOSS])
-            if NodeKeys.LOSS in self.nodes:
+            if NodeKeys.LOSS in self.nodes and not NodeKeys.TRAINER in self.nodes:
                 self.register_node(NodeKeys.TRAINER,
                                    Trainer(self.name / 'trainer', self.nodes[NodeKeys.LOSS]))
         if self.param('add_saver'):
