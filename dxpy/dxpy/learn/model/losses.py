@@ -4,9 +4,15 @@ from dxpy.configs import configurable, ConfigsView
 from dxpy.learn.config import config
 from .base import NodeKeys
 
+
 def mean_square_error(label, data):
     with tf.name_scope('mean_squared_error'):
         return tf.sqrt(tf.reduce_mean(tf.square(label - data)))
+
+
+def l1_error(label, data):
+    with tf.name_scope('l1_error'):
+        return tf.reduce_mean(tf.abs(label - data))
 
 
 def poission_loss(label, data, *, compute_full_loss=False):
@@ -14,7 +20,6 @@ def poission_loss(label, data, *, compute_full_loss=False):
         label = tf.maximum(label, 0.0)
         # return log_possion_loss(tf.log(label), data)
         return tf.reduce_mean(tf.keras.losses.poisson(label, data))
-                                
 
 
 def log_possion_loss(log_label, data, *, compute_full_loss=False):
@@ -26,7 +31,9 @@ def log_possion_loss(log_label, data, *, compute_full_loss=False):
         data = tf.maximum(data, 0.0)
         return tf.reduce_mean(tf.nn.log_poisson_loss(data, log_label, compute_full_loss))
 
+
 from ..model.base import Model
+
 
 class PoissionLossWithDenorm(Model):
     """
@@ -38,7 +45,9 @@ class PoissionLossWithDenorm(Model):
     """
     @configurable(config, with_name=True)
     def __init__(self, name, inputs, with_log=False, threshold=10, mean=0.0, std=1.0, **kw):
-        super().__init__(name, inputs=inputs, with_log =with_log, threshold=threshold, mean=mean, std=std, **kw)
+        super().__init__(name, inputs=inputs, with_log=with_log,
+                         threshold=threshold, mean=mean, std=std, **kw)
+
     def _kernel(self, feeds):
         from dxpy.debug.utils import dbgmsg
         dbgmsg(self.param('mean'))
@@ -47,8 +56,12 @@ class PoissionLossWithDenorm(Model):
         label = feeds[NodeKeys.LABEL]
         infer = feeds[NodeKeys.INPUT]
         with tf.name_scope('denorm_white'):
-            label = label * self.param('std') + self.param('mean')
-            infer = infer * self.param('std') + self.param('mean')
+            label = label * \
+                tf.constant(self.param('std')) + \
+                tf.constant(self.param('mean'))
+            infer = infer * \
+                tf.constant(self.param('std')) + \
+                tf.constant(self.param('mean'))
         if self.param('with_log'):
             with tf.name_scope('denorm_log_for_data'):
                 infer = tf.exp(infer)
@@ -56,5 +69,42 @@ class PoissionLossWithDenorm(Model):
                 loss = log_possion_loss(label, infer)
         else:
             with tf.name_scope('loss'):
-                loss = poission_loss(label, infer) 
+                loss = poission_loss(label, infer)
         return {NodeKeys.MAIN: loss}
+
+
+def get_loss_func(name):
+    if name.lower() in ['mse', 'mean_square_error', 'l2']:
+        return mean_square_error
+    if name == 'poi':
+        return poission_loss
+    if name == 'l1':
+        return l1_error
+    raise ValueError("Unknown error name {}.".format(name))
+
+
+class CombinedSupervisedLoss(Model):
+    @configurable(config, with_name=True)
+    def __init__(self, name, inputs, loss_names, loss_weights, **kw):
+        super().__init__(name, inputs=inputs, loss_names=loss_names,
+                         loss_weights=loss_weights, **kw)
+
+    def _kernel(self, feeds):
+        if not NodeKeys.LABEL in feeds:
+            raise ValueError("{} is required for feeds of {}, but not found in feeds".format(
+                NodeKeys.LABEL, __class__))
+        if not NodeKeys.INPUT in feeds:
+            raise ValueError("{} is required for feeds of {}, but not found in feeds".format(
+                NodeKeys.INPUT, __class__))
+        label = feeds[NodeKeys.LABEL]
+        data = feeds[NodeKeys.INPUT]
+        with tf.name_scope('combined_losses'):
+            losses = []
+            for n, w in zip(self.param('loss_names'), self.param('loss_weights')):
+                losses.append(get_loss_func(n)(label, data) * tf.constant(w))
+            with tf.name_scope('summation'):
+                loss = tf.add_n(losses)
+        result = {NodeKeys.OUTPUT: loss}
+        for i, n in enumerate(self.param('loss_names')):
+            result.update({'loss/' + n: losses[i]})
+        return result

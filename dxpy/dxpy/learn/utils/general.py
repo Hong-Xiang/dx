@@ -19,7 +19,7 @@ def pre_work(device=None):
         with tf.device(device):
             create_global_scalars()
 
-def load_yaml_config(filename):
+def load_yaml_config(filename='dxln.yml'):
     from ..config import config
     import yaml
     with open(filename) as fin:

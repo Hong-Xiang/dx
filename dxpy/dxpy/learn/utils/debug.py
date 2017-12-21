@@ -8,7 +8,7 @@ def dummy_image(shape=None, batch_size=32, nb_channel=1, name='dummy_image'):
     return tf.placeholder(tf.float32, [batch_size] + shape + [nb_channel], name=name)
 
 
-def write_graph():
+def write_graph(path=None):
     from .general import pre_work
     from ..train.summary import SummaryWriter
     from ..session import Session

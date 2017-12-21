@@ -19,8 +19,9 @@ def get_default_session():
 
 
 class Session(Graph):
-    def __init__(self, name='session', **config):
-        super().__init__(name, **config)
+    def __init__(self, name='session', target=None, **kw):
+        super().__init__(name, **kw)
+        self._target = target
         self._create_session()
 
     @classmethod
@@ -37,7 +38,7 @@ class Session(Graph):
             config.gpu_options.allow_growth = True
         if self.param('log_device_placement'):
             config.log_device_placement = True
-        self.register_main_node(tf.Session(config=config))
+        self.register_main_node(tf.Session(config=config, target=self._target))
 
     def run(self, tensors, feed_dict=None):
         with self.nodes[NodeKeys.MAIN].as_default():

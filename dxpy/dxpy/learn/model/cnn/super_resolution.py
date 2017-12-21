@@ -112,6 +112,9 @@ class SuperResolutionBlock(Model):
                  with_poi_loss=False,
                  poi_loss_weight=0.0,
                  mse_loss_weight=1.0,
+                 use_combined_loss=False,
+                 denorm_std=1.0,
+                 denorm_mean=0.0,
                  **kw):
         super().__init__(name, inputs,
                          building_block=building_block,
@@ -122,6 +125,9 @@ class SuperResolutionBlock(Model):
                          with_poi_loss=with_poi_loss,
                          poi_loss_weight=poi_loss_weight,
                          mse_loss_weight=mse_loss_weight,
+                         use_combined_loss=use_combined_loss,
+                         denorm_mean=denorm_mean,
+                         denorm_std=denorm_std,
                          **kw)
 
     def _crop_size(self, input_=None):
@@ -195,16 +201,35 @@ class SuperResolutionBlock(Model):
     def _loss(self, label, infer):
         from ..image import mean_square_error, align_crop
         from ..losses import PoissionLossWithDenorm
+        from ..losses import CombinedSupervisedLoss
         if label is not None:
             with tf.name_scope('loss'):
                 aligned_label = align_crop(label, infer)
-                loss_mse = self._mse_loss(
-                    aligned_label, infer) * self.param('mse_loss_weight')
-                loss = loss_mse
-                if self.param('with_poi_loss'):
-                    loss_poi = self._poi_loss(
-                        aligned_label, infer) * self.param('poi_loss_weight')
-                    loss = loss + loss_poi
+                if self.param('use_combined_loss'):
+                    with tf.name_scope('denorm'):
+                        stdv = tf.constant(self.param(
+                            'denorm_std'), tf.float32)
+                        meanv = tf.constant(self.param(
+                            'denorm_mean'), tf.float32)
+
+                        labeld = aligned_label * stdv + meanv
+                        inferd = infer * stdv + meanv
+                    result = CombinedSupervisedLoss(
+                        self.name / 'loss', inputs={NodeKeys.INPUT: inferd, NodeKeys.LABEL: labeld})()
+                    result.update({SRKeys.ALIGNED_LABEL: aligned_label})
+                    result.update({NodeKeys.LOSS: result[NodeKeys.OUTPUT]})
+                    result.pop(NodeKeys.OUTPUT)
+                    return result
+
+                else:
+                    loss_mse = self._mse_loss(
+                        aligned_label, infer) * self.param('mse_loss_weight')
+                    loss = loss_mse
+                    if self.param('with_poi_loss'):
+                        loss_poi = self._poi_loss(
+                            aligned_label, infer) * self.param('poi_loss_weight')
+                        loss = loss + loss_poi
+
                 result = {NodeKeys.LOSS: loss,
                           SRKeys.MSE_LOSS: loss_mse,
                           SRKeys.ALIGNED_LABEL: aligned_label}
@@ -273,10 +298,10 @@ class SuperResolutionMultiScale(Model):
         return source[name]
 
     def _kernel(self, feeds):
-        
+
         x = None
         r = None
- 
+
         losses = []
         for i_down_sample in reversed(range(1, self.param('nb_down_sample') + 1)):
             if x is None:
@@ -334,6 +359,7 @@ class SuperResolutionMultiScalev2(Model):
                          share_model=share_model,
                          loss_weight=loss_weight,
                          **kw)
+
     @classmethod
     def multi_scale_input(cls, images, nb_down_sample=None, labels=None):
         """
@@ -344,7 +370,7 @@ class SuperResolutionMultiScalev2(Model):
         -   nb_down_sample: number of down sample operations, if is `None`, `len(images) -1` will be used.
         -   labels: list of label tensors. 
         """
-        
+
         if nb_down_sample is None:
             nb_down_sample = len(images) - 1
         if labels is None:
@@ -384,9 +410,9 @@ class SuperResolutionMultiScalev2(Model):
             if itp is None:
                 itp = x
             srb = SuperResolutionBlock(self.name / 'srb_{}'.format(i_down_sample),
-                                              {NodeKeys.INPUT: x,
-                                               NodeKeys.LABEL: self._get_node('label', i_down_sample - 1, feeds),
-                                               SRKeys.REPRESENTS: r})
+                                       {NodeKeys.INPUT: x,
+                                        NodeKeys.LABEL: self._get_node('label', i_down_sample - 1, feeds),
+                                        SRKeys.REPRESENTS: r})
             mid_result = srb()
             x = mid_result[NodeKeys.INFERENCE]
             itp = resize(itp, srb.param('down_sample_ratio'))
@@ -408,7 +434,7 @@ class SuperResolutionMultiScalev2(Model):
                     lw = self.param('loss_weight')
                 for i, l in enumerate(losses):
                     losses[i] = losses[i] * lw[i]
-                    if len(losses_poi) > 0: 
+                    if len(losses_poi) > 0:
                         losses_poi[i] = losses_poi[i] * lw[i]
                         losses_mse[i] = losses_mse[i] * lw[i]
                 result[NodeKeys.LOSS] = tf.add_n(losses)

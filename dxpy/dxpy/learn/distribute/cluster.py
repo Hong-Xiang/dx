@@ -22,7 +22,7 @@ def get_cluster_spec_raw(config_filename, job_name=None):
     elif job_name in ['summary', 'saver']:
         valid_keys = ['ps', 'dataset', job_name]
     else:
-        valid_keys = list(result.keys)
+        valid_keys = list(result.keys())
     # result = {k: result[k] for k in valid_keys}
     return result
 
