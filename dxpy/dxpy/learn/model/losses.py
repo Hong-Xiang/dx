@@ -19,6 +19,7 @@ def l1_error(label, data):
 def poission_loss(label, data, *, compute_full_loss=False):
     with tf.name_scope('poission_loss'):
         label = tf.maximum(label, 0.0)
+        data = tf.maximum(data, 0.0)
         # return log_possion_loss(tf.log(label), data)
         return tf.reduce_mean(tf.keras.losses.poisson(label, data))
 

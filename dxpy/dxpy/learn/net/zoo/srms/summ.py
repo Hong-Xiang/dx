@@ -31,14 +31,15 @@ class SRSummaryWriter(SummaryWriter):
             res_inf = tf.abs(result['label'] - result['infer'])
             res_itp = tf.abs(result['label'] - result['interp'])
             dif_inf_itp = tf.abs(result['infer'] - result['interp'])
-            result['res_inf']= res_inf
-            result['res_itp']= res_itp
-            result['dif_inf_itp']= dif_inf_itp
+            result['res_inf'] = res_inf
+            result['res_itp'] = res_itp
+            result['dif_inf_itp'] = dif_inf_itp
             result['mse_inf'] = mse(result['label'], result['infer'])
             result['mse_itp'] = mse(result['label'], result['interp'])
             result['mse_inf_to_itp_ratio'] = result['mse_inf'] / \
                 result['mse_itp']
         return super()._processing(result)
+
 
 class SRSummaryWriter_v2(SummaryWriter):
     @configurable(config, with_name=True)
@@ -51,6 +52,12 @@ class SRSummaryWriter_v2(SummaryWriter):
             'infer': tensors['inference'],
             'learning_rate': network['trainer']['learning_rate']['value']
         }
+        if 'loss/l1' in tensors:
+            summary_tensors.update({'loss_l1': tensors['loss/l1']})
+        if 'loss/mse' in tensors:
+            summary_tensors.update({'loss_mse': tensors['loss/mse']})
+        if 'loss/poi' in tensors:
+            summary_tensors.update({'loss_poi': tensors['loss/poi']})
         nb_runs = {
             'loss': 32,
             'mes_inf': 32,
@@ -66,9 +73,9 @@ class SRSummaryWriter_v2(SummaryWriter):
             res_inf = tf.abs(result['label'] - result['infer'])
             res_itp = tf.abs(result['label'] - result['interp'])
             dif_inf_itp = tf.abs(result['infer'] - result['interp'])
-            result['res_inf']= res_inf
-            result['res_itp']= res_itp
-            result['dif_inf_itp']= dif_inf_itp
+            result['res_inf'] = res_inf
+            result['res_itp'] = res_itp
+            result['dif_inf_itp'] = dif_inf_itp
             result['mse_inf'] = mse(result['label'], result['infer'])
             result['mse_itp'] = mse(result['label'], result['interp'])
             result['mse_inf_to_itp_ratio'] = result['mse_inf'] / \
