@@ -48,8 +48,6 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
         from ...model.tensor import ShapeEnsurer
         from dxpy.core.path import Path
         name = Path(name)
-        from dxpy.debug.utils import dbgmsg
-        dbgmsg(image_type)
         if image_type == 'sinogram':
             fields = ['sinogram']
         elif image_type == 'sinogram_with_phantom':
