@@ -17,8 +17,13 @@ class ScalarVariable(Graph):
         self.register_task('set', self.set_value)
 
     def set_value(self, feeds):
-        tf.get_default_session().run(self.assign_op, feed_dict={
+        from dxpy.learn.session import get_default_session
+        get_default_session().run(self.assign_op, feed_dict={
             self.nodes['new_value']: feeds})
 
     def get_value(self):
-        return tf.get_default_session().run(self.as_tensor())
+        from dxpy.learn.session import get_default_session
+        return get_default_session().run(self.as_tensor())
+
+class GlobalScalar:
+    pass

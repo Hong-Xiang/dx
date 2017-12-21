@@ -1,1 +1,1 @@
-from .petsino.phantom import PhantomSinograms
+from .api import get_dataset

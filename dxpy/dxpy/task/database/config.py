@@ -1,7 +1,8 @@
 import os
 from collections import UserDict
+from dxpy.filesystem import Path
 _default = {
-    'path': os.environ.get('PATH_DATABASE') + 'taskdb.db',
+    'path': str(Path(os.environ.get('PATH_DATABASE')) / 'taskdb.db'),
     'name': 'task',
     'names': 'tasks',
     'use_web_api': True,

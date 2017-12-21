@@ -72,20 +72,20 @@ class MNISTSimpleNet(Net):
             }
         }
 
-    def _pre_create_in_scope(self):
+    def _pre_kernel_post_inputs(self):
 
         self._main_model = MNISTSimpleConvModel(self.name / 'model',
                                                 self.nodes['image'],
                                                 self.nodes['label'], lazy_create=True)
 
-    def _post_create_in_scope(self):
+    def _post_kernel_post_outputs(self):
         self.register_node(
             NodeKeys.LOSS, self._main_model['cross_entropy'])
         self.register_node(NodeKeys.INFERENCE,
                            self._main_model['prediction'])
         self.register_node(NodeKeys.EVALUATE,
                            self._main_model['accuracy'])
-        super()._post_create_in_scope()
+        super()._post_kernel_post_outputs()
 
     def _kernel(self, feeds=None):
         return self._main_model({'image': self.tensor('image'), 'label': self.tensor('label')})

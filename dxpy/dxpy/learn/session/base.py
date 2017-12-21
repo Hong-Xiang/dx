@@ -1,46 +1,83 @@
-def supervisor(config, load_fn, save_fn):
-    sv_para = {'summary_op': None}
-    sms = config.save.frequency
-    load_step = config.save.load_step
-    if sms is not None:
-        sv_para['save_model_secs'] = sms
-    if load_step is not None:
-        sv_para['init_fn'] = load_fn
-    sv_para['saver'] = save_fn
-    supervisor = tf.train.Supervisor(**sv_para)
-    tf_config = tf.ConfigProto(
-        log_device_placement=config.log.is_show_device_placement)
-    tf_config.gpu_options.allow_growth = True
-    sess = supervisor.prepare_or_wait_for_session(config=tf_config)
-    return {'supervisor': supervisor, 'session': sess}
+import tensorflow as tf
+from ..graph import Graph, NodeKeys
+from contextlib import contextmanager
+from dxpy.configs import configurable
+from dxpy.learn.config import config
+
+_session = None
 
 
-# def _set_sesssv(self):
-#         from .supervisor import supervisor
-#         result = supervisor(self.params)
-
-from ..graph import Graph
+def set_default_session(session):
+    global _session
+    _session = session
 
 
-class SessionWithSupervisor(Graph):
-    def __init__(self, name, **config):
-        super(__class__, self).__init__(name, **config)
+def get_default_session():
+    if _session is None:
+        set_default_session(tf.get_default_session())
+    return _session
 
-    def __construct(self):
-        sv_para = {'summary_op': None}
-        sms = self.c['save']['frequency']
-        load_step = self.c['save']['load_step']
-        if sms is not None:
-            sv_para['save_model_secs'] = sms
-        if load_step is not None:
-            sv_para['init_fn'] = load_fn
-        sv_para['saver'] = save_fn
-        supervisor = tf.train.Supervisor(**sv_para)
-        tf_config = tf.ConfigProto(
-            log_device_placement=config.log.is_show_device_placement)
-        tf_config.gpu_options.allow_growth = True
-        sess = supervisor.prepare_or_wait_for_session(config=tf_config)
-        return {'supervisor': supervisor, 'session': sess}
 
-    def _load(self):
-        pass
+class Session(Graph):
+    def __init__(self, name='session', target=None, **kw):
+        super().__init__(name, **kw)
+        self._target = target
+        self._create_session()
+
+    @classmethod
+    def _default_config(cls):
+        from dxpy.collections.dicts import combine_dicts
+        return combine_dicts({
+            'allow_growth': True,
+            'log_device_placement': False
+        }, super()._default_config())
+
+    def _create_session(self):
+        config = tf.ConfigProto()
+        if self.param('allow_growth'):
+            config.gpu_options.allow_growth = True
+        if self.param('log_device_placement'):
+            config.log_device_placement = True
+        self.register_main_node(tf.Session(config=config, target=self._target))
+
+    def run(self, tensors, feed_dict=None):
+        with self.nodes[NodeKeys.MAIN].as_default():
+            return self.nodes[NodeKeys.MAIN].run(tensors, feed_dict)
+
+    def run_func(self, func):
+        with self.nodes[NodeKeys.MAIN].as_default():
+            return func()
+
+    @property
+    def session(self):
+        return self.nodes[NodeKeys.MAIN]
+
+    @property
+    def graph(self):
+        return self.session.graph
+
+    @contextmanager
+    def as_default(self):
+        with self.nodes[NodeKeys.MAIN].as_default():
+            yield self.nodes[NodeKeys.MAIN]
+
+    def post_session_created(self):
+        self.as_tensor().run(tf.global_variables_initializer())
+
+
+class SessionDist(Session):
+    def __init__(self, name='session', target=None, **kw):
+        self._target = target
+        super().__init__(name=name, **kw)
+
+    def _create_session(self):
+        config = tf.ConfigProto()
+        if self.param('allow_growth'):
+            config.gpu_options.allow_growth = True
+        if self.param('log_device_placement'):
+            config.log_device_placement = True
+
+        self.register_main_node(tf.Session(self._target, config=config))
+
+
+

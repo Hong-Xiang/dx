@@ -3,7 +3,11 @@ import click
 
 
 class CLI(click.MultiCommand):
-    commands = {'code': None, 'task': None, 'batch': None, 'run': None}
+    commands = {'code': None,
+                'task': None,
+                'batch': None,
+                'run': None,
+                'ln': None}
 
     def __init__(self):
         super(__class__, self).__init__(name='dxl', help='DXL CLI tools.')
@@ -16,13 +20,15 @@ class CLI(click.MultiCommand):
         from ..code import cli as code
         from ..batch.api.cli import batch
         from ..run import run_cli
+        from ..learn.run.cli import main as learn 
         if name in self.commands:
             if self.commands[name] is None:
                 mapping = {
                     'code': code,
                     'task': task,
                     'batch': batch,
-                    'run': run_cli
+                    'run': run_cli,
+                    'ln': learn 
                 }
                 self.commands[name] = mapping.get(name)
         return self.commands.get(name)

@@ -1,2 +1,2 @@
-from .dataapi import MNISTTFRecords, MNISTLoadAll
-from .classic import MNISTClassic
+from .dataapi import MNISTTFRecords
+# from .classic import MNISTClassic

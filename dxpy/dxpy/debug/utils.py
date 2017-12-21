@@ -18,9 +18,13 @@ def enter_debug():
 
 _last_msg_file = None
 
+dbgmsg_switch = None
 
 def dbgmsg(*args, **kwargs):
     global _last_msg_file
+    global dbgmsg_switch
+    if dbgmsg_switch is False:
+        return
     from .config import verbose
     if verbose <= 0:
         return

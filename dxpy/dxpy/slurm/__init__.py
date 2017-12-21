@@ -1,1 +1,4 @@
-from .slurm import TaskInfo, apply_command, sbatch, sid_from_submit, squeue, is_complete
+"""
+A Python interface 
+"""
+from .slurm import TaskInfo, sbatch, sid_from_submit, squeue, is_complete

@@ -5,19 +5,19 @@ from dxpy import slurm
 
 class TestSlurm(unittest.TestCase):
     def test_sbatch(self):
-        slurm.slurm.apply_command = Mock(
+        slurm.slurm._apply_command = Mock(
             return_value=['Submitted batch job 327'])
         slurm.sbatch('/tmp/test', 'run.sh')
-        slurm.slurm.apply_command.assert_called_with(
-            "cd /tmp/test && sbatch run.sh")
+        slurm.slurm._apply_command.assert_called_with(
+            "cd /tmp/test && sbatch  run.sh")
 
     def test_squeue(self):
         slurm_msg = ["             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)             \n",
                      "                327      main  test.sh hongxwing  R       4:41      1 NB408A-WS1    "]
-        slurm.slurm.apply_command = Mock(return_value=slurm_msg)
+        slurm.slurm._apply_command = Mock(return_value=slurm_msg)
         tasks_gathered = []
         slurm.squeue().subscribe(lambda t: tasks_gathered.append(t))
-        slurm.slurm.apply_command.assert_called_with('squeue')
+        slurm.slurm._apply_command.assert_called_with('squeue')
         self.assertEqual(tasks_gathered[0].id, 327)
         self.assertEqual(tasks_gathered[0].part, 'main')
         self.assertEqual(tasks_gathered[0].cmd, 'test.sh')
@@ -29,7 +29,7 @@ class TestSlurm(unittest.TestCase):
                      "                327      main  test.sh hongxwing  R       4:41      1 NB408A-WS1    ",
                      "                329     main  test.sh hongxwing  R       4:41      1 NB408A-WS1    ",
                      "                400      main  test.sh hongxwing  R       4:41      1 NB408A-WS1    "]
-        slurm.slurm.apply_command = Mock(return_value=slurm_msg)
+        slurm.slurm._apply_command = Mock(return_value=slurm_msg)
         self.assertTrue(slurm.is_complete(300))
         self.assertFalse(slurm.is_complete(327))
         self.assertFalse(slurm.is_complete(329))
