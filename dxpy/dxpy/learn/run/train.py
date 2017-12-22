@@ -46,9 +46,21 @@ def train(definition_func):
 
     with session.as_default():
         network.save()
-        
+
 
 def train_dist(definition_func):
     from dxpy.learn.utils.general import load_yaml_config
     load_yaml_config('dxln.yml')
-    
+
+
+def train_with_monitored_session(network, steps=10000000000000):
+    from dxpy.learn.utils.general import pre_work
+    from dxpy.learn.session import set_default_session
+    from tqdm import tqdm
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    hooks = [tf.train.StepCounterHook()]
+    with tf.train.MonitoredTrainingSession(config=config, checkpoint_dir='./save', hooks=hooks) as sess:
+        set_default_session(sess)
+        for _ in tqdm(range(steps)):
+            network.train()

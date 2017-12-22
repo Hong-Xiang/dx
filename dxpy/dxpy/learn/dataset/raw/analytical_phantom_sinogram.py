@@ -86,7 +86,7 @@ def _post_processing(result):
         result['sinogram'] = padding_pi2full(result['sinogram']).T
     for k in result:
         result[k] = result[k].astype(data_type_np(k))
-        result[k] = result[k] / np.sum(result[k]) * 1e6 
+        result[k] = result[k] / np.sum(result[k]) * 1e6
     return result
 
 
@@ -120,7 +120,7 @@ def dataset_generator(fields=('sinogram',), ids=None):
 
 
 class Dataset(Graph):
-    # Statistics are calculated after fixed summation (total events) to 1e6, 
+    # Statistics are calculated after fixed summation (total events) to 1e6,
     # sinogram with minimum noise 0.4 (+0.4 to all)
     # recons with minimum noise 1.0 (+1.0 to all)
     SINO_STAT = {'mean': 4.88, 'std': 4.37}
@@ -141,9 +141,9 @@ class Dataset(Graph):
 
     def _create_dataset(self):
         from functools import partial
-        ids = self.param('ids', raise_key_error=False) 
+        ids = self.param('ids', raise_key_error=False)
         if self.param('dataset_type') == 'test' and ids is None:
-            ids = list(range(int(NB_IMAGES*0.8), NB_IMAGES))
+            ids = list(range(int(NB_IMAGES * 0.8), NB_IMAGES))
         dataset_gen_partial = partial(dataset_generator,
                                       fields=self.param('fields'),
                                       ids=ids)
@@ -173,7 +173,6 @@ class Dataset(Graph):
 
     def data_shape(self, key):
         return data_shape(key)
-
 
 
 # The following part is a record of dataset generator script.
