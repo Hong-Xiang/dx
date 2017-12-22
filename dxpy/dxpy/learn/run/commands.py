@@ -62,12 +62,26 @@ def train2(train_config_name, config, dataset_maker_name=None, network_maker_nam
     if summary_maker_name is None:
         summary_maker_name = train_config_name
     from .base import DxlnRunEnvrionment
+    from .train import train_task_local
     with DxlnRunEnvrionment(config):
-        from dxpy.learn.dataset.api import get_dataset
-        from dxpy.learn.net.api import get_network, get_summary
-        dataset = get_dataset(dataset_maker_name)
-        network = get_network(network_maker_name, dataset=dataset)
-        result = network()
-        summary = get_summary(summary_maker_name, dataset, network, result)
-        from .train import train_with_monitored_session
-        train_with_monitored_session(network)
+        train_task_local(dataset_maker_name,
+                         network_maker_name,
+                         summary_maker_name)
+
+
+@click.command()
+@click.option('--cluster_file', '-f', type=str, default='cluster.yml', help='cluster config file name.')
+@click.option('--config', '-c', type=str, help='configs .yml filename', default='dxln.yml')
+@click.option('--job_name', '-j', type=str)
+@click.option('--task_index', '-t', type=int)
+def train_dist(cluster_file, job_name, task_index, config):
+    """
+    Run dist tasks
+    """
+    from dxpy.learn.distribute.cluster import get_cluster_spec
+    from .base import DxlnRunEnvrionment
+    cluster = get_cluster_spec(cluster_file)
+    from .train import train_task_dist
+    with DxlnRunEnvrionment(config):
+        train_task_dist(name='cluster/{}/task{}'.format(job_name, task_index),
+                        cluster=cluster)
