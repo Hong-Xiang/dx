@@ -26,10 +26,10 @@ def data_type_tf(key):
 def data_shape(key):
     return {
         'phantom': [192, 192],
-        'sinogram1x': [768, 384],
-        'sinogram2x': [384, 192],
-        'sinogram4x': [192, 96],
-        'sinogram8x': [96, 48],
+        'sinogram1x': [768*2, 384],
+        'sinogram2x': [384*2, 192],
+        'sinogram4x': [192*2, 96],
+        'sinogram8x': [96*2, 48],
         'id': [],
     }[key]
 
@@ -59,9 +59,8 @@ def _processing(result):
             sino_d = np.flip(sino, axis=0)
             sino_d = rotate(sino_d, -1, 0)
             result[k] = np.concatenate([sino, sino_d], axis=1)
-            
-            # result[k] = padding_pi2full(result[k])
             result[k] = result[k].T
+            result[k] = np.concatenate([result[k]]*2, axis=0)
         result[k] = result[k].astype(data_type_np(k))
         result[k] = result[k] / np.sum(result[k]) * 1e6
     return result

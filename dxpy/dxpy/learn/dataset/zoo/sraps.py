@@ -109,12 +109,12 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
             dataset = FixWhite(name=self.name / 'fix_white',
                                inputs=dataset, mean=stat['mean'], std=stat['std']).as_tensor()
         # random phase shift
-        if self.param('with_phase_shift'):
-            phase_view = tf.random_uniform(
-                [], 0, shape_as_list(dataset)[1], dtype=tf.int64)
-            dataset_l = dataset[:, phase_view:, :, :]
-            dataset_r = dataset[:, :phase_view, :, :]
-            dataset = tf.concat([dataset_l, dataset_r], axis=1)
+        # if self.param('with_phase_shift'):
+        #     phase_view = tf.random_uniform(
+        #         [], 0, shape_as_list(dataset)[1], dtype=tf.int64)
+        #     dataset_l = dataset[:, phase_view:, :, :]
+        #     dataset_r = dataset[:, :phase_view, :, :]
+        #     dataset = tf.concat([dataset_l, dataset_r], axis=1)
         dataset = tf.random_crop(dataset,
                                  [shape_as_list(dataset)[0]] + list(self.param('target_shape')) + [1])
         dataset = SuperResolutionDataset(self.name / 'super_resolution',

@@ -80,7 +80,7 @@ def data_shape(field_name):
         'recon2x': (256, 256),
         'recon4x': (256, 256),
         'recon8x': (256, 256),
-        'sinogram': (640, 320),
+        'sinogram': (1280, 320),
         'phantom_type': [],
         'id': [],
     }[field_name]
@@ -97,6 +97,7 @@ def _post_processing(result):
     from ...model.normalizer.normalizer import ReduceSum
     if 'sinogram' in result:
         result['sinogram'] = padding_pi2full(result['sinogram']).T
+        result['sinogram'] = np.concatenate([result['sinogram']]*2, axis=0)
     for k in result:
         if k == 'id':
             continue
