@@ -33,6 +33,16 @@ class AnalyticalPhantomMultiScaleReconstruction(IsDescription):
     recon4x = UInt16Col(shape=(256, 256))
     recon8x = UInt16Col(shape=(256, 256))
 
+class AnalyticalPhantomMultiScaleReconstructionMultiSize(IsDescription):
+    clean1x = UInt16Col(shape=(256, 256))
+    clean2x = UInt16Col(shape=(128, 128))
+    clean4x = UInt16Col(shape=(64, 64))
+    clean8x = UInt16Col(shape=(32, 32))
+    noise1x = UInt16Col(shape=(256, 256))
+    noise2x = UInt16Col(shape=(128, 128))
+    noise4x = UInt16Col(shape=(64, 64))
+    noise8x = UInt16Col(shape=(32, 32))
+    
 
 def data_type_np(field_name):
     import tensorflow as tf
@@ -44,6 +54,7 @@ def data_type_np(field_name):
         'recon2x': np.float32,
         'recon4x': np.float32,
         'recon8x': np.float32,
+        'id': np.int64,
     }[field_name]
 
 
@@ -57,6 +68,7 @@ def data_type_tf(field_name):
         'recon2x': tf.float32,
         'recon4x': tf.float32,
         'recon8x': tf.float32,
+        'id': tf.int64,
     }[field_name]
 
 
@@ -69,7 +81,8 @@ def data_shape(field_name):
         'recon4x': (256, 256),
         'recon8x': (256, 256),
         'sinogram': (640, 320),
-        'phantom_type': (),
+        'phantom_type': [],
+        'id': [],
     }[field_name]
 
 
@@ -85,6 +98,8 @@ def _post_processing(result):
     if 'sinogram' in result:
         result['sinogram'] = padding_pi2full(result['sinogram']).T
     for k in result:
+        if k == 'id':
+            continue
         result[k] = result[k].astype(data_type_np(k))
         result[k] = result[k] / np.sum(result[k]) * 1e6
     return result
@@ -100,6 +115,8 @@ def _get_example(idx, fields, h5sino, h5recon):
     for k in h5recon_keys:
         if k in fields:
             result[k] = h5recon.root.data[idx][k]
+    if 'id' in fields:
+        result['id'] = idx
     return result
 
 
@@ -111,6 +128,8 @@ def dataset_generator(fields=('sinogram',), ids=None):
         random.shuffle(ids)
     if isinstance(fields, str):
         fields = (fields, )
+    from dxpy.debug.utils import dbgmsg
+    dbgmsg(ids[0], ids[1], ids[10], ids[-1])
     fn_sino, fn_recon = _h5files()
     with open_file(fn_sino) as h5sino, open_file(fn_recon) as h5recon:
         for idx in ids:
@@ -144,6 +163,8 @@ class Dataset(Graph):
         ids = self.param('ids', raise_key_error=False)
         if self.param('dataset_type') == 'test' and ids is None:
             ids = list(range(int(NB_IMAGES * 0.8), NB_IMAGES))
+        if self.param('dataset_type') == 'full' and ids is None:
+            ids = list(range(0, NB_IMAGES))
         dataset_gen_partial = partial(dataset_generator,
                                       fields=self.param('fields'),
                                       ids=ids)

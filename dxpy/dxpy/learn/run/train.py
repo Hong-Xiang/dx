@@ -54,7 +54,7 @@ def train_dist(definition_func):
 
 
 @configurable(config, with_name=True)
-def train_task_dist(cluster, dataset_maker_name, network_maker_name, summary_maker_name, job_name, task_index, name, id_gpu=None):
+def train_task_dist(cluster, name, dataset_maker_name, network_maker_name, summary_maker_name, job_name, task_index, id_gpu=None):
     import os
     if id_gpu is not None:
         os.environ['CUDA_VISIBLE_DEVICES'] = '"{}"'.format(id_gpu)

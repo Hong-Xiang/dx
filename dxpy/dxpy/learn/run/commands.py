@@ -1,13 +1,16 @@
 import click
+import warnings
 
 
 def get_main_net(net_name):
+    warnings.warn(DeprecationWarning("Deprecated, no suggestion."))
     from dxpy.learn.net.zoo.srms.train import main as srms
     if net_name == "srms":
         return srms
 
 
 def get_main_func(net_name):
+    warnings.warn(DeprecationWarning("Deprecated, no suggestion."))
     pass
 
 
@@ -15,6 +18,7 @@ def get_main_func(net_name):
 @click.option('--config', '-c', type=str, help='configs .yml filename')
 @click.option('--net', '-n', type=str, help='name of main net', default=None)
 def train(net, config):
+    warnings.warn(DeprecationWarning("Deprecated, use train2."))
     main_net_train = get_main_net(net)
     main_net_train()
 

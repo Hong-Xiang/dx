@@ -49,15 +49,16 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
         from dxpy.core.path import Path
         name = Path(name)
         if image_type == 'sinogram':
-            fields = ['sinogram']
+            fields = ['sinogram', 'id']
         elif image_type == 'sinogram_with_phantom':
-            fields = ['sinogram', 'phantom']
+            fields = ['sinogram', 'phantom', 'id']
         else:
-            fields = ['phantom'] + ['recon{}x'.format(2**i)
-                                    for i in range(self.param('nb_down_sample') + 1)]
+            fields = ['phantom', 'id'] + ['recon{}x'.format(2**i)
+                                          for i in range(self.param('nb_down_sample') + 1)]
         with tf.name_scope('aps_{img_type}_dataset'.format(img_type=image_type)):
             dataset_origin = Dataset(
                 self.name / 'analytical_phantom_sinogram', fields=fields)
+            tid = dataset_origin['id']
             if image_type in ['sinogram', 'sinogram_with_phantom']:
                 dataset = self._process_sinogram(dataset_origin)
             else:
@@ -65,17 +66,23 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
         # for k in dataset:
             # self.register_node(k, dataset[k])
         for i in range(self.param('nb_down_sample') + 1):
-            self.register_node('input/image{}x'.format(2**i), dataset['input/image{}x'.format(2**i)])
+            img_key = 'image{}x'.format(2**i)
+            self.register_node('noise/' + img_key, dataset['noise/' + img_key])
+            self.register_node('clean/' + img_key, dataset['clean/' + img_key])
+            self.register_node('input/image{}x'.format(2**i),
+                               dataset['input/image{}x'.format(2**i)])
             if self.param('image_type') == 'image' and i == 0:
                 self.register_node('label/image1x', dataset['label/phantom'])
                 continue
             if self.param('with_noise_label'):
-                self.register_node('label/image{}x'.format(2**i), dataset['input/image{}x'.format(2**i)])
+                self.register_node('label/image{}x'.format(2**i),
+                                   dataset['input/image{}x'.format(2**i)])
             else:
-                self.register_node('label/image{}x'.format(2**i), dataset['label/image{}x'.format(2**i)])
+                self.register_node('label/image{}x'.format(2**i),
+                                   dataset['label/image{}x'.format(2**i)])
+        self.register_node('id', tid)
         if 'phantom' in dataset:
             self.register_node('phantom', dataset['phantom'])
-   
 
     def _process_sinogram(self, dataset):
         from ...model.normalizer.normalizer import ReduceSum, FixWhite
@@ -101,9 +108,10 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
         if self.param('with_white_normalization'):
             dataset = FixWhite(name=self.name / 'fix_white',
                                inputs=dataset, mean=stat['mean'], std=stat['std']).as_tensor()
-        #random phase shift
+        # random phase shift
         if self.param('with_phase_shift'):
-            phase_view = tf.random_uniform([], 0, shape_as_list(dataset)[1], dtype=tf.int64)
+            phase_view = tf.random_uniform(
+                [], 0, shape_as_list(dataset)[1], dtype=tf.int64)
             dataset_l = dataset[:, phase_view:, :, :]
             dataset_r = dataset[:, :phase_view, :, :]
             dataset = tf.concat([dataset_l, dataset_r], axis=1)
@@ -123,8 +131,12 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
         else:
             result = {'input/' + k: dataset[k] for k in keys}
             result.update({'label/' + k: dataset[k] for k in keys})
+        result.update(
+            {'noise/' + k: dataset[k][:shape_as_list(dataset[k])[0] // 2, ...] for k in keys})
+        result.update(
+            {'clean/' + k: dataset[k][shape_as_list(dataset[k])[0] // 2:, ...] for k in keys})
         if phan is not None:
-            result.update({'phantom': phan}) 
+            result.update({'phantom': phan})
         return result
 
     def _process_recons(self, dataset):
@@ -166,3 +178,7 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                    ] = result['input/image{}x'.format(2**i)]
         result['label/phantom'] = phantom
         return result
+
+    def split_sinogram_for_inference(sinogram, pad_size, target_shape):
+        import numpy as np
+        sinogram = np.pad(sinogram, )
