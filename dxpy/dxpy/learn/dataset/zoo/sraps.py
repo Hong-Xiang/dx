@@ -9,7 +9,6 @@ from dxpy.configs import configurable
 
 from ...config import config
 from ...graph import Graph, NodeKeys
-from ..raw.analytical_phantom_sinogram import Dataset
 
 
 class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
@@ -83,6 +82,44 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
         self.register_node('id', tid)
         if 'phantom' in dataset:
             self.register_node('phantom', dataset['phantom'])
+
+    def _get_sinogram_aps(self):
+        from ..raw.analytical_phantom_sinogram import Dataset
+        fields = ['sinogram', 'id', 'phantom']
+        with tf.name_scope('aps_{img_type}_dataset'.format(img_type=image_type)):
+            dataset_origin = Dataset(
+                self.name / 'analytical_phantom_sinogram', fields=fields)
+            self.register_node('id', dataset_origin['id'])
+            dataset = self._process_sinogram(dataset_origin)
+        return dataset
+
+    def _get_phantom_aps(self):
+        from ..raw.analytical_phantom_sinogram import Dataset
+        fields = ['sinogram', 'id', 'phantom']
+        with tf.name_scope('aps_{img_type}_dataset'.format(img_type=image_type)):
+            dataset_origin = Dataset(
+                self.name / 'analytical_phantom_sinogram', fields=fields)
+            self.register_node('id', dataset_origin['id'])
+            dataset = self._process_recons(dataset_origin)
+        return dataset
+
+    def _get_sinogram_mct(self):
+        from ..raw.mCT import Dataset
+        from dxpy.learn.model.normalizer import FixWhite
+        with tf.variable_scope('mCT_dataset'):
+            dataset_origin = Dataset(self.name / 'mCT')
+            self.register_node('id', dataset_origin['id'])
+            self.register_node('phantom', dataset_origin['phantom'])
+            dataset = dict()
+            for i in range(self.param('nb_down_sample')):
+                with tf.variable_scope('normalization_{}x'.format(2**i)):
+                    fwn = FixWhite(self.name / 'normalization_{}x'.format(2**i),
+                                   inputs=dataset['sinogram{}x'.format(2**i)],
+                                   mean=dataset_origin.MEAN * (2.0**i),
+                                   std=dataset_origin.STD * (2.0**i))
+                    dataset['noise/image{}x'.format(2**i)] = fwn.as_tensor()
+            
+            
 
     def _process_sinogram(self, dataset):
         from ...model.normalizer.normalizer import ReduceSum, FixWhite
