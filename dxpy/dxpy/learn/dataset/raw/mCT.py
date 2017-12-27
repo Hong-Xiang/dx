@@ -62,7 +62,10 @@ def _processing(result):
             result[k] = result[k].T
             result[k] = np.concatenate([result[k]] * 2, axis=0)
         result[k] = result[k].astype(data_type_np(k))
-        result[k] = result[k] / np.sum(result[k]) * 1e6
+        # if k == 'phantom':
+            # result[k] = result[k] / np.sum(result[k]) * 1e6
+        # if k == 'phantom':
+            # result[k] = result[k] / np.sum(result[k]) * 4e6
     return result
 
 
@@ -75,9 +78,9 @@ def dataset_generator(ids):
 
 
 class Dataset(Graph):
-    MEAN: 9.9062
-    STD: 7.8960
-    BASE_SHAPE: [384, 384]
+    MEAN = 9.93 
+    STD = 7.95
+    BASE_SHAPE = [384, 384]
 
     @configurable(config, with_name=True)
     def __init__(self, name='mCT_sinograms', batch_size=32, ids=None, shuffle=True, dataset_type='train', **kw):

@@ -9,7 +9,8 @@ from dxpy.configs import configurable
 
 from ...config import config
 from ...graph import Graph, NodeKeys
-
+from dxpy.learn.utils.tensor import shape_as_list
+import numpy as np
 
 class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
     @configurable(config, with_name=True)
@@ -43,86 +44,197 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                          with_noise_label=with_noise_label,
                          with_phase_shift=with_phase_shift,
                          nb_down_sample=nb_down_sample, **kw)
-        from ...model.normalizer.normalizer import FixWhite, ReduceSum
-        from ...model.tensor import ShapeEnsurer
-        from dxpy.core.path import Path
-        name = Path(name)
-        if image_type == 'sinogram':
-            fields = ['sinogram', 'id']
-        elif image_type == 'sinogram_with_phantom':
-            fields = ['sinogram', 'phantom', 'id']
-        else:
-            fields = ['phantom', 'id'] + ['recon{}x'.format(2**i)
-                                          for i in range(self.param('nb_down_sample') + 1)]
-        with tf.name_scope('aps_{img_type}_dataset'.format(img_type=image_type)):
-            dataset_origin = Dataset(
-                self.name / 'analytical_phantom_sinogram', fields=fields)
-            tid = dataset_origin['id']
-            if image_type in ['sinogram', 'sinogram_with_phantom']:
-                dataset = self._process_sinogram(dataset_origin)
+        # from ...model.normalizer.normalizer import FixWhite, ReduceSum
+        # from ...model.tensor import ShapeEnsurer
+        # from dxpy.core.path import Path
+        # name = Path(name)
+        # if image_type == 'sinogram':
+        #     fields = ['sinogram', 'id']
+        # elif image_type == 'sinogram_with_phantom':
+        #     fields = ['sinogram', 'phantom', 'id']
+        # else:
+        #     fields = ['phantom', 'id'] + ['recon{}x'.format(2**i)
+        #                                   for i in range(self.param('nb_down_sample') + 1)]
+        # with tf.name_scope('aps_{img_type}_dataset'.format(img_type=image_type)):
+        #     dataset_origin = Dataset(
+        #         self.name / 'analytical_phantom_sinogram', fields=fields)
+        #     tid = dataset_origin['id']
+        #     if image_type in ['sinogram', 'sinogram_with_phantom']:
+        #         dataset = self._process_sinogram(dataset_origin)
+        #     else:
+        #         dataset = self._process_recons(dataset_origin)
+        # # for k in dataset
+        #     # self.register_node(k, dataset[k]):
+
+        # # Old fashion
+        # for i in range(self.param('nb_down_sample') + 1):
+        #     img_key = 'image{}x'.format(2**i)
+        #     self.register_node('noise/' + img_key, dataset['noise/' + img_key])
+        #     self.register_node('clean/' + img_key, dataset['clean/' + img_key])
+        #     self.register_node('input/image{}x'.format(2**i),
+        #                        dataset['input/image{}x'.format(2**i)])
+        #     if self.param('image_type') == 'image' and i == 0:
+        #         self.register_node('label/image1x', dataset['label/phantom'])
+        #         continue
+        #     if self.param('with_noise_label'):
+        #         self.register_node('label/image{}x'.format(2**i),
+        #                            dataset['input/image{}x'.format(2**i)])
+        #     else:
+        #         self.register_node('label/image{}x'.format(2**i),
+        #                            dataset['label/image{}x'.format(2**i)])
+
+        if image_type in ['sinogram', 'sinogram_with_phantom']:
+            result = self._get_sinogram_aps()
+            if self.param('with_poission_noise'):
+                input_keys = [
+                    'noise/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
             else:
-                dataset = self._process_recons(dataset_origin)
-        # for k in dataset:
-            # self.register_node(k, dataset[k])
-        for i in range(self.param('nb_down_sample') + 1):
-            img_key = 'image{}x'.format(2**i)
-            self.register_node('noise/' + img_key, dataset['noise/' + img_key])
-            self.register_node('clean/' + img_key, dataset['clean/' + img_key])
-            self.register_node('input/image{}x'.format(2**i),
-                               dataset['input/image{}x'.format(2**i)])
-            if self.param('image_type') == 'image' and i == 0:
-                self.register_node('label/image1x', dataset['label/phantom'])
-                continue
+                input_keys = [
+                    'clean/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
             if self.param('with_noise_label'):
-                self.register_node('label/image{}x'.format(2**i),
-                                   dataset['input/image{}x'.format(2**i)])
+                label_keys = [
+                    'noise/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
             else:
-                self.register_node('label/image{}x'.format(2**i),
-                                   dataset['label/image{}x'.format(2**i)])
-        self.register_node('id', tid)
-        if 'phantom' in dataset:
-            self.register_node('phantom', dataset['phantom'])
+                label_keys = [
+                    'clean/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
+        elif image_type == 'recons_full_size':
+            result = self._get_phantom_aps()
+            input_keys = [
+                'noise/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
+            label_keys = [
+                'noise/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
+        elif image_type == 'mCT':
+            result = self._get_sinogram_mct()
+            input_keys = [
+                'noise/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
+            label_keys = [
+                'noise/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
+        else:
+            raise ValueError('Unknown image type {}.'.format(image_type))
+        output_input_keys = [
+            'input/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
+        output_label_keys = [
+            'label/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
+        for ki, ko in zip(input_keys, output_input_keys):
+            self.register_node(ko, result[ki])
+        for ki, ko in zip(label_keys, output_label_keys):
+            self.register_node(ko, result[ki])
 
     def _get_sinogram_aps(self):
         from ..raw.analytical_phantom_sinogram import Dataset
+        from dxpy.learn.model.normalizer import FixWhite
+        from ..super_resolution import SuperResolutionDataset
         fields = ['sinogram', 'id', 'phantom']
-        with tf.name_scope('aps_{img_type}_dataset'.format(img_type=image_type)):
-            dataset_origin = Dataset(
+        with tf.name_scope('aps_sinogram_dataset'):
+            dataset = Dataset(
                 self.name / 'analytical_phantom_sinogram', fields=fields)
-            self.register_node('id', dataset_origin['id'])
-            dataset = self._process_sinogram(dataset_origin)
-        return dataset
+            self.register_node('id', dataset['id'])
+            self.register_node('phantom', dataset['phantom'])
+            if self.param('log_scale'):
+                stat = dataset.LOG_SINO_STAT
+            else:
+                stat = dataset.SINO_STAT
+            dataset = dataset['sinogram']
+            if self.param('with_poission_noise'):
+                with tf.name_scope('add_with_poission_noise'):
+                    noise = tf.random_poisson(dataset, shape=[])
+                    dataset = tf.concat([noise, dataset], axis=0)
+                if self.param('log_scale'):
+                    dataset = tf.log(dataset + 0.4)
+                if self.param('with_white_normalization'):
+                    dataset = FixWhite(name=self.name / 'fix_white',
+                                       inputs=dataset, mean=stat['mean'], std=stat['std']).as_tensor()
+            dataset = tf.random_crop(dataset,
+                                     [shape_as_list(dataset)[0]] + list(self.param('target_shape')) + [1])
+            dataset = SuperResolutionDataset(self.name / 'super_resolution',
+                                             lambda: {'image': dataset},
+                                             input_key='image',
+                                             nb_down_sample=self.param('nb_down_sample'))
+            keys = ['image{}x'.format(2**i)
+                    for i in range(dataset.param('nb_down_sample') + 1)]
+            result = dict()
+            result.update(
+                {'noise/' + k: dataset[k][:shape_as_list(dataset[k])[0] // 2, ...] for k in keys})
+            result.update(
+                {'clean/' + k: dataset[k][shape_as_list(dataset[k])[0] // 2:, ...] for k in keys})
+        return result
 
     def _get_phantom_aps(self):
         from ..raw.analytical_phantom_sinogram import Dataset
-        fields = ['sinogram', 'id', 'phantom']
-        with tf.name_scope('aps_{img_type}_dataset'.format(img_type=image_type)):
+        from ..super_resolution import SuperResolutionDataset
+        fields = ['phantom', 'id'] + ['recon{}x'.format(2**i)
+                                      for i in range(self.param('nb_down_sample') + 1)]
+        with tf.name_scope('aps_phantom_dataset'):
             dataset_origin = Dataset(
                 self.name / 'analytical_phantom_sinogram', fields=fields)
             self.register_node('id', dataset_origin['id'])
-            dataset = self._process_recons(dataset_origin)
-        return dataset
+            self.register_node('phantom', dataset['phantom'])
+            label = dataset['phantom']
+            keys = ['recon{}x'.format(2**i)
+                    for i in range(self.param('nb_down_sample') + 1)]
+            dataset = dataset_origin
+            if self.param('log_scale'):
+                stat = dataset.LOG_RECON_STAT
+            else:
+                stat = dataset.RECON_STAT
+            dataset = {k: dataset[k] for k in keys}
+            for i, k in enumerate(keys):
+                if i == 0:
+                    continue
+                dataset[k] = tf.nn.avg_pool(dataset[k],
+                                            [1] + [2**i, 2**i] + [1],
+                                            padding='SAME',
+                                            strides=[1] + [2**i, 2**i] + [1]) * (2.0**i * 2.0**i)
+            if self.param('log_scale'):
+                for k in keys:
+                    dataset[k] = tf.log(dataset[k] + 1.0)
+                label = tf.log(label + 1.0)
+            if self.param('with_white_normalization'):
+                for i, k in enumerate(keys):
+                    dataset[k] = FixWhite(name=self.name / 'fix_white' / k,
+                                          inputs=dataset[k], mean=stat['mean'], std=stat['std']).as_tensor()
+                label = FixWhite(name=self.name / 'fix_white' / 'phantom',
+                                 inputs=dataset[k], mean=stat['mean'], std=stat['std']).as_tensor()
+            result = dict()
+            for i, k in enumerate(keys):
+                result['noise/image{}x'.format(2**i)] = dataset[k]
+            result['label/phantom'] = phantom
+            return result
 
     def _get_sinogram_mct(self):
         from ..raw.mCT import Dataset
         from dxpy.learn.model.normalizer import FixWhite
+        from ..super_resolution import random_crop_multiresolution
         with tf.variable_scope('mCT_dataset'):
             dataset_origin = Dataset(self.name / 'mCT')
             self.register_node('id', dataset_origin['id'])
             self.register_node('phantom', dataset_origin['phantom'])
             dataset = dict()
-            for i in range(self.param('nb_down_sample')):
+            keys = ['noise/image{}x'.format(2**i)
+                    for i in range(self.param('nb_down_sample') + 1)]
+            for i, k in enumerate(keys):
                 with tf.variable_scope('normalization_{}x'.format(2**i)):
                     fwn = FixWhite(self.name / 'normalization_{}x'.format(2**i),
-                                   inputs=dataset['sinogram{}x'.format(2**i)],
-                                   mean=dataset_origin.MEAN * (2.0**i),
-                                   std=dataset_origin.STD * (2.0**i))
+                                   inputs=dataset_origin['sinogram{}x'.format(
+                                       2**i)],
+                                   mean=dataset_origin.MEAN * (4.0**i),
+                                   std=dataset_origin.STD * (4.0**i))
                     dataset['noise/image{}x'.format(2**i)] = fwn.as_tensor()
-            
-            
+                    # dataset[k] = dataset_origin['sinogram{}x'.format(2**i)]
+            crop_keys = ['image{}x'.format(i) for i in range(len(keys))]
+            images = {'image{}x'.format(
+                i): dataset[k] for i, k in enumerate(keys)}
+            images_cropped = random_crop_multiresolution(images,
+                                                         [shape_as_list(images['image1x'])[0]] + list(self.param('target_shape')) + [1])
+
+            result = dict()
+            for ki, ko in zip(crop_keys, keys):
+                result[ko] = images_cropped[ki]
+            return result
 
     def _process_sinogram(self, dataset):
         from ...model.normalizer.normalizer import ReduceSum, FixWhite
+        from dxpy.learn.model.normalizer import FixWhite
         from ..super_resolution import SuperResolutionDataset
         from ...utils.tensor import shape_as_list
         if self.param('log_scale'):
@@ -178,6 +290,7 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
 
     def _process_recons(self, dataset):
         from ...model.normalizer.normalizer import ReduceSum, FixWhite
+        from dxpy.learn.model.normalizer import FixWhite
         from ..super_resolution import SuperResolutionDataset
         from ...utils.tensor import shape_as_list
         keys = ['recon{}x'.format(2**i)
@@ -215,7 +328,3 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                    ] = result['input/image{}x'.format(2**i)]
         result['label/phantom'] = phantom
         return result
-
-    def split_sinogram_for_inference(sinogram, pad_size, target_shape):
-        import numpy as np
-        sinogram = np.pad(sinogram, )

@@ -102,7 +102,10 @@ def _post_processing(result):
         if k == 'id':
             continue
         result[k] = result[k].astype(data_type_np(k))
-        result[k] = result[k] / np.sum(result[k]) * 1e6
+        if k == 'sinogram':
+            result[k] = result[k] / np.sum(result[k]) * 4e6
+        else:
+            result[k] = result[k] / np.sum(result[k]) * 1e6
     return result
 
 
@@ -143,7 +146,7 @@ class Dataset(Graph):
     # Statistics are calculated after fixed summation (total events) to 1e6,
     # sinogram with minimum noise 0.4 (+0.4 to all)
     # recons with minimum noise 1.0 (+1.0 to all)
-    SINO_STAT = {'mean': 4.88, 'std': 4.37}
+    SINO_STAT = {'mean': 9.76, 'std': 9.27}
     LOG_SINO_STAT = {'mean': 0.93, 'std': 1.46}
     RECON_STAT = {'mean': 15.25, 'std': 20.0}
     LOG_RECON_STAT = {'mean': 1.90, 'std': 1.50}
