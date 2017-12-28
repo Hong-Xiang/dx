@@ -12,6 +12,7 @@ from ...graph import Graph, NodeKeys
 from dxpy.learn.utils.tensor import shape_as_list
 import numpy as np
 
+
 class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
     @configurable(config, with_name=True)
     def __init__(self, name='datasets/apssr',
@@ -109,6 +110,20 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                 'noise/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
             label_keys = [
                 'noise/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
+        elif image_type == 'recon_ms':
+            result = self._get_recons_ms()
+            if self.param('with_poission_noise'):
+                input_keys = [
+                    'noise{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
+            else:
+                input_keys = [
+                    'clean{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
+            if self.param('with_noise_label'):
+                label_keys = [
+                    'noise{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
+            else:
+                label_keys = [
+                    'clean{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
         else:
             raise ValueError('Unknown image type {}.'.format(image_type))
         output_input_keys = [
@@ -158,6 +173,46 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
             result.update(
                 {'clean/' + k: dataset[k][shape_as_list(dataset[k])[0] // 2:, ...] for k in keys})
         return result
+
+    def _get_recons_ms(self):
+        from ..raw.analytical_phantom_sinogram import Dataset
+        from dxpy.learn.model.normalizer import FixWhite
+        ratios = [2**i for i in range(self.param('nb_down_sample') + 1)]
+        fields = ['phantom', 'id'] + ['clean{}x'.format(r) for r in ratios] + [
+            'noise{}x'.format(r) for r in ratios]
+        with tf.name_scope('dataset_recon_ms'):
+            dataset = Dataset(
+                self.name / 'analytical_phantom_sinogram', fields=fields)
+            self.register_node('id', dataset['id'])
+            self.register_node('phantom', dataset['phantom'])
+            keys_noise = ['noise{}x'.format(r) for r in ratios]
+            keys_clean = ['clean{}x'.format(r) for r in ratios]
+            stat = dataset.RECON_MS_STAT
+            cleans = dict()
+            noises = dict()
+            if self.param('with_white_normalization'):
+                with tf.name_scope('normalizatoin_clean'):
+                    for i, k in enumerate(keys_clean):
+                        cleans[k] = FixWhite(name=self.name / 'fix_white', inputs=dataset[k],
+                                             mean=stat['mean'] * (4.0)**i, std=stat['std'] * (4.0)**i).as_tensor()
+                with tf.name_scope('normalizatoin_noise'):
+                    for i, k in enumerate(keys_noise):
+                        noises[k] = FixWhite(name=self.name/'fix_white', inputs=dataset[k], mean=stat['mean']*(4.0)**i, std=stat['std']*(4.0)**i).as_tensor()
+            # for i, r in ratios:
+            #     self.register_node('clean/image{}x'.format(r), cleans[keys_clean[i]])
+            #     self.register_node('noise/image{}x'.format(r), noises[keys_noise[i]])
+            # if self.param('with_poission_noise'):
+            #     images = {'input/image{}x'.format(r): noises['noise{}x'.format(r)] for r in ratios} 
+            # else:
+            #     images = {'input/image{}x'.format(r): cleans['clean{}x'.format(r)] for r in ratios} 
+            # if self.param('with_noise_lable'):
+            #     labels = {'label/image{}x'.format(r): noises['noise{}x'.format(r)] for r in ratios} 
+            # else:
+            #     labels = {'label/image{}x'.format(r): cleans['clean{}x'.format(r)] for r in ratios} 
+            result = dict()
+            result.update(cleans)
+            result.update(noises)
+            return result
 
     def _get_phantom_aps(self):
         from ..raw.analytical_phantom_sinogram import Dataset

@@ -33,6 +33,7 @@ class AnalyticalPhantomMultiScaleReconstruction(IsDescription):
     recon4x = UInt16Col(shape=(256, 256))
     recon8x = UInt16Col(shape=(256, 256))
 
+
 class AnalyticalPhantomMultiScaleReconstructionMultiSize(IsDescription):
     clean1x = UInt16Col(shape=(256, 256))
     clean2x = UInt16Col(shape=(128, 128))
@@ -42,10 +43,15 @@ class AnalyticalPhantomMultiScaleReconstructionMultiSize(IsDescription):
     noise2x = UInt16Col(shape=(128, 128))
     noise4x = UInt16Col(shape=(64, 64))
     noise8x = UInt16Col(shape=(32, 32))
-    
+
 
 def data_type_np(field_name):
     import tensorflow as tf
+    int_types = ['phantom_type', 'id']
+    if field_name in int_types:
+        return np.float32
+    else:
+        return np.float32
     return {
         'phantom': np.float32,
         'sinogram': np.float32,
@@ -60,16 +66,12 @@ def data_type_np(field_name):
 
 def data_type_tf(field_name):
     import tensorflow as tf
-    return {
-        'phantom': tf.float32,
-        'sinogram': tf.float32,
-        'phantom_type': tf.int64,
-        'recon1x': tf.float32,
-        'recon2x': tf.float32,
-        'recon4x': tf.float32,
-        'recon8x': tf.float32,
-        'id': tf.int64,
-    }[field_name]
+    int_types = ['phantom_type', 'id']
+    if field_name in int_types:
+        return tf.float32
+    else:
+        return tf.float32
+    
 
 
 def data_shape(field_name):
@@ -80,6 +82,14 @@ def data_shape(field_name):
         'recon2x': (256, 256),
         'recon4x': (256, 256),
         'recon8x': (256, 256),
+        'clean1x': (256, 256),
+        'clean2x': (128, 128),
+        'clean4x': (64, 64),
+        'clean8x': (32, 32),
+        'noise1x': (256, 256),
+        'noise2x': (128, 128),
+        'noise4x': (64, 64),
+        'noise8x': (32, 32),
         'sinogram': (1280, 320),
         'phantom_type': [],
         'id': [],
@@ -87,9 +97,9 @@ def data_shape(field_name):
 
 
 @configurable(config.get('datasets').get('analytical_phantom_sinogram'))
-def _h5files(path: str, sino_fn='analytical_phantom_sinogram.h5', recon_fn='recons.h5'):
+def _h5files(path: str, sino_fn='analytical_phantom_sinogram.h5', recon_fn='recons.h5', recon_ms_fn='recon_multi_scale_merged.h5'):
     from dxpy.core.path import Path
-    return str(Path(path) / sino_fn), str(Path(path) / recon_fn)
+    return str(Path(path) / sino_fn), str(Path(path) / recon_fn), str(Path(path) / recon_ms_fn)
 
 
 def _post_processing(result):
@@ -97,7 +107,7 @@ def _post_processing(result):
     from ...model.normalizer.normalizer import ReduceSum
     if 'sinogram' in result:
         result['sinogram'] = padding_pi2full(result['sinogram']).T
-        result['sinogram'] = np.concatenate([result['sinogram']]*2, axis=0)
+        result['sinogram'] = np.concatenate([result['sinogram']] * 2, axis=0)
     for k in result:
         if k == 'id':
             continue
@@ -109,7 +119,7 @@ def _post_processing(result):
     return result
 
 
-def _get_example(idx, fields, h5sino, h5recon):
+def _get_example(idx, fields, h5sino, h5recon, h5recon_ms):
     result = dict()
     h5sino_keys = ['phantom', 'sinogram']
     for k in h5sino_keys:
@@ -119,6 +129,11 @@ def _get_example(idx, fields, h5sino, h5recon):
     for k in h5recon_keys:
         if k in fields:
             result[k] = h5recon.root.data[idx][k]
+    h5recon_ms_keys = ['clean1x', 'clean2x', 'clean4x', 'clean8x',
+                       'noise1x', 'noise2x', 'noise4x', 'noise8x']
+    for k in h5recon_ms_keys:
+        if k in fields:
+            result[k] = h5recon_ms.root.data[idx][k]
     if 'id' in fields:
         result['id'] = idx
     return result
@@ -134,10 +149,10 @@ def dataset_generator(fields=('sinogram',), ids=None):
         fields = (fields, )
     from dxpy.debug.utils import dbgmsg
     dbgmsg(ids[0], ids[1], ids[10], ids[-1])
-    fn_sino, fn_recon = _h5files()
-    with open_file(fn_sino) as h5sino, open_file(fn_recon) as h5recon:
+    fn_sino, fn_recon, fn_recon_ms = _h5files()
+    with open_file(fn_sino) as h5sino, open_file(fn_recon) as h5recon, open_file(fn_recon_ms) as h5recon_ms:
         for idx in ids:
-            result = _get_example(idx, fields, h5sino, h5recon)
+            result = _get_example(idx, fields, h5sino, h5recon, h5recon_ms)
             result = _post_processing(result)
             yield result
 
@@ -148,8 +163,9 @@ class Dataset(Graph):
     # recons with minimum noise 1.0 (+1.0 to all)
     SINO_STAT = {'mean': 9.76, 'std': 9.27}
     LOG_SINO_STAT = {'mean': 0.93, 'std': 1.46}
-    RECON_STAT = {'mean': 15.25, 'std': 20.0}
+    RECON_STAT = {'mean': 15.26, 'std': 20.0}
     LOG_RECON_STAT = {'mean': 1.90, 'std': 1.50}
+    RECON_MS_STAT = {'mean': 15.26, 'std': 22.0}
 
     @configurable(config, with_name=True)
     def __init__(self, name='analytical_phantom_sinogram_dataset', *,
@@ -184,7 +200,7 @@ class Dataset(Graph):
                    .repeat()
                    .map(self._format_tensors))
         if self.param('shuffle'):
-            dataset = dataset.shuffle(1024)
+            dataset = dataset.shuffle(32)
         return dataset.batch(self.param('batch_size'))
 
     def _register_dataset(self):
