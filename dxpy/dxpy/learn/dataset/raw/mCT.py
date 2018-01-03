@@ -91,6 +91,8 @@ class Dataset(Graph):
                 self._ids = list(range(0, int(NB_IMAGES * 0.8)))
             elif dataset_type == 'test':
                 self._ids = list(range(int(NB_IMAGES * 0.8), NB_IMAGES))
+            elif dataset_type == 'full':
+                self._ids = list(range(NB_IMAGES))
         else:
             self._ids = ids
         self._keys = ['id', 'phantom'] + \

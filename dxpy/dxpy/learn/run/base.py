@@ -6,7 +6,7 @@ class DxlnRunEnvrionment:
     def __enter__(self):
         from dxpy.learn.utils.general import pre_work, load_yaml_config
         load_yaml_config(self._config)
-        pre_work()
+        # pre_work()
         return self
 
     def __exit__(self, type, value, trackback):

@@ -156,9 +156,9 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                     dataset = tf.concat([noise, dataset], axis=0)
                 if self.param('log_scale'):
                     dataset = tf.log(dataset + 0.4)
-                if self.param('with_white_normalization'):
-                    dataset = FixWhite(name=self.name / 'fix_white',
-                                       inputs=dataset, mean=stat['mean'], std=stat['std']).as_tensor()
+            if self.param('with_white_normalization'):
+                dataset = FixWhite(name=self.name / 'fix_white',
+                                   inputs=dataset, mean=stat['mean'], std=stat['std']).as_tensor()
             dataset = tf.random_crop(dataset,
                                      [shape_as_list(dataset)[0]] + list(self.param('target_shape')) + [1])
             dataset = SuperResolutionDataset(self.name / 'super_resolution',
@@ -168,10 +168,14 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
             keys = ['image{}x'.format(2**i)
                     for i in range(dataset.param('nb_down_sample') + 1)]
             result = dict()
-            result.update(
-                {'noise/' + k: dataset[k][:shape_as_list(dataset[k])[0] // 2, ...] for k in keys})
-            result.update(
-                {'clean/' + k: dataset[k][shape_as_list(dataset[k])[0] // 2:, ...] for k in keys})
+            if self.param('with_poission_noise'):
+                result.update(
+                    {'noise/' + k: dataset[k][:shape_as_list(dataset[k])[0] // 2, ...] for k in keys})
+                result.update(
+                    {'clean/' + k: dataset[k][shape_as_list(dataset[k])[0] // 2:, ...] for k in keys})
+            else:
+                result.update({'clean/' + k: dataset[k] for k in keys})
+                result.update({'noise/' + k: dataset[k] for k in keys})
         return result
 
     def _get_recons_ms(self):
@@ -197,18 +201,19 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                                              mean=stat['mean'] * (4.0)**i, std=stat['std'] * (4.0)**i).as_tensor()
                 with tf.name_scope('normalizatoin_noise'):
                     for i, k in enumerate(keys_noise):
-                        noises[k] = FixWhite(name=self.name/'fix_white', inputs=dataset[k], mean=stat['mean']*(4.0)**i, std=stat['std']*(4.0)**i).as_tensor()
+                        noises[k] = FixWhite(name=self.name / 'fix_white', inputs=dataset[k],
+                                             mean=stat['mean'] * (4.0)**i, std=stat['std'] * (4.0)**i).as_tensor()
             # for i, r in ratios:
             #     self.register_node('clean/image{}x'.format(r), cleans[keys_clean[i]])
             #     self.register_node('noise/image{}x'.format(r), noises[keys_noise[i]])
             # if self.param('with_poission_noise'):
-            #     images = {'input/image{}x'.format(r): noises['noise{}x'.format(r)] for r in ratios} 
+            #     images = {'input/image{}x'.format(r): noises['noise{}x'.format(r)] for r in ratios}
             # else:
-            #     images = {'input/image{}x'.format(r): cleans['clean{}x'.format(r)] for r in ratios} 
+            #     images = {'input/image{}x'.format(r): cleans['clean{}x'.format(r)] for r in ratios}
             # if self.param('with_noise_lable'):
-            #     labels = {'label/image{}x'.format(r): noises['noise{}x'.format(r)] for r in ratios} 
+            #     labels = {'label/image{}x'.format(r): noises['noise{}x'.format(r)] for r in ratios}
             # else:
-            #     labels = {'label/image{}x'.format(r): cleans['clean{}x'.format(r)] for r in ratios} 
+            #     labels = {'label/image{}x'.format(r): cleans['clean{}x'.format(r)] for r in ratios}
             result = dict()
             result.update(cleans)
             result.update(noises)

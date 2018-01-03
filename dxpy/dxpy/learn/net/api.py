@@ -35,3 +35,6 @@ def get_summary(name, dataset, network, result, summary_cls_name, summary_config
     if summary_cls_name == 'srms':
         from .zoo.srms.summ import SRSummaryWriter_v3
         return SRSummaryWriter_v3(dataset, network, result)
+    elif summary_cls_name == 'sin':
+        from .zoo.sin.summ import SinSummaryWriter
+        return SinSummaryWriter(dataset=dataset, network=network, result=result)
