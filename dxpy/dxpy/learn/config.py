@@ -12,6 +12,9 @@ datasets_configs = {
         'super_resolution': {
             'nb_down_sample': 3
         },
+    },
+    'mice_sinograms': {
+        'path': str(Path(os.environ.get('HOME'))/'Datas'/'Mice')
     }
 }
 

@@ -84,8 +84,11 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
         #         self.register_node('label/image{}x'.format(2**i),
         #                            dataset['label/image{}x'.format(2**i)])
 
-        if image_type in ['sinogram', 'sinogram_with_phantom']:
-            result = self._get_sinogram_aps()
+        if image_type in ['sinogram', 'sinogram_with_phantom', 'mice_sinograms']:
+            if image_type in ['sinogram', 'sinogram_with_phantom']:
+                result = self._get_sinogram_aps()
+            else:
+                result = self._get_sinogram_mice()
             if self.param('with_poission_noise'):
                 input_keys = [
                     'noise/image{}x'.format(2**i) for i in range(self.param('nb_down_sample') + 1)]
@@ -291,6 +294,43 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
             for ki, ko in zip(crop_keys, keys):
                 result[ko] = images_cropped[ki]
             return result
+
+    def _get_sinogram_mice(self):
+        from ..raw.mice import Dataset
+        from dxpy.learn.model.normalizer import FixWhite
+        from ..super_resolution import SuperResolutionDataset
+        with tf.name_scope('mice_sinogram_dataset'):
+            dataset = Dataset(self.name / 'mice_sinogram')
+            self.register_node('id', dataset['id'])
+            bs = dataset.param('batch_size')
+            stat = {'mean': dataset.MEAN, 'std': dataset.STD}
+            dataset = dataset['sinogram']
+            if self.param('with_poission_noise'):
+                with tf.name_scope('add_with_poission_noise'):
+                    dataset = dataset / tf.reduce_sum(dataset) * 4e6 * bs
+                    noise = tf.random_poisson(dataset, shape=[])
+                    dataset = tf.concat([noise, dataset], axis=0)
+            if self.param('with_white_normalization'):
+                dataset = FixWhite(name=self.name / 'fix_white',
+                                   inputs=dataset, mean=stat['mean'], std=stat['std']).as_tensor()
+            dataset = tf.random_crop(dataset,
+                                     [shape_as_list(dataset)[0]] + list(self.param('target_shape')) + [1])
+            dataset = SuperResolutionDataset(self.name / 'super_resolution',
+                                             lambda: {'image': dataset},
+                                             input_key='image',
+                                             nb_down_sample=self.param('nb_down_sample'))
+            keys = ['image{}x'.format(2**i)
+                    for i in range(dataset.param('nb_down_sample') + 1)]
+            result = dict()
+            if self.param('with_poission_noise'):
+                result.update(
+                    {'noise/' + k: dataset[k][:shape_as_list(dataset[k])[0] // 2, ...] for k in keys})
+                result.update(
+                    {'clean/' + k: dataset[k][shape_as_list(dataset[k])[0] // 2:, ...] for k in keys})
+            else:
+                result.update({'clean/' + k: dataset[k] for k in keys})
+                result.update({'noise/' + k: dataset[k] for k in keys})
+        return result
 
     def _process_sinogram(self, dataset):
         from ...model.normalizer.normalizer import ReduceSum, FixWhite

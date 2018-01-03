@@ -19,3 +19,7 @@ def analysis(labels, targets=None, *, stats=('mean_square_error',)):
 def get_stats(name):
     if name.lower() in ['mean_square_error', 'mse']:
         return mean_square_error
+
+def stat(tensor):
+    import numpy as np
+    return {'min': np.min(tensor), 'max': np.max(tensor), 'mean': np.mean(tensor), 'std': np.std(tensor), 'shape': list(tensor.shape)}
