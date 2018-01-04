@@ -129,9 +129,9 @@ class SRMultiScale(Net):
     'label/image1x', ..., 'label/image4x'
     """
     @configurable(config, with_name=True)
-    def __init__(self, inputs, name='network', nb_gpu=2, nb_down_sample=3, new_trainer=False, **kw):
+    def __init__(self, inputs, name='network', nb_gpu=2, nb_down_sample=3, new_trainer=False, sr_add_trainer=True, **kw):
         super().__init__(name, inputs, nb_gpu=nb_gpu,
-                         nb_down_sample=nb_down_sample, new_trainer=new_trainer, **kw)
+                         nb_down_sample=nb_down_sample, new_trainer=new_trainer, sr_add_trainer=sr_add_trainer, **kw)
 
     def summary_items(self):
         from ....train.summary import SummaryItem
@@ -168,7 +168,11 @@ class SRMultiScale(Net):
         self.register_node(NodeKeys.EVALUATE,
                            self.nodes['outputs/{}'.format(NodeKeys.EVALUATE)])
         from dxpy.learn.train.trainer_2 import Trainer
-        if NodeKeys.LOSS in self.nodes:
+        from dxpy.debug.utils import dbgmsg
+        dbgmsg(self.param('sr_add_trainer'))
+        dbgmsg(self.param('add_trainer'))
+        if NodeKeys.LOSS in self.nodes and self.param('sr_add_trainer'):
+            dbgmsg('TO CREATE TRAINER!')
             self.register_node(NodeKeys.TRAINER,
                                Trainer(self.name / 'trainer', self.nodes[NodeKeys.LOSS]))
         super()._post_kernel_post_outputs()
