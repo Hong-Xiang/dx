@@ -30,6 +30,9 @@ class MatlabEngine:
 
 
 def call_matlab_api(func):
+    """
+    Matlab engine will be passed as the first argument to func
+    """
     if MatlabEngine.get_default_engine() is None:
         with MatlabEngine() as eng:
             return func(eng)

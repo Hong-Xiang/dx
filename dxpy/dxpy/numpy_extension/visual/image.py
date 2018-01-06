@@ -3,7 +3,7 @@ import numpy as np
 from .. import image as nei
 
 
-def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, hide_axis=True, tight_c=0.01, return_figure=False, dpi=None, adjust_figure_size=True):
+def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, hide_axis=True, tight_c=0.01, return_figure=False, dpi=None, adjust_figure_size=True, max_show_image=None):
     """ subplot list of images of multiple categories into grid subplots
     Args:
         image_lists: list of [list of images or 4D tensor]
@@ -25,7 +25,8 @@ def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, h
     image_lists = [list(map(nei.fix_dim, imgs)) for imgs in image_lists]
 
     nb_images = max([len(imgs) for imgs in image_lists])
-
+    if max_show_image is not None:
+        nb_images = min(nb_images, max_show_image)
     nb_row = np.ceil(nb_images / nb_column) * nb_cata
 
     def adjust_figure_size():

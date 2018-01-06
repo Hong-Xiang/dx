@@ -23,3 +23,7 @@ def get_stats(name):
 def stat(tensor):
     import numpy as np
     return {'min': np.min(tensor), 'max': np.max(tensor), 'mean': np.mean(tensor), 'std': np.std(tensor), 'shape': list(tensor.shape)}
+
+def compare(label, target):
+    from .metrics import rmse, psnr, ssim
+    return rmse(label, target), psnr(label, target), ssim(label, target)

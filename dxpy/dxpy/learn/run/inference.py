@@ -1,6 +1,7 @@
 import click
 from tqdm import tqdm
 
+
 def infer_sino_sr(dataset, nb_samples, output):
     """
     Use network in current directory as input for inference
@@ -39,7 +40,7 @@ def infer_sino_sr(dataset, nb_samples, output):
     BASE_SHAPE = (640, 320)
 
     dataset_configs = config_view['dataset']['srms']
-    with_noise = dataset_configs['with_poisson_noise']
+    with_noise = dataset_configs['with_poission_noise']
     if with_noise:
         PREFIX = 'input'
     else:
@@ -77,7 +78,8 @@ def infer_sino_sr(dataset, nb_samples, output):
     for idx in tqdm(range(nb_samples), ascii=True):
         if idx > NB_MAX:
             import sys
-            print('Index {} out of range {}, stop running and store current result...'.format(idx, NB_MAX), file=sys.stderr)
+            print('Index {} out of range {}, stop running and store current result...'.format(
+                idx, NB_MAX), file=sys.stderr)
             break
 
         phans.append(data_raw['phantom'][idx, ...])
@@ -91,6 +93,224 @@ def infer_sino_sr(dataset, nb_samples, output):
 
     results = {'phantom': phans, 'sino_itps': sino_itps,
                'sino_infs': sino_infs, 'sino_highs': sino_highs, 'sino_lows': sino_lows}
+    np.savez(output, **results)
+
+
+def infer_phan_sr(dataset, nb_samples, output):
+    """
+    Use network in current directory as input for inference
+    """
+    import tensorflow as tf
+    from dxpy.learn.dataset.api import get_dataset
+    from dxpy.learn.net.api import get_network
+    from dxpy.configs import ConfigsView
+    from dxpy.learn.config import config
+    import numpy as np
+    import yaml
+    from dxpy.debug.utils import dbgmsg
+    print('Using dataset file:', dataset)
+    data_raw = np.load(dataset)
+    data_raw = {k: np.array(data_raw[k]) for k in data_raw.keys()}
+    config_view = ConfigsView(config)
+
+    dataset_configs = config_view['dataset']['srms']
+    with_noise = dataset_configs['with_poission_noise']
+    dbgmsg(with_noise)
+    if with_noise:
+        PREFIX = 'noise'
+    else:
+        PREFIX = 'clean'
+
+    def data_key(nd):
+        return '{}{}x'.format(PREFIX, 2**nd)
+
+    def tensor_shape(key):
+        shape_origin = data_raw[key].shape
+        return [1] + list(shape_origin[1:3]) + [1]
+    with tf.name_scope('inputs'):
+        keys = ['input/image{}x'.format(2**i) for i in range(4)]
+        keys += ['label/image{}x'.format(2**i) for i in range(4)]
+        dataset = {k: tf.placeholder(tf.float32, tensor_shape(data_key(i % 4)))
+                   for i, k in enumerate(keys)}
+
+    network = get_network('network/srms', dataset=dataset)
+    nb_down_sample = network.param('nb_down_sample')
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    sess = tf.train.MonitoredTrainingSession(
+        checkpoint_dir='./save', config=config, save_checkpoint_secs=None)
+
+    STAT_MEAN = 15.26 
+    STAT_STD = 22.0 
+    STAT_MEAN_LOW = 15.26 * (4.0**nb_down_sample)
+    STAT_STD_LOW = 22.0 * (4.0**nb_down_sample)
+    BASE_SHAPE = (256, 256)
+
+    def crop_image(tensor, target_shape=None):
+        if target_shape is None:
+            target_shape = BASE_SHAPE
+        if len(tensor.shape) == 4:
+            tensor = tensor[0, :, :, 0]
+        o1 = (tensor.shape[0] - target_shape[0]) // 2
+        o2 = (tensor.shape[1] - target_shape[1]) // 2
+        return tensor[o1:-o1, o2:-o2]
+
+    input_key = data_key(nb_down_sample)
+    dbgmsg('input_key:', input_key)
+
+    def run_infer(idx):
+        low_phan = np.reshape(
+            data_raw[input_key][idx, :, :], tensor_shape(input_key))
+        # low_phan = (low_phan - STAT_MEAN) / STAT_STD
+        feeds = {dataset['input/image{}x'.format(2**nb_down_sample)]: low_phan}
+        inf, itp = sess.run([network['outputs/inference'],
+                             network['outputs/interp']], feed_dict=feeds)
+        infc = crop_image(inf)
+        itpc = crop_image(itp)
+        infc = infc * STAT_STD_LOW + STAT_MEAN_LOW
+        itpc = itpc * STAT_STD_LOW + STAT_MEAN_LOW
+        return infc, itpc
+
+    phans = []
+    img_highs = []
+    img_lows = []
+    img_itps = []
+    img_infs = []
+    NB_MAX = data_raw['phantom'].shape[0]
+    for idx in tqdm(range(nb_samples), ascii=True):
+        if idx > NB_MAX:
+            import sys
+            print('Index {} out of range {}, stop running and store current result...'.format(
+                idx, NB_MAX), file=sys.stderr)
+            break
+
+        phans.append(data_raw['phantom'][idx, ...])
+        img_high = crop_image(data_raw[data_key(0)][idx, :, :])
+        img_high = img_high * STAT_STD + STAT_MEAN
+        # img_high = img_high * STAT_STD / \
+        # (4.0**nb_down_sample) + STAT_MEAN / (4.0**nb_down_sample)
+        img_highs.append(img_high)
+        img_low = crop_image(data_raw[data_key(nb_down_sample)][idx, ...],
+                             [s // (2**nb_down_sample) for s in BASE_SHAPE])
+        img_low = img_low * STAT_STD_LOW + STAT_MEAN_LOW
+        img_lows.append(img_low)
+        img_inf, img_itp = run_infer(idx)
+        img_infs.append(img_inf)
+        img_itps.append(img_itp)
+    
+    img_highs = np.array(img_highs)
+    img_infs = np.array(img_infs) / (4.0**nb_down_sample)
+    img_itps = np.array(img_itps) / (4.0**nb_down_sample)
+    img_lows = np.array(img_lows) / (4.0**nb_down_sample)
+
+    results = {'phantom': phans, 'img_itps': img_itps,
+               'img_infs': img_infs, 'img_highs': img_highs, 'img_lows': img_lows}
+    np.savez(output, **results)
+
+
+def infer_mct(dataset, nb_samples, output):
+    """
+    Use network in current directory as input for inference
+    """
+    import tensorflow as tf
+    from dxpy.learn.dataset.api import get_dataset
+    from dxpy.learn.net.api import get_network
+    from dxpy.configs import ConfigsView
+    from dxpy.learn.config import config
+    import numpy as np
+    import yaml
+    from dxpy.debug.utils import dbgmsg
+    print('Using dataset file:', dataset)
+    data_raw = np.load(dataset)
+    data_raw = {k: np.array(data_raw[k]) for k in data_raw.keys()}
+    config_view = ConfigsView(config)
+
+    def data_key(nd):
+        return 'image{}x'.format(2**nd)
+
+    def tensor_shape(key):
+        shape_origin = data_raw[key].shape
+        return [1] + list(shape_origin[1:3]) + [1]
+
+    with tf.name_scope('inputs'):
+        keys = ['input/image{}x'.format(2**i) for i in range(4)]
+        keys += ['label/image{}x'.format(2**i) for i in range(4)]
+        dataset = {k: tf.placeholder(tf.float32, tensor_shape(data_key(i % 4)))
+                   for i, k in enumerate(keys)}
+
+    network = get_network('network/srms', dataset=dataset)
+    nb_down_sample = network.param('nb_down_sample')
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    sess = tf.train.MonitoredTrainingSession(
+        checkpoint_dir='./save', config=config, save_checkpoint_secs=None)
+
+    STAT_MEAN = 9.93 
+    STAT_STD = 7.95
+    STAT_MEAN_LOW = 9.93 * (4.0**nb_down_sample)
+    STAT_STD_LOW = 7.95 * (4.0**nb_down_sample)
+    BASE_SHAPE = (384, 384)
+
+    def crop_image(tensor, target_shape=None):
+        if target_shape is None:
+            target_shape = BASE_SHAPE
+        if len(tensor.shape) == 4:
+            tensor = tensor[0, :, :, 0]
+        # o1 = (tensor.shape[0] - target_shape[0]) // 2
+        o1 = tensor.shape[0] // 2
+        o2 = (tensor.shape[1] - target_shape[1]) // 2
+        return tensor[o1:o1+target_shape[0], o2:-o2]
+
+    input_key = data_key(nb_down_sample)
+    dbgmsg('input_key:', input_key)
+
+    def run_infer(idx):
+        low_phan = np.reshape(
+            data_raw[input_key][idx, :, :], tensor_shape(input_key))
+        # low_phan = (low_phan - STAT_MEAN) / STAT_STD
+        feeds = {dataset['input/image{}x'.format(2**nb_down_sample)]: low_phan}
+        inf, itp = sess.run([network['outputs/inference'],
+                             network['outputs/interp']], feed_dict=feeds)
+        infc = crop_image(inf)
+        itpc = crop_image(itp)
+        infc = infc * STAT_STD_LOW + STAT_MEAN_LOW
+        itpc = itpc * STAT_STD_LOW + STAT_MEAN_LOW
+        return infc, itpc
+
+    phans = []
+    img_highs = []
+    img_lows = []
+    img_itps = []
+    img_infs = []
+    NB_MAX = data_raw['phantom'].shape[0]
+    for idx in tqdm(range(nb_samples), ascii=True):
+        if idx > NB_MAX:
+            import sys
+            print('Index {} out of range {}, stop running and store current result...'.format(
+                idx, NB_MAX), file=sys.stderr)
+            break
+
+        phans.append(data_raw['phantom'][idx, ...])
+        img_high = crop_image(data_raw[data_key(0)][idx, :, :])
+        img_high = img_high * STAT_STD + STAT_MEAN
+        # img_high = img_high * STAT_STD / \
+        # (4.0**nb_down_sample) + STAT_MEAN / (4.0**nb_down_sample)
+        img_highs.append(img_high)
+        img_low = crop_image(data_raw[data_key(nb_down_sample)][idx, ...],
+                             [s // (2**nb_down_sample) for s in BASE_SHAPE])
+        img_low = img_low * STAT_STD_LOW + STAT_MEAN_LOW
+        img_lows.append(img_low)
+        img_inf, img_itp = run_infer(idx)
+        img_infs.append(img_inf)
+        img_itps.append(img_itp)
+    
+    img_highs = np.array(img_highs)
+    img_infs = np.array(img_infs) / (4.0**nb_down_sample)
+    img_itps = np.array(img_itps) / (4.0**nb_down_sample)
+    img_lows = np.array(img_lows) / (4.0**nb_down_sample)
+
+    results = {'phantom': phans, 'sino_itps': img_itps,
+               'sino_infs': img_infs, 'sino_highs': img_highs, 'sino_lows': img_lows}
     np.savez(output, **results)
 
 def recon_sino(sinograms_filename, nb_samples, output, recon_method):
@@ -113,31 +333,32 @@ def recon_sino(sinograms_filename, nb_samples, output, recon_method):
     sino_infs = sino_infs[:, :nb_views_high, :]
     sino_itps = sino_itps[:, :nb_views_high, :]
     sino_lows = sino_lows * nb_views_high**2 / (nb_views_low**2)
-    phan_spec = Phantom2DSpec(shape=[256]*2)
-    detec_high = Detector2DParallelRing(views=np.linspace(0, np.pi, nb_views_high, endpoint=False), nb_sensors=nb_views_high, sensor_width=1.0)
-    detec_low = Detector2DParallelRing(views=np.linspace(0, np.pi, nb_views_low, endpoint=False), nb_sensors=nb_views_low, sensor_width=1.0*nb_views_high/nb_views_low)
+    phan_spec = Phantom2DSpec(shape=[256] * 2)
+    detec_high = Detector2DParallelRing(views=np.linspace(
+        0, np.pi, nb_views_high, endpoint=False), nb_sensors=nb_views_high, sensor_width=1.0)
+    detec_low = Detector2DParallelRing(views=np.linspace(
+        0, np.pi, nb_views_low, endpoint=False), nb_sensors=nb_views_low, sensor_width=1.0 * nb_views_high / nb_views_low)
     recon_highs = []
     recon_lows = []
     recon_infs = []
     recon_itps = []
+
     def recon_kernel(sinogram, detec):
         sinogram = np.maximum(sinogram, 0.0)
         if recon_method == 'fbp':
             recon = reconstruction2d(sinogram, detec, phan_spec)
         elif recon_method == 'sart':
-            recon = reconstruction2d(sinogram, detec, phan_spec, method='SART_CUDA', iterations=100)
+            recon = reconstruction2d(
+                sinogram, detec, phan_spec, method='SART_CUDA', iterations=100)
         recon = np.maximum(recon, 0.0)
         recon = recon / np.sum(recon) * 1e6
         return recon
-
 
     for i in tqdm(range(nb_samples), ascii=True):
         recon_highs.append(recon_kernel(sino_highs[i, ...], detec_high))
         recon_lows.append(recon_kernel(sino_lows[i, ...], detec_low))
         recon_infs.append(recon_kernel(sino_infs[i, ...], detec_high))
         recon_itps.append(recon_kernel(sino_itps[i, ...], detec_high))
-    results = {'phantom': phans, 'recon_highs': recon_highs, 'recon_lows': recon_lows, 'recon_infs': recon_infs, 'recon_itps': recon_itps}
+    results = {'phantom': phans, 'recon_highs': recon_highs,
+               'recon_lows': recon_lows, 'recon_infs': recon_infs, 'recon_itps': recon_itps}
     np.savez(output, **results)
-
-
-
