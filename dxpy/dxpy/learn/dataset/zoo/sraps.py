@@ -26,6 +26,7 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                  with_phase_shift: bool=False,
                  target_shape: List[int]=None,
                  low_dose: bool= False,
+                 low_dose_ratio: float= 10.0,
                  **kw):
         """
         Args:
@@ -46,6 +47,7 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                          with_noise_label=with_noise_label,
                          with_phase_shift=with_phase_shift,
                          low_dose=low_dose,
+                         low_dose_ratio=low_dose_ratio,
                          nb_down_sample=nb_down_sample, **kw)
         # from ...model.normalizer.normalizer import FixWhite, ReduceSum
         # from ...model.tensor import ShapeEnsurer
@@ -310,7 +312,7 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
             if self.param('with_poission_noise'):
                 with tf.name_scope('add_with_poission_noise'):
                     if self.param('low_dose'):
-                        ratio = 10.0
+                        ratio = self.param('low_dose_ratio')
                         ratio_norm = 4e6 * bs / ratio
                         dataset = dataset / tf.reduce_sum(dataset) * ratio_norm
                         stat['mean'] = stat['mean'] / ratio
