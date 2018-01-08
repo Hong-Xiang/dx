@@ -44,7 +44,8 @@ def _load_sample(idx, data):
 
 def _processing(result):
     import numpy as np
-    result['sinogram'] = np.concatenate([result['sinogram']] * 2)[:, CROP_OFFSET:-CROP_OFFSET]
+    result['sinogram'] = np.concatenate(
+        [result['sinogram']] * 2)[:, CROP_OFFSET:-CROP_OFFSET]
     return result
 
 
@@ -60,17 +61,18 @@ def dataset_generator(ids):
 
 
 class Dataset(Graph):
-    MEAN = 0.217
-    STD = 0.993
+    MEAN = 100.0
+    STD = 150.0
     HIGH_NOISE_MAX_DEPTH = 128
     DEPTH_PER_MICE = 159
 
     @configurable(config, with_name=True)
-    def __init__(self, name='mice_sinograms', batch_size=32, ids=None, shuffle=True, dataset_type='train', **kw):
+    def __init__(self, name='mice_sinograms', batch_size=32, ids=None, shuffle=True, dataset_type='train', drop_end_sinos=True, **kw):
         super().__init__(name=name,
                          batch_size=batch_size,
                          shuffle=shuffle,
                          dataset_type=dataset_type,
+                         drop_end_sinos=drop_end_sinos,
                          **kw)
         if ids is None:
             if dataset_type == 'train':
@@ -81,8 +83,9 @@ class Dataset(Graph):
                 self._ids = list(range(NB_IMAGES))
         else:
             self._ids = ids
-        self._ids = list(filter(lambda x: x % self.DEPTH_PER_MICE <
-                                self.HIGH_NOISE_MAX_DEPTH, self._ids))
+        if self.param('drop_end_sinos'):
+            self._ids = list(filter(lambda x: x % self.DEPTH_PER_MICE <
+                                    self.HIGH_NOISE_MAX_DEPTH, self._ids))
         self._keys = ['id', 'sinogram']
 
         dataset = self._create_dataset()

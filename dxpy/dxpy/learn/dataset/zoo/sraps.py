@@ -313,12 +313,12 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                 with tf.name_scope('add_with_poission_noise'):
                     if self.param('low_dose'):
                         ratio = self.param('low_dose_ratio')
-                        ratio_norm = 4e6 * bs / ratio
+                        ratio_norm = 8e6 * bs / ratio
                         dataset = dataset / tf.reduce_sum(dataset) * ratio_norm
                         stat['mean'] = stat['mean'] / ratio
                         stat['std'] = stat['std'] / ratio
                     else:
-                        dataset = dataset / tf.reduce_sum(dataset) * 4e6 * bs
+                        dataset = dataset / tf.reduce_sum(dataset) * 8e6 * bs
                     noise = tf.random_poisson(dataset, shape=[])
                     dataset = tf.concat([noise, dataset], axis=0)
             if self.param('with_white_normalization'):
