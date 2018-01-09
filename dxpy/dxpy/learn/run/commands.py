@@ -90,6 +90,7 @@ def train_dist(cluster_file, job_name, task_index, config):
         train_task_dist(name='cluster/{}/task{}'.format(job_name, task_index),
                         cluster=cluster)
 
+
 @click.command()
 @click.option('--task', '-t', type=str)
 @click.option('--dataset', '-d', type=str)
@@ -98,8 +99,9 @@ def train_dist(cluster_file, job_name, task_index, config):
 @click.option('--config', '-c', type=str, help='configs .yml filename', default='dxln.yml')
 @click.option('--recon_method', '-r', type=str, default='fbp')
 def infer(task, dataset, output, nb_samples, config, recon_method):
-    from .inference import infer_sino_sr, recon_sino, infer_phan_sr, infer_mct
+    from .inference import infer_sino_sr, recon_sino, infer_phan_sr, infer_mct, infer_mice
     from .base import DxlnRunEnvrionment
+    from dxpy.core.path import Path
     with DxlnRunEnvrionment(config, with_pre_work=True):
         if task == 'sinosr':
             infer_sino_sr(dataset, nb_samples, output)
@@ -109,6 +111,5 @@ def infer(task, dataset, output, nb_samples, config, recon_method):
             recon_sino(dataset, nb_samples, output, recon_method)
         if task == 'mctsr':
             infer_mct(dataset, nb_samples, output)
-            
-
-
+        if task == 'micesr':
+            infer_mice(dataset, nb_samples, output)
