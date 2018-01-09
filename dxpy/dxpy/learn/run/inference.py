@@ -140,8 +140,8 @@ def infer_phan_sr(dataset, nb_samples, output):
     sess = tf.train.MonitoredTrainingSession(
         checkpoint_dir='./save', config=config, save_checkpoint_secs=None)
 
-    STAT_MEAN = 15.26 
-    STAT_STD = 22.0 
+    STAT_MEAN = 15.26
+    STAT_STD = 22.0
     STAT_MEAN_LOW = 15.26 * (4.0**nb_down_sample)
     STAT_STD_LOW = 22.0 * (4.0**nb_down_sample)
     BASE_SHAPE = (256, 256)
@@ -197,7 +197,7 @@ def infer_phan_sr(dataset, nb_samples, output):
         img_inf, img_itp = run_infer(idx)
         img_infs.append(img_inf)
         img_itps.append(img_itp)
-    
+
     img_highs = np.array(img_highs)
     img_infs = np.array(img_infs) / (4.0**nb_down_sample)
     img_itps = np.array(img_itps) / (4.0**nb_down_sample)
@@ -245,7 +245,7 @@ def infer_mct(dataset, nb_samples, output):
     sess = tf.train.MonitoredTrainingSession(
         checkpoint_dir='./save', config=config, save_checkpoint_secs=None)
 
-    STAT_MEAN = 9.93 
+    STAT_MEAN = 9.93
     STAT_STD = 7.95
     STAT_MEAN_LOW = 9.93 * (4.0**nb_down_sample)
     STAT_STD_LOW = 7.95 * (4.0**nb_down_sample)
@@ -259,7 +259,7 @@ def infer_mct(dataset, nb_samples, output):
         # o1 = (tensor.shape[0] - target_shape[0]) // 2
         o1 = tensor.shape[0] // 2
         o2 = (tensor.shape[1] - target_shape[1]) // 2
-        return tensor[o1:o1+target_shape[0], o2:-o2]
+        return tensor[o1:o1 + target_shape[0], o2:-o2]
 
     input_key = data_key(nb_down_sample)
     dbgmsg('input_key:', input_key)
@@ -303,7 +303,7 @@ def infer_mct(dataset, nb_samples, output):
         img_inf, img_itp = run_infer(idx)
         img_infs.append(img_inf)
         img_itps.append(img_itp)
-    
+
     img_highs = np.array(img_highs)
     img_infs = np.array(img_infs) / (4.0**nb_down_sample)
     img_itps = np.array(img_itps) / (4.0**nb_down_sample)
@@ -312,6 +312,7 @@ def infer_mct(dataset, nb_samples, output):
     results = {'phantom': phans, 'sino_itps': img_itps,
                'sino_infs': img_infs, 'sino_highs': img_highs, 'sino_lows': img_lows}
     np.savez(output, **results)
+
 
 def recon_sino(sinograms_filename, nb_samples, output, recon_method):
     import numpy as np
@@ -363,6 +364,7 @@ def recon_sino(sinograms_filename, nb_samples, output, recon_method):
                'recon_lows': recon_lows, 'recon_infs': recon_infs, 'recon_itps': recon_itps}
     np.savez(output, **results)
 
+
 def infer_mice(dataset, nb_samples, output):
     import numpy as np
     import tensorflow as tf
@@ -373,17 +375,23 @@ def infer_mice(dataset, nb_samples, output):
     from dxpy.numpy_extension.visual import grid_view
     from tqdm import tqdm
     pre_work()
-    input_data = np.load('/home/hongxwing/Workspace/NetInference/Mice/mice_test_data.npz')
+    input_data = np.load(
+        '/home/hongxwing/Workspace/NetInference/Mice/mice_test_data.npz')
     input_data = {k: np.array(input_data[k]) for k in input_data}
     dataset_origin = get_dataset('dataset/srms')
     is_low_dose = dataset_origin.param('low_dose')
+    from dxpy.debug.utils import dbgmsg
+    dbgmsg('IS LOW DOSE: ', is_low_dose)
     for k in input_data:
         print(k, input_data[k].shape)
     input_keys = ['input/image{}x'.format(2**i) for i in range(4)]
     label_keys = ['label/image{}x'.format(2**i) for i in range(4)]
-    shapes = [[1]+list(input_data['clean/image{}x'.format(2**i)].shape)[1:]+[1] for i in range(4)]
-    inputs = {input_keys[i]: tf.placeholder(tf.float32, shapes[i], name='input{}x'.format(2**i)) for i in range(4)}
-    labels = {label_keys[i]: tf.placeholder(tf.float32, shapes[i], name='label{}x'.format(2**i)) for i in range(4)}
+    shapes = [[1] + list(input_data['clean/image{}x'.format(2**i)
+                                    ].shape)[1:] + [1] for i in range(4)]
+    inputs = {input_keys[i]: tf.placeholder(
+        tf.float32, shapes[i], name='input{}x'.format(2**i)) for i in range(4)}
+    labels = {label_keys[i]: tf.placeholder(
+        tf.float32, shapes[i], name='label{}x'.format(2**i)) for i in range(4)}
     dataset = dict(inputs)
     dataset.update(labels)
     network = get_network('network/srms', dataset=dataset)
@@ -391,36 +399,40 @@ def infer_mice(dataset, nb_samples, output):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.train.MonitoredTrainingSession(
-            checkpoint_dir='./save', config=config, save_checkpoint_secs=None)
+        checkpoint_dir='./save', config=config, save_checkpoint_secs=None)
 
+    if not is_low_dose:
+        prefix = 'clean/image'
+    else:
+        prefix = 'noise/image'
 
     def get_feed(idx):
-#     return dict()
-        data_raw = input_data['clean/image{}x'.format(2**nb_down_sample)][idx, ...]
-        data_raw = np.reshape(data_raw, [1]+list(data_raw.shape)+[1])
-        data_label = input_data['clean/image1x'.format(2**nb_down_sample)][idx, ...]
-        data_label = np.reshape(data_label, [1]+list(data_label.shape)+[1])
+        #     return dict()
+        data_raw = input_data['{}{}x'.format(
+            prefix, 2**nb_down_sample)][idx, ...]
+        data_raw = np.reshape(data_raw, [1] + list(data_raw.shape) + [1])
+        data_label = input_data['{}1x'.format(prefix)][idx, ...]
+        data_label = np.reshape(data_label, [1] + list(data_label.shape) + [1])
         return {dataset['input/image{}x'.format(2**nb_down_sample)]: data_raw,
                 dataset['input/image1x'.format(2**nb_down_sample)]: data_label,
-                dataset['label/image1x'.format(2**nb_down_sample)]: data_label,}
-            
+                dataset['label/image1x'.format(2**nb_down_sample)]: data_label, }
+
     to_run = {
-        'inf': network['outputs/inference'], 
-        'itp': network['outputs/interp'], 
+        'inf': network['outputs/inference'],
+        'itp': network['outputs/interp'],
         'high': network['input/image1x'],
-    #     'li': network['outputs/loss_itp'],
-    #     'ls': network['outputs/loss'],
-    #     'la': network['outputs/aligned_label']
+        #     'li': network['outputs/loss_itp'],
+        #     'ls': network['outputs/loss'],
+        #     'la': network['outputs/aligned_label']
     }
 
     def crop(data, target):
         if len(data.shape) == 4:
             data = data[0, :, :, 0]
-        o1 = data.shape[0]//2
-        o2 = (data.shape[1] - target[1])//2
-        return data[o1:o1+target[0], o2:-o2]
+        o1 = data.shape[0] // 2
+        o2 = (data.shape[1] - target[1]) // 2
+        return data[o1:o1 + target[0], o2:-o2]
 
-    
     MEAN = 100.0
     STD = 150.0
     if is_low_dose:
@@ -432,15 +444,17 @@ def infer_mice(dataset, nb_samples, output):
         result = sess.run(to_run, feed_dict=get_feed(idx))
         inf = crop(result['inf'], [320, 64])
         itp = crop(result['itp'], [320, 64])
-        high = crop(input_data['clean/image1x'][idx, ...], [320, 64])
-        low = crop(input_data['clean/image{}x'.format(2**nb_down_sample)][idx, ...], [320//(2**nb_down_sample), 64//(2**nb_down_sample)])
+        high = crop(input_data['{}1x'.format(prefix)][idx, ...], [320, 64])
+        low = crop(input_data['{}{}x'.format(prefix, 2**nb_down_sample)]
+                   [idx, ...], [320 // (2**nb_down_sample), 64 // (2**nb_down_sample)])
 
         high = high * STD + MEAN
         low = low * STD + MEAN
         inf = inf * STD + MEAN
         itp = itp * STD + MEAN
         high = np.pad(high, [[0, 0], [32, 32]], mode='constant')
-        low = np.pad(low, [[0, 0], [32//(2**nb_down_sample)]*2], mode='constant')
+        low = np.pad(
+            low, [[0, 0], [32 // (2**nb_down_sample)] * 2], mode='constant')
         inf = np.pad(inf, [[0, 0], [32, 32]], mode='constant')
         # inf = np.maximum(inf, 0.0)
         itp = np.pad(itp, [[0, 0], [32, 32]], mode='constant')
@@ -448,7 +462,7 @@ def infer_mice(dataset, nb_samples, output):
 
     results = {'high': [], 'low': [], 'inf': [], 'itp': []}
     for i in tqdm(range(NB_IMAGES)):
-        high, low, inf, itp = get_infer(1)
+        high, low, inf, itp = get_infer(i)
         results['high'].append(high)
         results['low'].append(low)
         results['inf'].append(inf)
