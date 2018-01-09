@@ -375,6 +375,8 @@ def infer_mice(dataset, nb_samples, output):
     pre_work()
     input_data = np.load('/home/hongxwing/Workspace/NetInference/Mice/mice_test_data.npz')
     input_data = {k: np.array(input_data[k]) for k in input_data}
+    dataset_origin = get_dataset('dataset/srms')
+    is_low_dose = dataset_origin.param('low_dose')
     for k in input_data:
         print(k, input_data[k].shape)
     input_keys = ['input/image{}x'.format(2**i) for i in range(4)]
@@ -390,7 +392,8 @@ def infer_mice(dataset, nb_samples, output):
     config.gpu_options.allow_growth = True
     sess = tf.train.MonitoredTrainingSession(
             checkpoint_dir='./save', config=config, save_checkpoint_secs=None)
-    
+
+
     def get_feed(idx):
 #     return dict()
         data_raw = input_data['clean/image{}x'.format(2**nb_down_sample)][idx, ...]
@@ -417,8 +420,12 @@ def infer_mice(dataset, nb_samples, output):
         o2 = (data.shape[1] - target[1])//2
         return data[o1:o1+target[0], o2:-o2]
 
+    
     MEAN = 100.0
     STD = 150.0
+    if is_low_dose:
+        MEAN /= dataset_origin.param('low_dose_ratio')
+        STD /= dataset_origin.param('low_dose_ratio')
     NB_IMAGES = nb_samples
 
     def get_infer(idx):
