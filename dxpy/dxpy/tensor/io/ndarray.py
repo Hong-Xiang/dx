@@ -19,3 +19,9 @@ def load(tensor_spec, slices=None):
             return np.array(dataset[tensor_spec.dataset_names[-1]])
         else:
             return np.array(dataset[tensor_spec.dataset_names[-1]][slices])
+
+
+def load_npz(filename):
+    data = np.load(filename)
+    return {k: data[k] for k in data}
+    

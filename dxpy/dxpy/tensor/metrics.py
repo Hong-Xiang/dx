@@ -8,6 +8,9 @@ def rmse(label, target):
     # return value / base
     return value
 
+def mean_absolute_error(label, target):
+    err = target - label
+    return np.mean(np.abs(err))
 
 def bias(label, target):
     return np.mean(label - target)
