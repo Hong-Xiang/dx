@@ -240,3 +240,13 @@ def rotate(tensor, offset, axis):
     tr = tensor[slir]
     result = np.concatenate([tl, tr], axis=axis)
     return result
+
+def upsample(tensor, ratio):
+    import itertools
+    result_shape = [r*s for r, s in zip(ratio, tensor.shape)]
+    result = np.zeros(result_shape)
+    ranges = [range(r) for r in ratio]
+    for offsets in itertools.product(*ranges):
+        slices = [slice(o, s, r) for o,s,r in zip(offsets, result_shape, ratio)]
+        result[slices] = tensor
+    return result

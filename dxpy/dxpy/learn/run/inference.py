@@ -349,8 +349,10 @@ def recon_sino(sinograms_filename, nb_samples, output, recon_method):
         if recon_method == 'fbp':
             recon = reconstruction2d(sinogram, detec, phan_spec)
         elif recon_method == 'sart':
+            from dxpy.debug.utils import dbgmsg
+            dbgmsg('USING SART !!!!!!!!!!')
             recon = reconstruction2d(
-                sinogram, detec, phan_spec, method='SART_CUDA', iterations=100)
+                sinogram, detec, phan_spec, method='SART_CUDA', iterations=500)
         recon = np.maximum(recon, 0.0)
         recon = recon / np.sum(recon) * 1e6
         return recon
