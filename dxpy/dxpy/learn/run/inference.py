@@ -445,7 +445,7 @@ def infer_ext(input_npz_filename, phantom_npz_filename, output, ids, nb_run, low
     keys = ['sino_highs', 'sino_lows', 'sino_infs', 'sino_itps', 'phantoms']
     results_sino = {k: [] for k in keys}
     for idx in tqdm(ids):
-        for _ in range(nb_run):
+        for _ in tqdm(range(nb_run)):
             result_sino = get_result(idx)
         for k in keys:
             results_sino[k].append(result_sino[k])
