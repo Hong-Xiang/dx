@@ -417,9 +417,6 @@ def infer_ext(input_npz_filename, phantom_npz_filename, output, ids, nb_run, low
     def crop_and_denorm(result, target=[base_detector_number] * 2):
         if result.ndim == 4:
             result = result[0, :, :, 0]
-        from dxpy.debug.utils import dbgmsg
-        dbgmsg(result.shape)
-        dbgmsg(target)
         if crop_method == 'half':
             s = result.shape[0] // 2
             result = result[s:s + target[0], :]
@@ -433,7 +430,6 @@ def infer_ext(input_npz_filename, phantom_npz_filename, output, ids, nb_run, low
             raise ValueError("Unknown crop method {}.".format(crop_method))
         result = result * STD + MEAN
         result = np.maximum(result, 0.0)
-        dbgmsg(result.shape)
         return result
 
     def get_result(idx):
