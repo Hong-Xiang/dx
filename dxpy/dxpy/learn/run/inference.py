@@ -382,7 +382,6 @@ def infer_ext(input_npz_filename, phantom_npz_filename, output, ids, nb_run, low
     ld = low_dose_ratio
     data = load_npz(input_npz_filename)
     phantoms = load_npz(phantom_npz_filename)[phantom_key]
-    data_input = data['clean/image1x'] / ld
     load_yaml_config(config_filename)
     MEAN = config['dataset']['srms']['mean'] / ld
     STD = config['dataset']['srms']['std'] / ld
@@ -399,11 +398,12 @@ def infer_ext(input_npz_filename, phantom_npz_filename, output, ids, nb_run, low
         prefix = 'noise'
     else:
         prefix = 'clean'
+    data_input = data['{}/image1x'.format(prefix)] / ld
     label_key = '{}/image1x'.format(prefix)
     input_key = '{}/image{}x'.format(prefix, 2**nb_down)
     input_dict = {
         'input/image{}x'.format(nd): dataset['{}/image{}x'.format(prefix, nd)] for nd in nb_down_ratio}
-    input_dict.update({'label/image{}x'.format(nd): dataset['{}/image{}x'.format(prefix, nd)] for nd in nb_down_ratio})
+    input_dict.update({'label/image{}x'.format(nd)                       : dataset['{}/image{}x'.format(prefix, nd)] for nd in nb_down_ratio})
     network = get_network('network/srms', dataset=input_dict)
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -423,8 +423,8 @@ def infer_ext(input_npz_filename, phantom_npz_filename, output, ids, nb_run, low
             o = (result.shape[1] - target[1]) // 2
             result = result[:, o:-o]
         elif crop_method == 'center':
-            o0 = (result.shape[0] - target[0])//2
-            o1 = (result.shape[1] - target[1])//2
+            o0 = (result.shape[0] - target[0]) // 2
+            o1 = (result.shape[1] - target[1]) // 2
             result = result[o0:-o0, o1:-o1]
         else:
             raise ValueError("Unknown crop method {}.".format(crop_method))
