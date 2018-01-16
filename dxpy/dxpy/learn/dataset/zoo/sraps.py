@@ -185,6 +185,7 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                 result.update({'noise/' + k: dataset[k] for k in keys})
         return result
 
+
     def _get_recons_ms(self):
         from ..raw.analytical_phantom_sinogram import Dataset
         from dxpy.learn.model.normalizer import FixWhite
@@ -439,3 +440,5 @@ class AnalyticalPhantomSinogramDatasetForSuperResolution(Graph):
                    ] = result['input/image{}x'.format(2**i)]
         result['label/phantom'] = phantom
         return result
+
+

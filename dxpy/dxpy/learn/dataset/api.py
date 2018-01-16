@@ -17,6 +17,9 @@ def get_dataset(name, dataset_cls_name, dataset_config_name=None):
     elif dataset_cls_name == 'sin':
         from .zoo.sin import SinDataset
         return SinDataset(name=dataset_config_name)        
+    elif dataset_cls_name == 'srext':
+        from .zoo.srext import SuperResolutionExternalDataset
+        return SuperResolutionExternalDataset(name=dataset_config_name)
     else:
         raise ValueError(
             'Unknown dataset_name (class name) {}.'.format(dataset_cls_name))

@@ -1,5 +1,5 @@
 """
-Metrics of many samples
+Functions apply to many tensors
 """
 
 

@@ -1,3 +1,6 @@
+"""
+functions map tensor to scale
+"""
 import numpy as np
 
 

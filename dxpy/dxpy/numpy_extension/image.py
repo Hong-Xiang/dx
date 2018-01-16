@@ -9,6 +9,8 @@ def try_unbatch(images):
 
 
 def fix_dim(image):
+    if image is None:
+        return None
     if image.ndim == 3 and image.shape[-1] == 1:
         return np.reshape(image, image.shape[:-1])
     return image

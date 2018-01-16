@@ -432,6 +432,8 @@ class SuperResolutionMultiScalev2(Model):
                         self.param('nb_down_sample')
                 else:
                     lw = self.param('loss_weight')
+                from dxpy.debug.utils import dbgmsg
+                dbgmsg(self.param('loss_weight'))
                 for i, l in enumerate(losses):
                     losses[i] = losses[i] * lw[i]
                     if len(losses_poi) > 0:

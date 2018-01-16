@@ -3,7 +3,7 @@ import numpy as np
 from .. import image as nei
 
 
-def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, hide_axis=True, tight_c=0.01, return_figure=False, dpi=None, adjust_figure_size=True, max_show_image=None):
+def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, hide_axis=True, tight_c=0.01, return_figure=False, dpi=None, adjust_figure_size=True, max_show_image=None, output_filename=None):
     """ subplot list of images of multiple categories into grid subplots
     Args:
         image_lists: list of [list of images or 4D tensor]
@@ -48,6 +48,8 @@ def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, h
         for i in range(nb_images):
             if i > len(image_lists[k]):
                 continue
+            if image_lists[k][i] is None:
+                continue
             r = i // nb_column * nb_cata + k
             c = i % nb_column
             ax = plt.subplot(nb_row, nb_column, r * nb_column + c + 1)
@@ -62,5 +64,7 @@ def grid_view(image_lists, windows=None, nb_column=8, scale=1.0, cmap=None, *, h
         h_pad = tight_c
         w_pad = tight_c
     plt.tight_layout(h_pad=h_pad, w_pad=w_pad)
+    if output_filename is not None:
+        fig.savefig(output_filename)
     if return_figure:
         return fig
