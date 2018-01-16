@@ -367,6 +367,93 @@ def recon_sino(sinograms_filename, nb_samples, output, recon_method):
     np.savez(output, **results)
 
 
+def infer_ext(input_npz_filename, phantom_npz_filename, output, ids, nb_run, low_dose_ratio, base_detector_number, crop_method='half', phantom_key='phantom', config_filename='dxln.yml'):
+    import numpy as np
+    from dxpy.learn.dataset.api import get_dataset
+    from dxpy.learn.net.api import get_network
+    from dxpy.tensor.io import load_npz
+    from dxpy.learn.utils.general import load_yaml_config, pre_work
+    from dxpy.learn.config import config
+    from dxpy.learn.session import Session
+    import tensorflow as tf
+    from dxpy.tensor.metrics import psnr, ssim
+    from tqdm import tqdm
+    pre_work()
+    ld = low_dose_ratio
+    data = load_npz(input_npz_filename)
+    phantoms = load_npz(phantom_npz_filename)[phantom_key]
+    data_input = data['clean/image1x'] / ld
+    load_yaml_config(config_filename)
+    MEAN = config['dataset']['srms']['mean'] / ld
+    STD = config['dataset']['srms']['std'] / ld
+    config['dataset']['srms']['mean'] = MEAN
+    config['dataset']['srms']['std'] = STD
+    dataset = get_dataset('dataset/srms')
+    dataset_feed = dataset['external_place_holder']
+    with_noise = dataset.param('with_poission_noise')
+    nb_down = dataset.param('nb_down_sample')
+    nb_down_ratio = [2**i for i in range(nb_down + 1)]
+    nb_detector_base = base_detector_number
+    ns = nb_detector_base // (2**nb_down)
+    if with_noise:
+        prefix = 'noise'
+    else:
+        prefix = 'clean'
+    label_key = '{}/image1x'.format(prefix)
+    input_key = '{}/image{}x'.format(prefix, 2**nb_down)
+    input_dict = {
+        'input/image{}x'.format(nd): dataset['{}/image{}x'.format(prefix, nd)] for nd in nb_down_ratio}
+    input_dict.update({'label/image{}x'.format(nd): dataset['{}/image{}x'.format(prefix, nd)] for nd in nb_down_ratio})
+    network = get_network('network/srms', dataset=input_dict)
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    sess = tf.train.MonitoredTrainingSession(
+        checkpoint_dir='./save/', config=config)
+    fetches = {'label': dataset[label_key],
+               'input': dataset[input_key],
+               'infer': network['inference'],
+               'interp': network['outputs/interp']}
+
+    def crop_and_denorm(result, target=[base_detector_number] * 2):
+        if result.ndim == 4:
+            result = result[0, :, : 0]
+        if crop_method == 'half':
+            s = result.shape[0] // 2
+            result = result[s:s + target[0], :]
+            o = (result.shape[1] - target[1]) // 2
+            result = result[:, o:-o]
+        elif crop_method == 'center':
+            o0 = (result.shape[0] - target[0])//2
+            o1 = (result.shape[1] - target[1])//2
+            result = result[o0:-o0, o1:-o1]
+        else:
+            raise ValueError("Unknown crop method {}.".format(crop_method))
+        result = result * STD + MEAN
+        result = np.maximum(result, 0.0)
+        return result
+
+    def get_result(idx):
+        phan = phantoms[idx, ...]
+        result = sess.run(fetches, feed_dict={
+                          dataset_feed: data_input[idx:idx + 1, ...]})
+        result_c = {'sino_highs': crop_and_denorm(result['label']),
+                    'sino_lows': crop_and_denorm(result['input'], [ns, ns]),
+                    'sino_infs': crop_and_denorm(result['infer']),
+                    'sino_itps': crop_and_denorm(result['interp']),
+                    'phantoms': phan}
+        return result_c
+    keys = ['sino_highs', 'sino_lows', 'sino_infs', 'sino_itps', 'phantoms']
+    results_sino = {k: [] for k in keys}
+    for idx in tqdm(ids):
+        for _ in range(nb_run):
+            result_sino = get_result(idx)
+        for k in keys:
+            results_sino[k].append(result_sino[k])
+    for k in results_sino:
+        results_sino[k] = np.array(results_sino[k])
+    np.savez(output, **results_sino)
+
+
 def infer_mice(dataset, nb_samples, output):
     import numpy as np
     import tensorflow as tf

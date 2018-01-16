@@ -21,7 +21,7 @@ def npz2mat(input, output):
     data = {k: data[k] for k in data}
     savemat(output, data)
     
-@click.command()
-@click.option('--input', '-i', type=str)
-@click.option('--output', '-o', type=str)
-@click.option('--metrices', '-m', type=str, )
+# @click.command()
+# @click.option('--input', '-i', type=str)
+# @click.option('--output', '-o', type=str)
+# @click.option('--metrices', '-m', type=str, )

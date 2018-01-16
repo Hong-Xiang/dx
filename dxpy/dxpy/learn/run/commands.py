@@ -113,3 +113,21 @@ def infer(task, dataset, output, nb_samples, config, recon_method):
             infer_mct(dataset, nb_samples, output)
         if task == 'micesr':
             infer_mice(dataset, nb_samples, output)
+
+
+@click.command()
+@click.option('--sinonpz', '-s', type=str)
+@click.option('--phannpz', '-p', type=str)
+@click.option('--output', '-o', type=str)
+@click.option('--start', type=int)
+@click.option('--end', type=int)
+@click.option('--nb_run', '-n', type=int)
+@click.option('--low_dose_ratio', '-l', type=float)
+@click.option('--detector_number', '-d', type=int)
+@click.option('--config', '-c', type=str, help='configs .yml filename', default='dxln.yml')
+@click.option('--crop_method', type=str)
+@click.option('--phantom_key', type=str)
+def inferext(sinonpz, phannpz, output, start, end, nb_run, low_dose_ratio, detector_number, config, phantom_key, crop_method):
+    from .inference import infer_ext
+    infer_ext(sinonpz, phannpz, output, range(start, end), nb_run,
+              low_dose_ratio, detector_number, crop_method, phantom_key, config)

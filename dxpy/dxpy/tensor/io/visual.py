@@ -31,8 +31,6 @@ def _handle_list_inputs(images, error):
         else:
             raise TypeError("Type {} not supported.".format(types[0]))
         nr = len(images)
-        from dxpy.debug.utils import dbgmsg
-        dbgmsg(nr, nc)
         return _create_2d_ndarray(images, [nr, nc])
     else:
         raise error
@@ -145,14 +143,14 @@ def _adjust_figure_size(images, scale, scale_factor):
             if images[ir, ic] is None:
                 continue
             width += images[ir, ic].shape[1]
-            height += images[ic, ic].shape[0]
+            height += images[ir, ic].shape[0]
             nb_images += 1
     width = width / nb_images * images.shape[1]
     height = height / nb_images * images.shape[0]
     DEFAULT_WIDTH = scale_factor * scale
     ratio = DEFAULT_WIDTH / width
     height = height * ratio
-    return (DEFAULT_WIDTH, height), 1e3 / width
+    return (DEFAULT_WIDTH, height), 100.0 
     # return (images.shape[1] + 1, images.shape[0] + 1), 640.0 / (images.shape[1] + 1)
 
 
@@ -182,6 +180,9 @@ def grid_view(images, windows=None, scale=1.0, cmap=None,
     images, windows = _adjust_images_to_fit_nb_columns(images, windows,
                                                        max_columns, max_rows)
     figsize, default_dpi = _adjust_figure_size(images, scale, scale_factor)
+    from dxpy.debug.utils import dbgmsg
+    dbgmsg(figsize, default_dpi)
+    dbgmsg(images.shape)
     if dpi is None:
         dpi = default_dpi
     dpi = dpi * scale
