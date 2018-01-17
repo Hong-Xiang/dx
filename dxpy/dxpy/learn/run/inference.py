@@ -408,33 +408,30 @@ def _get_input_dict(dataset):
 
 
 def infer_ext(input_npz_filename, input_key='clean/image1x',
-              phantom_npz_filename=None, phantom_key=None,
+              phantom_npz_filename=None, phantom_key='phantom',
               dataset_config_name='dataset/srms',
               network_config_name='network/srms',
               output_shape=(320, 320),
               output='infer_ext_result.npz',
               ids=None, nb_run=1, low_dose_ratio=1.0,
-              crop_method='half',
+              crop_method='hc',
               config_filename='dxln.yml'):
     """
     """
     import numpy as np
     from dxpy.learn.dataset.api import get_dataset
     from dxpy.learn.net.api import get_network
-    from dxpy.tensor.io import load_npz
+    from dxpy.tensor.collections import dict_append, dict_element_to_tensor
     from dxpy.learn.utils.general import load_yaml_config, pre_work
-    from dxpy.learn.config import config
-    from dxpy.learn.session import Session
-    import tensorflow as tf
-    from dxpy.tensor.metrics import psnr, ssim
     from tqdm import tqdm
+    from dxpy.learn.session import SessionMonitored
     pre_work()
     inputs, phantoms = _load_input_and_phantom(input_npz_filename,
                                                phantom_npz_filename,
                                                input_key, phantom_key)
     data_input = inputs / low_dose_ratio
     load_yaml_config(config_filename)
-    MEAN, STD = _update_statistics(dataset_config_name, low_dose_ratio)
+    mean, std = _update_statistics(dataset_config_name, low_dose_ratio)
     dataset = get_dataset(dataset_config_name)
     dataset_feed = dataset['external_place_holder']
     nb_down = dataset.param('nb_down_sample')
@@ -442,31 +439,22 @@ def infer_ext(input_npz_filename, input_key='clean/image1x',
     prefix = 'noise' if dataset.param('with_poission_noise') else 'clean'
     label_key = '{}/image1x'.format(prefix)
     input_key = '{}/image{}x'.format(prefix, 2**nb_down)
-    network = get_network(network_config_name, dataset=_get_input_dict(dataset))
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    sess = tf.train.MonitoredTrainingSession(
-        checkpoint_dir='./save/', config=config)
+    network = get_network(network_config_name,
+                          dataset=_get_input_dict(dataset))
+    sess = SessionMonitored()
     fetches = {'label': dataset[label_key],
                'input': dataset[input_key],
                'infer': network['inference'],
                'interp': network['outputs/interp']}
 
-    def crop_and_denorm(result, target=output_shape):
-        if result.ndim == 4:
-            result = result[0, :, :, 0]
-        if crop_method == 'half':
-            s = result.shape[0] // 2
-            result = result[s:s + target[0], :]
-            o = (result.shape[1] - target[1]) // 2
-            result = result[:, o:-o]
-        elif crop_method == 'center':
-            o0 = (result.shape[0] - target[0]) // 2
-            o1 = (result.shape[1] - target[1]) // 2
-            result = result[o0:-o0, o1:-o1]
+    def proc(result, is_low=False):
+        from dxpy.tensor.transform import crop_to_shape
+        if is_low:
+            target_shape = [s // (2**nb_down) for s in output_shape]
         else:
-            raise ValueError("Unknown crop method {}.".format(crop_method))
-        result = result * STD + MEAN
+            target_shape = output_shape
+        result = crop_to_shape(result, target_shape, '0' + crop_method + '0')
+        result = result * std + mean
         result = np.maximum(result, 0.0)
         return result
 
@@ -474,21 +462,19 @@ def infer_ext(input_npz_filename, input_key='clean/image1x',
         phan = phantoms[idx, ...]
         result = sess.run(fetches, feed_dict={
                           dataset_feed: data_input[idx:idx + 1, ...]})
-        result_c = {'sino_highs': crop_and_denorm(result['label']),
-                    'sino_lows': crop_and_denorm(result['input'], [ns, ns]),
-                    'sino_infs': crop_and_denorm(result['infer']),
-                    'sino_itps': crop_and_denorm(result['interp']),
+        result_c = {'sino_highs': proc(result['label']),
+                    'sino_lows': proc(result['input'], True),
+                    'sino_infs': proc(result['infer']),
+                    'sino_itps': proc(result['interp']),
                     'phantoms': phan}
         return result_c
     keys = ['sino_highs', 'sino_lows', 'sino_infs', 'sino_itps', 'phantoms']
     results_sino = {k: [] for k in keys}
-    for idx in tqdm(ids):
-        for _ in tqdm(range(nb_run)):
+    for idx in tqdm(ids, ascii=True):
+        for _ in tqdm(range(nb_run), ascii=True, leave=False):
             result_sino = get_result(idx)
-            for k in keys:
-                results_sino[k].append(result_sino[k])
-    for k in results_sino:
-        results_sino[k] = np.array(results_sino[k])
+            dict_append(results_sino, result_sino)
+    dict_element_to_tensor(results_sino)
     np.savez(output, **results_sino)
 
 

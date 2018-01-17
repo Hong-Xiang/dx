@@ -32,13 +32,17 @@ class Session(Graph):
             'log_device_placement': False
         }, super()._default_config())
 
-    def _create_session(self):
+    def _get_session_config(self):
         config = tf.ConfigProto()
         if self.param('allow_growth'):
             config.gpu_options.allow_growth = True
         if self.param('log_device_placement'):
             config.log_device_placement = True
-        self.register_main_node(tf.Session(config=config, target=self._target))
+        return config
+
+    def _create_session(self):
+        self.register_main_node(tf.Session(config=self._get_session_config(),
+                                           target=self._target))
 
     def run(self, tensors, feed_dict=None):
         with self.nodes[NodeKeys.MAIN].as_default():
@@ -80,4 +84,14 @@ class SessionDist(Session):
         self.register_main_node(tf.Session(self._target, config=config))
 
 
+class SessionMonitored(Session):
+    def __init__(self, name='session', target=None,
+                 checkpoint_dir='./save/', **kw):
+        self._target = target
+        super().__init__(name=name, checkpoint_dir=checkpoint_dir, **kw)
 
+    def _create_session(self):
+        sess = tf.train.MonitoredTrainingSession(target=self._target,
+                                                 config=self._get_session_config(),
+                                                 checkpoint_dir=self.param('checkpoint_dir'))
+        self.register_main_node(sess)

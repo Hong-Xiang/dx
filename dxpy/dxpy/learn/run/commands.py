@@ -117,17 +117,35 @@ def infer(task, dataset, output, nb_samples, config, recon_method):
 
 @click.command()
 @click.option('--sinonpz', '-s', type=str)
+@click.option('--input_key', '-k', type=str, default='clean/image1x')
 @click.option('--phannpz', '-p', type=str)
-@click.option('--output', '-o', type=str)
-@click.option('--start', type=int)
-@click.option('--end', type=int)
-@click.option('--nb_run', '-n', type=int)
-@click.option('--low_dose_ratio', '-l', type=float)
-@click.option('--detector_number', '-d', type=int)
+@click.option('--phantom_key', type=str, default='phantom')
+@click.option('--output', '-o', type=str, default='inferext_result.npz')
+@click.option('--start', type=int, help='start of ids', default=0)
+@click.option('--end', type=int, help='end of ids')
+@click.option('--nb_run', '-n', type=int, default=1)
+@click.option('--low_dose_ratio', '-l', type=float, default=1.0)
+@click.option('--output_shape', '-e', type=int, nargs=2)
+@click.option('--crop_method', '-m', type=str, default='hc')
 @click.option('--config', '-c', type=str, help='configs .yml filename', default='dxln.yml')
-@click.option('--crop_method', type=str)
-@click.option('--phantom_key', type=str)
-def inferext(sinonpz, phannpz, output, start, end, nb_run, low_dose_ratio, detector_number, config, phantom_key, crop_method):
+@click.option('--network', type=str, default='network/srms', help='network config name')
+@click.option('--dataset', type=str, default='dataset/srms', help='dataset config name')
+def inferext(sinonpz, input_key,
+             phannpz, phantom_key,
+             dataset,
+             network,
+             output_shape,
+             output,
+             start, end, nb_run, low_dose_ratio,
+             crop_method,
+             config):
     from .inference import infer_ext
-    infer_ext(sinonpz, phannpz, output, range(start, end), nb_run,
-              low_dose_ratio, detector_number, crop_method, phantom_key, config)
+    infer_ext(sinonpz, input_key,
+              phannpz, phantom_key,
+              dataset,
+              network,
+              output_shape,
+              output,
+              range(start, end), nb_run, low_dose_ratio,
+              crop_method,
+              config)

@@ -55,7 +55,6 @@ def mirror(tensor, axis, *, forward: bool=True):
         return np.concatenate([tensor_m, tensor], axis=axis)
 
 
-
 # def pad(tensor, axis: int, target_size: int, offset: int=0, method: str='constant', *, padding_value=0)
 #     def padding_one_block(source, target, idx, ids, method, mirror_axis=None):
 #         if method is None:
@@ -241,12 +240,49 @@ def rotate(tensor, offset, axis):
     result = np.concatenate([tl, tr], axis=axis)
     return result
 
+
 def upsample(tensor, ratio):
     import itertools
-    result_shape = [r*s for r, s in zip(ratio, tensor.shape)]
+    result_shape = [r * s for r, s in zip(ratio, tensor.shape)]
     result = np.zeros(result_shape)
     ranges = [range(r) for r in ratio]
     for offsets in itertools.product(*ranges):
-        slices = [slice(o, s, r) for o,s,r in zip(offsets, result_shape, ratio)]
+        slices = [slice(o, s, r)
+                  for o, s, r in zip(offsets, result_shape, ratio)]
         result[slices] = tensor
     return result
+
+
+def crop_to_shape(tensor: np.ndarray,
+                  target_shape: TypeVar('T', List[int], Tuple[int]),
+                  method=None):
+    """
+    method: list/tuple/str of chars:
+        'c': center
+        'h': half offset
+        's': squeeze dim, if shape of specified dim > 1, pick first element. 
+        '0': alias of 's' 
+    """
+    if method is None:
+        method = 'c' * tensor.ndim
+    method = tuple(method)
+    # squeeze or pick 0
+    slices = list()
+    for i, m in enumerate(method):
+        if m in ['s', '0']:
+            slices.append(0)
+        else:
+            slices.append(slice(0, tensor.shape[i]))
+    method = [m for m in method if m not in ['s', '0']]
+    tensor = tensor[slices]
+    if tensor.ndim != len(target_shape):
+        raise ValueError("Invalid target_shape dimension").
+    slices = list()
+    for i, m in enumerate(method):
+        if m == 'c':
+            o = (tensor.shape[i] - target_shape[i]) // 2
+            slices.append(slice(o, -o))
+        elif m == 'h':
+            o = tensor.shape[1] // 2
+            slices.append(slice(o, o + target_shape[i]))
+    return tensor[slices]
