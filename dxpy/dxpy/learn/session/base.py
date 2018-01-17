@@ -89,7 +89,7 @@ class SessionMonitored(Session):
                  checkpoint_dir='./save/', **kw):
         self._target = target
         super().__init__(name=name, checkpoint_dir=checkpoint_dir, **kw)
-    
+
     def run(self, *args, **kwargs):
         return self.nodes[NodeKeys.MAIN].run(*args, **kwargs)
 
