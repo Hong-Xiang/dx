@@ -276,7 +276,7 @@ def crop_to_shape(tensor: np.ndarray,
     method = [m for m in method if m not in ['s', '0']]
     tensor = tensor[slices]
     if tensor.ndim != len(target_shape):
-        raise ValueError("Invalid target_shape dimension").
+        raise ValueError("Invalid target_shape dimension")
     slices = list()
     for i, m in enumerate(method):
         if m == 'c':

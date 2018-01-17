@@ -461,7 +461,8 @@ def infer_ext(input_npz_filename, input_key='clean/image1x',
     def get_result(idx):
         phan = phantoms[idx, ...]
         result = sess.run(fetches, feed_dict={
-                          dataset_feed: data_input[idx:idx + 1, ...]})
+                          dataset_feed: np.reshape(data_input[idx:idx + 1, ...],
+                                                   dataset.param('input_shape'))})
         result_c = {'sino_highs': proc(result['label']),
                     'sino_lows': proc(result['input'], True),
                     'sino_infs': proc(result['infer']),
