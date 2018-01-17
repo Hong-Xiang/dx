@@ -9,7 +9,8 @@ import click
 @click.option('--sen_width', '-w', type=float)
 @click.option('--method', '-m', type=str, default='FBP')
 @click.option('--nb_iter', '-n', type=int, default=1)
-def reconnpz(input, output, keys, phantom_shape, sen_width, method, nb_iter):
+@click.option('--sino2pi', is_flag=True)
+def reconnpz(input, output, keys, phantom_shape, sen_width, method, nb_iter, sino2pi):
     import numpy as np
     from dxpy.tensor.io import load_npz
     from tqdm import tqdm
@@ -50,7 +51,10 @@ def reconnpz(input, output, keys, phantom_shape, sen_width, method, nb_iter):
                 raise ValueError("Invalid sinos shape.")
         phan_spec = Phantom2DSpec(shape=phantom_shape)
         sen_width_c = sen_width * nb_sen / sinos[k].shape[2]
-        views = np.linspace(0, np.pi, sinos[k].shape[1], endpoint=False)
+        nb_views = sinos[k].shape[1]
+        if sino2pi:
+            nb_views //= 2
+        views = np.linspace(0, np.pi, nb_views, endpoint=False)
         detector = Detector2DParallelRing(nb_sensors=sinos[k].shape[2],
                                           sensor_width=sen_width_c,
                                           views=views)
@@ -58,7 +62,10 @@ def reconnpz(input, output, keys, phantom_shape, sen_width, method, nb_iter):
         ko = keys_mapped[k]
         result[ko] = []
         for i in tqdm(range(nb_imgs)):
-            recon = reconstruction2d(sinos[k][i, ...], detector, phan_spec,
+            sino = sinos[k][i, ...]
+            if sino2pi:
+                sino = sino[:sino.shape[0]//2, :] 
+            recon = reconstruction2d(sino, detector, phan_spec,
                                      method=method,
                                      iterations=nb_iter)
             result[ko].append(recon)
