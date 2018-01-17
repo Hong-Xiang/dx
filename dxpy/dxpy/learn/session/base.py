@@ -89,9 +89,11 @@ class SessionMonitored(Session):
                  checkpoint_dir='./save/', **kw):
         self._target = target
         super().__init__(name=name, checkpoint_dir=checkpoint_dir, **kw)
+    
+    def run(self, *args, **kwargs):
+        return self.nodes[NodeKeys.MAIN].run(*args, **kwargs)
 
     def _create_session(self):
-        sess = tf.train.MonitoredTrainingSession(target=self._target,
-                                                 config=self._get_session_config(),
+        sess = tf.train.MonitoredTrainingSession(config=self._get_session_config(),
                                                  checkpoint_dir=self.param('checkpoint_dir'))
         self.register_main_node(sess)
