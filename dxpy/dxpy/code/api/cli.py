@@ -13,6 +13,9 @@ def component(name, path):
     from . api import SnippetMaker
     SnippetMaker.component(name, path)
 
+# @new.command()
+# @click.option('--name', '-n', type=str)
+# @
 
 class CLI(click.MultiCommand):
     """

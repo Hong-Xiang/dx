@@ -9,7 +9,8 @@ class CLI(click.MultiCommand):
                 'run': None,
                 'ln': None,
                 'pj': None,
-                'mi': None}
+                'mi': None,
+                'ts': None,}
 
     def __init__(self):
         super(__class__, self).__init__(name='dxl', help='DXL CLI tools.')
@@ -25,6 +26,7 @@ class CLI(click.MultiCommand):
         from ..learn.run.cli import main as learn 
         from ..projects.cli import main as pj
         from ..medical_image_processing.run.cli import main as mi
+        from ..tensor.run.cli import main as ts
         if name in self.commands:
             if self.commands[name] is None:
                 mapping = {
@@ -35,6 +37,7 @@ class CLI(click.MultiCommand):
                     'ln': learn,
                     'pj': pj,
                     'mi': mi, 
+                    'ts': ts,
                 }
                 self.commands[name] = mapping.get(name)
         return self.commands.get(name)
