@@ -367,7 +367,57 @@ def recon_sino(sinograms_filename, nb_samples, output, recon_method):
     np.savez(output, **results)
 
 
-def infer_ext(input_npz_filename, phantom_npz_filename, output, ids, nb_run, low_dose_ratio, base_detector_number, crop_method='half', phantom_key='phantom', config_filename='dxln.yml'):
+def _update_statistics(dataset_config_name, low_dose_ratio):
+    from dxpy.learn.config import config
+    from dxpy.core.path import Path
+    if isinstance(dataset_config_name, str):
+        dataset_config_name = Path(dataset_config_name).parts()
+    c = config
+    for k in dataset_config_name:
+        c = c[k]
+    mean, std = c['mean'], c['std']
+    mean /= low_dose_ratio
+    std /= low_dose_ratio
+    c['mean'], c['std'] = mean, std
+    return mean, std
+
+
+def _load_input_and_phantom(input_filename, phantom_filename, input_key, phantom_key):
+    from dxpy.tensor.io import load_npz
+    phantom_filename = phantom_filename or input_filename
+    data_input = load_npz(input_filename)
+    if phantom_filename == input_filename:
+        data_phantom = data_input
+    else:
+        data_phantom = load_npz(phantom_filename)
+    return data_input[input_key], data_phantom[phantom_key]
+
+
+def _get_input_dict(dataset):
+    nb_down = dataset.param('nb_down_sample')
+    nb_down_ratio = [2**i for i in range(nb_down + 1)]
+    prefix = 'noise' if dataset.param('with_poission_noise') else 'clean'
+    label_key = '{}/image1x'.format(prefix)
+    input_key = '{}/image{}x'.format(prefix, 2**nb_down)
+    input_dict = dict()
+    for nd in nb_down_ratio:
+        data_current_scale = dataset['{}/image{}x'.format(prefix, nd)]
+        input_dict['input/image{}x'.format(nd)] = data_current_scale
+        input_dict['label/image{}x'.format(nd)] = data_current_scale
+    return input_dict
+
+
+def infer_ext(input_npz_filename, input_key='clean/image1x',
+              phantom_npz_filename=None, phantom_key=None,
+              dataset_config_name='dataset/srms',
+              network_config_name='network/srms',
+              output_shape=(320, 320),
+              output='infer_ext_result.npz',
+              ids=None, nb_run=1, low_dose_ratio=1.0,
+              crop_method='half',
+              config_filename='dxln.yml'):
+    """
+    """
     import numpy as np
     from dxpy.learn.dataset.api import get_dataset
     from dxpy.learn.net.api import get_network
@@ -379,32 +429,20 @@ def infer_ext(input_npz_filename, phantom_npz_filename, output, ids, nb_run, low
     from dxpy.tensor.metrics import psnr, ssim
     from tqdm import tqdm
     pre_work()
-    ld = low_dose_ratio
-    data = load_npz(input_npz_filename)
-    phantoms = load_npz(phantom_npz_filename)[phantom_key]
+    inputs, phantoms = _load_input_and_phantom(input_npz_filename,
+                                               phantom_npz_filename,
+                                               input_key, phantom_key)
+    data_input = inputs / low_dose_ratio
     load_yaml_config(config_filename)
-    MEAN = config['dataset']['srms']['mean'] / ld
-    STD = config['dataset']['srms']['std'] / ld
-    config['dataset']['srms']['mean'] = MEAN
-    config['dataset']['srms']['std'] = STD
-    dataset = get_dataset('dataset/srms')
+    MEAN, STD = _update_statistics(dataset_config_name, low_dose_ratio)
+    dataset = get_dataset(dataset_config_name)
     dataset_feed = dataset['external_place_holder']
-    with_noise = dataset.param('with_poission_noise')
     nb_down = dataset.param('nb_down_sample')
     nb_down_ratio = [2**i for i in range(nb_down + 1)]
-    nb_detector_base = base_detector_number
-    ns = nb_detector_base // (2**nb_down)
-    if with_noise:
-        prefix = 'noise'
-    else:
-        prefix = 'clean'
-    data_input = data['{}/image1x'.format(prefix)] / ld
+    prefix = 'noise' if dataset.param('with_poission_noise') else 'clean'
     label_key = '{}/image1x'.format(prefix)
     input_key = '{}/image{}x'.format(prefix, 2**nb_down)
-    input_dict = {
-        'input/image{}x'.format(nd): dataset['{}/image{}x'.format(prefix, nd)] for nd in nb_down_ratio}
-    input_dict.update({'label/image{}x'.format(nd)                       : dataset['{}/image{}x'.format(prefix, nd)] for nd in nb_down_ratio})
-    network = get_network('network/srms', dataset=input_dict)
+    network = get_network(network_config_name, dataset=_get_input_dict(dataset))
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.train.MonitoredTrainingSession(
@@ -414,7 +452,7 @@ def infer_ext(input_npz_filename, phantom_npz_filename, output, ids, nb_run, low
                'infer': network['inference'],
                'interp': network['outputs/interp']}
 
-    def crop_and_denorm(result, target=[base_detector_number] * 2):
+    def crop_and_denorm(result, target=output_shape):
         if result.ndim == 4:
             result = result[0, :, :, 0]
         if crop_method == 'half':
