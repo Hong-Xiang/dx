@@ -13,6 +13,7 @@ def list_npz(input_filename):
 
 def concatenate(filenames, output_filename):
     from .io import load_npz
+    import numpy as np
     result = None
     for f in filenames:
         data = load_npz(f)
