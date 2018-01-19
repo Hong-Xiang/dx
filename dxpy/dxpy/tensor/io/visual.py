@@ -150,7 +150,7 @@ def _adjust_figure_size(images, scale, scale_factor):
     DEFAULT_WIDTH = scale_factor * scale
     ratio = DEFAULT_WIDTH / width
     height = height * ratio
-    return (DEFAULT_WIDTH, height), 100.0 
+    return (DEFAULT_WIDTH, height), 100.0
     # return (images.shape[1] + 1, images.shape[0] + 1), 640.0 / (images.shape[1] + 1)
 
 
@@ -217,3 +217,71 @@ def grid_view(images, windows=None, scale=1.0, cmap=None,
         fig.savefig(save_filename)
     if return_figure:
         return fig
+
+
+class PlotItem:
+    def __init__(self, start, span, content, axis_type='line', **kw):
+        self._s = start
+        self._e = span
+        self._c = content
+        self._axis_type = axis_type
+
+    def add_to_figure(self, fig, gs):
+        slices = [slice(s, s + e) for s, e in zip(self._s, self._e)]
+        ax = fig.add_subplot(gs[slices[0], slices[1]])
+        if self._axis_type == 'line':
+            ax.set_xticks([])
+            ax.set_yticks([])
+        elif self._axis_type is None or self._axis_type == 'none':
+            ax.set_axis_off()
+        # TODO: Rework and seperate axis properties out
+        # ax.spines['bottom'].set_color('#dddddd')
+        # ax.spines['top'].set_color('#dddddd') 
+        # ax.spines['right'].set_color('red')
+        # ax.spines['left'].set_color('red')
+        return ax
+
+
+class TextItem(PlotItem):
+    def __init__(self, start, span, s, fontsize=16, rotation=0, **kw):
+        super().__init__(start, span, s, **kw)
+        self._fontsize = fontsize
+        self._rotation = rotation
+
+    def add_to_figure(self, fig, gs):
+        ax = super().add_to_figure(fig, gs)
+        ax.text(0.5, 0.5, self._c, va='center', ha='center', fontsize=self._fontsize, rotation=self._rotation)
+        return ax
+
+
+class ImageItem(PlotItem):
+    def __init__(self, start, span, image, window=None, cmap=None, **kw):
+        super().__init__(start, span, image, **kw)
+        self._window = window
+        self._cmap = cmap
+
+    def add_to_figure(self, fig, gs):
+        ax = super().add_to_figure(fig, gs)
+        if self._window is None:
+            vmin, vmax = None, None
+        else:
+            vmin, vmax = self._window
+        ax.imshow(self._c, cmap=self._cmap, aspect='auto', vmin=vmin, vmax=vmax)
+        return ax
+
+
+def grid_plot(nb_row, nb_column, items, scale=1, output=None, grid_spec=None, dpi=80, hspace=0.01, wspace=0.01):
+    import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
+    fig = plt.figure(
+        figsize=(nb_column * scale, nb_row * scale), frameon=False)
+    if grid_spec is None:
+        gs = GridSpec(nb_row, nb_column, top=1.0, bottom=0.0,
+                      left=0.0, right=1.0, hspace=hspace, wspace=wspace)
+    else:
+        gs = grid_spec
+    for it in items:
+        it.add_to_figure(fig, gs)
+    if output is not None:
+        plt.savefig(output, dpi=dpi)
+
