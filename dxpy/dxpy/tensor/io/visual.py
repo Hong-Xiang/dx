@@ -232,11 +232,16 @@ class PlotItem:
         if self._axis_type == 'line':
             ax.set_xticks([])
             ax.set_yticks([])
+        elif self._axis_type == 'line_bold':
+            for k in ax.spines:
+                ax.spines[k].set_linewidth(3.0)
+            ax.set_yticks([])
+            ax.set_xticks([])
         elif self._axis_type is None or self._axis_type == 'none':
             ax.set_axis_off()
         # TODO: Rework and seperate axis properties out
         # ax.spines['bottom'].set_color('#dddddd')
-        # ax.spines['top'].set_color('#dddddd') 
+        # ax.spines['top'].set_color('#dddddd')
         # ax.spines['right'].set_color('red')
         # ax.spines['left'].set_color('red')
         return ax
@@ -250,7 +255,54 @@ class TextItem(PlotItem):
 
     def add_to_figure(self, fig, gs):
         ax = super().add_to_figure(fig, gs)
-        ax.text(0.5, 0.5, self._c, va='center', ha='center', fontsize=self._fontsize, rotation=self._rotation)
+        self._text = ax.text(0.5, 0.5, self._c, va='center', ha='center',
+                             fontsize=self._fontsize, rotation=self._rotation)
+        return ax
+
+
+class ColorBarItem(PlotItem):
+    def __init__(self, start, span, img_item, image_scale=256.0 * 1.414, line_scale=100.0, label="10 mm", font_size=16, line_width=3.0, **kw):
+        super().__init__(start, span, img_item, **kw)
+        self._image_scale = image_scale
+        self._line_scale = line_scale
+        self._label = label
+        self._fontsize = font_size
+        self._line_width = line_width
+
+    def _get_cbar_axes(self, fig, ax):
+        bbox = ax.get_position()
+        l, b, r, t = bbox.x0, bbox.y0, bbox.x1, bbox.y1
+        w, h = r - l, t - b
+        cb_l, cb_b = l + .7 * w, b + .2 * h
+        cb_w, cb_h = .1 * w, .6 * h
+        return fig.add_axes([cb_l, cb_b, cb_w, cb_h])
+
+    def _add_line(self, ax):
+        import matplotlib
+        ratio = self._line_scale / self._image_scale
+        x0, x1 = ax.get_xlim()[0], ax.get_xlim()[1]
+        y0, y1 = ax.get_ylim()[0], ax.get_ylim()[1]
+        scale_current = ((y1 - y0)**2.0 + (x1 - x0)**2.0)**0.5
+        len_line = scale_current * ratio
+        lx0 = .9 * x0 + (1 - .9) * x1
+        lx1 = lx0 + len_line
+        ly = .9 * y0 + (1 - .9) * y1
+        l = matplotlib.lines.Line2D([lx0, lx1], [ly, ly],
+                                    linewidth=self._line_width,
+                                    color='k')
+
+        ax.add_line(l)
+        ax.text(lx0 + .5 * len_line,
+                ly + .05 * (y1 - y0), self._label,
+                fontsize=self._fontsize,
+                horizontalalignment='center',
+                verticalalignment='bottom')
+
+    def add_to_figure(self, fig, gs):
+        import matplotlib.pyplot as plt
+        ax = super().add_to_figure(fig, gs)
+        plt.colorbar(self._c._img, self._get_cbar_axes(fig, ax))
+        self._add_line(ax)
         return ax
 
 
@@ -266,7 +318,8 @@ class ImageItem(PlotItem):
             vmin, vmax = None, None
         else:
             vmin, vmax = self._window
-        ax.imshow(self._c, cmap=self._cmap, aspect='auto', vmin=vmin, vmax=vmax)
+        self._img = ax.imshow(self._c, cmap=self._cmap,
+                              aspect='auto', vmin=vmin, vmax=vmax)
         return ax
 
 
@@ -284,4 +337,3 @@ def grid_plot(nb_row, nb_column, items, scale=1, output=None, grid_spec=None, dp
         it.add_to_figure(fig, gs)
     if output is not None:
         plt.savefig(output, dpi=dpi)
-
