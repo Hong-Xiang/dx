@@ -2,9 +2,10 @@ default_engine = None
 
 
 class MatlabEngine:
-    def __init__(self):
+    def __init__(self, sub_path='phantom'):
         self.eng = None
         self.pre = None
+        self.sub_path = sub_path
 
     def __enter__(self):
         global default_engine
@@ -13,7 +14,9 @@ class MatlabEngine:
         from dxpy.core.path import Path
         self.eng = matlab.engine.start_matlab()
         path_dxmat = os.environ['PATH_DXL_DXMAT']
-        path_gen = Path(path_dxmat) / 'phantom'
+        path_gen = Path(path_dxmat)
+        if self.sub_path is not None:
+            path_gen = path_gen / self.sub_path
         self.eng.addpath(str(path_gen))
         self.pre = default_engine
         default_engine = self.eng
@@ -30,6 +33,9 @@ class MatlabEngine:
 
 
 def call_matlab_api(func):
+    """
+    Matlab engine will be passed as the first argument to func
+    """
     if MatlabEngine.get_default_engine() is None:
         with MatlabEngine() as eng:
             return func(eng)

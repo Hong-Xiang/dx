@@ -3,6 +3,7 @@ from dxpy.configs import configurable, ConfigsView
 # from ..config import get_configs_view, config
 from dxpy.learn.config import config
 from .base import NodeKeys
+import warnings
 
 
 def mean_square_error(label, data):
@@ -14,10 +15,11 @@ def l1_error(label, data):
     with tf.name_scope('l1_error'):
         return tf.reduce_mean(tf.abs(label - data))
 
-
+@configurable(ConfigsView(config).get('poission_loss'))
 def poission_loss(label, data, *, compute_full_loss=False):
     with tf.name_scope('poission_loss'):
         label = tf.maximum(label, 0.0)
+        data = tf.maximum(data, 0.0)
         # return log_possion_loss(tf.log(label), data)
         return tf.reduce_mean(tf.keras.losses.poisson(label, data))
 
@@ -45,6 +47,8 @@ class PoissionLossWithDenorm(Model):
     """
     @configurable(config, with_name=True)
     def __init__(self, name, inputs, with_log=False, threshold=10, mean=0.0, std=1.0, **kw):
+        warnings.warn(DeprecationWarning(
+            "PoissionLossWithDenorm is deprecated, replace it with poission_loss or get_loss_func('poi'), and place denorm into main network."))
         super().__init__(name, inputs=inputs, with_log=with_log,
                          threshold=threshold, mean=mean, std=std, **kw)
 

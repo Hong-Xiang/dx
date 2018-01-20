@@ -144,6 +144,7 @@ def align_crop(input_, target, offset=None, name='align_crop'):
         if offset is None:
             offset = [0] + [(shape_input[i] - shape_output[i]) // 2
                             for i in range(1, 3)] + [0]
+        shape_output[3] = shape_input[3]
         return tf.slice(input_, offset, shape_output)
 
 

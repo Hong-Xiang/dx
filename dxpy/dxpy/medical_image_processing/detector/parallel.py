@@ -8,7 +8,7 @@ class Detector2DParallelRing(Detector2D):
             sensors = np.arange(1, nb_sensors + 1) * sensor_width - \
                 ((nb_sensors / 2 + 0.5) * sensor_width)
         if views is None:
-            views = np.linspace(0, 2 * np.pi, nb_views)
+            views = np.linspace(0, np.pi, nb_views, endpoint=False)
         self._sensors = np.array(sensors)
         self._views = np.array(views)
         if self._sensors.ndim != 1:

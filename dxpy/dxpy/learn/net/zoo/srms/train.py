@@ -34,6 +34,5 @@ def train_defs(external_configs):
 def main():
     train(train_defs)
 
-
 if __name__ == "__main__":
     main()

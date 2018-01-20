@@ -3,7 +3,9 @@ from ..model import Model
 from ..graph import Graph, NodeKeys
 
 from dxpy.configs import configurable
-from dxpy.learn.config import config 
+from dxpy.learn.config import config
+
+
 class Net(Model):
     """ Base class of nets.
     Net add some special tasks based on graph:
@@ -24,8 +26,9 @@ class Net(Model):
     """
 
     @configurable(config, with_name=True)
-    def __init__(self, name, inputs=None, nb_evaluate_runs=32, **kw):
-        super().__init__(name, inputs, nb_evaluate_runs=nb_evaluate_runs, **kw)
+    def __init__(self, name, inputs=None, add_trainer=True, add_saver=True, nb_evaluate_runs=32, **kw):
+        super().__init__(name, inputs, nb_evaluate_runs=nb_evaluate_runs,
+                         add_trainer=add_trainer, add_saver=add_saver, **kw)
 
     @classmethod
     def _default_config(cls):
@@ -47,8 +50,6 @@ class Net(Model):
         super()._post_kernel_post_outputs()
         from ..train import Trainer, Saver
         if self.param('add_trainer'):
-            from dxpy.debug.utils import dbgmsg
-            dbgmsg(self.nodes[NodeKeys.LOSS])
             if NodeKeys.LOSS in self.nodes and not NodeKeys.TRAINER in self.nodes:
                 self.register_node(NodeKeys.TRAINER,
                                    Trainer(self.name / 'trainer', self.nodes[NodeKeys.LOSS]))
@@ -75,7 +76,6 @@ class Net(Model):
 
     def evaluate(self, feeds=None):
         return self.session.run(self.tensor(NodeKeys.EVALUATE), self.get_feed_dict(feeds))
-
 
     def save(self, feeds=None):
         return self.nodes[NodeKeys.SAVER].run('save', feeds)

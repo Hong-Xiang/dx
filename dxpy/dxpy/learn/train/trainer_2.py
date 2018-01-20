@@ -10,6 +10,7 @@ from dxpy.learn.config import config
 import typing
 from dxpy.learn.session import get_default_session
 
+
 class Trainer(Graph):
     """
     Trainer which make it easier to:
@@ -36,17 +37,19 @@ class Trainer(Graph):
                 _check_tensor(l)
         else:
             _check_tensor(loss)
+
     def _norm_learning_rate(self, base_rate):
-        return base_rate * self.param('batch_size') 
+        return base_rate * self.param('batch_size')
+
     @configurable(config, with_name=True)
-    def __init__(self, name: str=None, loss=None, variables=None, learning_rate=1e-3, optimizer='sgd', batch_size=1, **kw):
+    def __init__(self, name: str=None, loss=None, variables=None, learning_rate=1e-3, optimizer='sgd', batch_size=1, nb_workers=0, **kw):
         """
         Inputs:
             loss: scalar or list of scalar (multi gpu)
             variables: list of tensors
         """
         super(__class__, self).__init__(
-            name, learning_rate=learning_rate, optimizer=optimizer, batch_size=batch_size, **kw)
+            name, learning_rate=learning_rate, optimizer=optimizer, batch_size=batch_size, nb_workers=nb_workers, **kw)
         self._check_inputs(loss, variables)
         self.loss = loss
         if variables is None:
@@ -79,12 +82,29 @@ class Trainer(Graph):
 
     def _get_optimizer(self):
         if self.param('optimizer').lower() == 'sgd':
-            return tf.train.GradientDescentOptimizer(self.nodes['learning_rate'].as_tensor())
+            opt = tf.train.GradientDescentOptimizer(
+                self.nodes['learning_rate'].as_tensor())
         elif self.param('optimizer') == 'adam':
-            return tf.train.AdamOptimizer(self.nodes['learning_rate'].as_tensor())
+            opt = tf.train.AdamOptimizer(
+                self.nodes['learning_rate'].as_tensor())
         else:
             raise ValueError('Unknown optimizer type {}.'.format(
                 self.param('optimizer')))
+        if self.param('nb_workers') == 0:
+            return opt
+        else:
+            nb_w = self.param('nb_workers')
+            opt = tf.train.SyncReplicasOptimizer(
+                opt, replicas_to_aggregate=nb_w, total_num_replicas=nb_w)
+            from dxpy.debug.utils import dbgmsg
+            dbgmsg('IS_CHIEF', self.param('is_chief'))
+            sync_replicas_hook = opt.make_session_run_hook(self.param('is_chief'))
+            self.register_node('sync_hook', sync_replicas_hook)
+            return opt
+
+    def _get_train_step(self):
+        from ..scalar import global_step
+        return self.optimizer.minimize(self.loss, global_step(), self.variables)
 
     # def _get_gradients(self):
     #     from ..utils.general import device_name
@@ -133,10 +153,6 @@ class Trainer(Graph):
     #             average_grads, global_step=global_step())
     #         self._add_summary(average_grads)
     #         return train_op
-
-    def _get_train_step(self):
-        from ..scalar import global_step
-        return self.optimizer.minimize(self.loss, global_step(), self.variables)
 
     # def _get_train_step(self):
     #     if not isinstance(self.loss, (list, tuple)):

@@ -6,9 +6,18 @@ def l2norm(data):
         return tf.sqrt(tf.reduce_mean(tf.square(data)))
 
 
-def mse(label, data):
+def l1norm(data):
+    with tf.name_scope('l1_norm'):
+        return tf.reduce_mean(tf.abs(data))
+
+
+def mean_square_error(label, data):
     with tf.name_scope('mse'):
         return l2norm(label - data)
+
+
+def mse(label, data):
+    return mean_square_error(label, data)
 
 
 def rmse(label, data):

@@ -2,6 +2,7 @@ from dxpy.filesystem import Path
 import os
 datasets_configs = {
     'dataset_root_path': os.environ.get('PATHS_DATASET', str(Path(os.environ.get('HOME')) / 'Datas')),
+    'path': '/home/hongxwing/Datas/',
     'analytical_phantom_sinogram': {
         'path': '/home/hongxwing/Datas/Phantom',
     },
@@ -11,6 +12,9 @@ datasets_configs = {
         'super_resolution': {
             'nb_down_sample': 3
         },
+    },
+    'mice_sinograms': {
+        'path': str(Path(os.environ.get('HOME'))/'Datas'/'Mice')
     }
 }
 

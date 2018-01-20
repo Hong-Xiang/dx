@@ -20,3 +20,12 @@ def load_bin(filename, shape=None, dtype=np.float32, *, fs=None, ndim=None):
     if shape is None:
         shape = __guess_shape(raw_data.size, ndim)
     return np.reshape(raw_data, shape)
+
+def save_bin(filename, tensor, dtype=np.float32):
+    tensor = tensor.astype(dtype)
+    raw_data = tensor.tostring()
+    with open(filename, 'wb') as fout:
+        fout.write(raw_data)
+
+
+

@@ -188,3 +188,80 @@ class SummaryWriter(Graph):
         self.register_node('summary_writer',
                            tf.summary.FileWriter(self.param('path', feeds),
                                                  get_default_session().graph))
+
+
+class SummaryMaker(Graph):
+    """
+    """
+    @configurable(config, with_name=True)
+    def __init__(self,
+                 name: str='summary',
+                 tensors: Dict[str, tf.Tensor]=None,
+                 *,
+                 nb_max_image: int = 3,
+                 **kw):
+        """
+        Args:
+            tensors: dict of name: SummaryItem
+            inputs: tensors required to run summary (will used for feeds)
+        """
+        super().__init__(name, nb_max_image=nb_max_image, **kw)
+        if tensors is None:
+            tensors = dict()
+        with tf.name_scope(self.basename):
+            tensors = self._processing(tensors)
+            summary_ops = self._create_summary_ops(tensors)
+        self.register_task('create_writer', self._create_writer)
+        self.register_task('flush', self.flush)
+        self._pre_summ = arrow.now()
+
+    def _processing(self, tensors: Dict[str, tf.Tensor]) -> Dict[str, tf.Tensor]:
+        return tensors
+
+    def _create_summary_ops(self, tensors):
+        result = list()
+        for k in tensors:
+            summ_op = create_summary_op(k, tensors[k])
+            result.append(summ_op)
+        return result
+
+    def post_session_created(self):
+        self.run('create_writer')
+
+    def _get_multiple_run_feeds(self, feeds=None):
+        result = dict()
+        for i in range(self.nb_max_runs):
+            current_result = get_default_session().run(
+                self.inputs, self.get_feed_dict(feeds))
+            for k in self.inputs:
+                if k in self.nb_runs and self.nb_runs[k] > i:
+                    result[self.multi_runs[k][i]] = current_result[k]
+        return result
+
+    def summary(self, feeds=None):
+        from ..scalar import current_step
+        mrf = self._get_multiple_run_feeds(feeds)
+        feed_dict = self.get_feed_dict(feeds)
+        feed_dict.update(mrf)
+        value = get_default_session().run(
+            self.nodes[SummaryKeys.MERGED], feed_dict=feed_dict)
+        self.nodes['summary_writer'].add_summary(value, current_step())
+
+    def auto_summary(self, feeds=None):
+        time_now = arrow.now()
+        dtime = (time_now - self._pre_summ).seconds
+        if dtime > self.param('interval'):
+            self.summary(feeds)
+            print('Add Summary at {}'.format(arrow.now()))
+            sys.stdout.flush()
+            self._pre_summ = time_now
+        else:
+            time.sleep(self.param('interval') - dtime)
+
+    def flush(self):
+        self.nodes['summary_writer'].flush()
+
+    def _create_writer(self, feeds):
+        self.register_node('summary_writer',
+                           tf.summary.FileWriter(self.param('path', feeds),
+                                                 get_default_session().graph))

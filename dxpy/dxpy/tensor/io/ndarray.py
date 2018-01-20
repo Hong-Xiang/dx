@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 
 
-def save(filename, array, tensor_spec=None):    
+def save(filename, array, tensor_spec=None):
     from .base import TensorSpec
     if tensor_spec is None:
         tensor_spec = TensorSpec()
@@ -19,3 +19,15 @@ def load(tensor_spec, slices=None):
             return np.array(dataset[tensor_spec.dataset_names[-1]])
         else:
             return np.array(dataset[tensor_spec.dataset_names[-1]][slices])
+
+
+def load_npz(filename):
+    print('I: LOAD NPZ FILE: {}'.format(filename))
+    data = np.load(filename)
+    result = {k: data[k] for k in data}
+    for k in result:
+        if isinstance(result[k], np.ndarray):
+            print(k, result[k].shape)
+        else:
+            print(k, type(result[k]))
+    return result

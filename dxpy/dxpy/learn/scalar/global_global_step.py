@@ -7,7 +7,7 @@ from ..graph import Graph
 def global_step():
     # return tf.train.global_step(tf.get_default_session())
     # return graph().as_tensor()
-    return tf.train.get_or_create_global_step()
+    return tf.train.get_global_step()
 
 
 def graph():

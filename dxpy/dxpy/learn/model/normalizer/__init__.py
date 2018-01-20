@@ -1,1 +1,1 @@
-from .normalizer import get_normalizer
+from .normalizer import get_normalizer, FixWhite

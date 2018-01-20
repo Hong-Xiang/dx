@@ -27,3 +27,14 @@ def get_network(name, dataset, network_cls_name, network_name=None, **kw):
     else:
         raise ValueError(
             'Unknown network name (class name) {}.'.format(dataset_cls_name))
+
+@configurable(config, with_name=True)
+def get_summary(name, dataset, network, result, summary_cls_name, summary_config_name=None, **kw):
+    if summary_config_name is None:
+        summary_config_name = name
+    if summary_cls_name == 'srms':
+        from .zoo.srms.summ import SRSummaryWriter_v3
+        return SRSummaryWriter_v3(dataset, network, result)
+    elif summary_cls_name == 'sin':
+        from .zoo.sin.summ import SinSummaryWriter
+        return SinSummaryWriter(dataset=dataset, network=network, result=result)
