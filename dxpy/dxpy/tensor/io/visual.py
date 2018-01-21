@@ -343,3 +343,34 @@ def profiles(images, sample_points, window=None, cmap=None):
     grid_x, grid_y = np.mgrid[0:images.shape[0]:images.shape[0],
                               0:images.shape[1]:images.shape[1]]
 
+
+def plot_profile(image, ax, points, method='points', show_image=True, image_size=None, image_offset=None):
+    from ..reduce import profile, profile_h, profile_v
+    import matplotlib as mpl
+
+    fig = ax.figure
+    xb, yb = ax.get_xbound(), ax.get_ybound()
+    p = ax.get_position()
+    l, b, w, h = p.x0, p.y0, p.x1 - p.x0, p.y1 - p.y0
+    if image_size is None:
+        image_size = (.4, .4)
+    if image_offset is None:
+        image_offset = (.1, .5)
+    l, b = l + image_offset[0] * w, b + image_offset[1] * h
+    w, h = image_size[0] * w, image_size[1] * h
+    if method == 'points':
+        v = profile(image, points)
+        p = points
+        ax.plot(np.arange(0, len(v)), v)
+    elif method == 'h':
+        v, p = profile_h(image, points)
+        ax.plot(p[0], v)
+    elif method == 'v':
+        v, p = profile_v(image, points)
+        ax.plot(p[1], v)
+    if show_image:
+        imgax = fig.add_axes([l, b, w, h], frameon=False)
+        imgax.set_axis_off()
+        imgax.imshow(image)
+        l = mpl.lines.Line2D(p[0], p[1], color='red')
+        imgax.add_line(l)
