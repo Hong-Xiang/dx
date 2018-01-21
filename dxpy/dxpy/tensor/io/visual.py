@@ -344,7 +344,8 @@ def profiles(images, sample_points, window=None, cmap=None):
                               0:images.shape[1]:images.shape[1]]
 
 
-def plot_profile(image, ax, points, method='points', show_image=True, image_size=None, image_offset=None):
+def plot_profile(image, ax, points, method='points', show_image=True, image_size=None, image_offset=None,
+                 image_kwargs=None, line_kwargs=None):
     from ..reduce import profile, profile_h, profile_v
     import matplotlib as mpl
 
@@ -369,8 +370,13 @@ def plot_profile(image, ax, points, method='points', show_image=True, image_size
         v, p = profile_v(image, points)
         ax.plot(p[1], v)
     if show_image:
+        if image_kwargs is None:
+            image_kwargs = dict()
+        if line_kwargs is None:
+            line_kwargs = dict()
         imgax = fig.add_axes([l, b, w, h], frameon=False)
         imgax.set_axis_off()
-        imgax.imshow(image)
-        l = mpl.lines.Line2D(p[0], p[1], color='red')
+        imgax.imshow(image, **image_kwargs)
+        l = mpl.lines.Line2D(p[0], p[1], **line_kwargs)
         imgax.add_line(l)
+        return imgax 
