@@ -220,7 +220,7 @@ def grid_view(images, windows=None, scale=1.0, cmap=None,
 
 
 class PlotItem:
-    def __init__(self, start, span, content, axis_type='line', **kw):
+    def __init__(self, start, span, content, axis_type='line_bold', **kw):
         self._s = start
         self._e = span
         self._c = content
@@ -337,3 +337,8 @@ def grid_plot(nb_row, nb_column, items, scale=1, output=None, grid_spec=None, dp
         it.add_to_figure(fig, gs)
     if output is not None:
         plt.savefig(output, dpi=dpi)
+
+
+def profiles(images, sample_points, window=None, cmap=None):
+    grid_x, grid_y = np.mgrid[0:images.shape[0]:images.shape[0],
+                              0:images.shape[1]:images.shape[1]]
