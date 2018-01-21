@@ -8,3 +8,4 @@ def linspace(start, stop, num=50, *, method='default', endpoint=True):
     if method == 'mid':
         xi = (xi[1:] + xi[:-1]) / 2
     return xi
+

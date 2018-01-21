@@ -342,3 +342,4 @@ def grid_plot(nb_row, nb_column, items, scale=1, output=None, grid_spec=None, dp
 def profiles(images, sample_points, window=None, cmap=None):
     grid_x, grid_y = np.mgrid[0:images.shape[0]:images.shape[0],
                               0:images.shape[1]:images.shape[1]]
+
