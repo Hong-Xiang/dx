@@ -345,7 +345,7 @@ def profiles(images, sample_points, window=None, cmap=None):
 
 
 def plot_profile(image, ax, points, method='points', show_image=True, image_size=None, image_offset=None,
-                 image_kwargs=None, line_kwargs=None):
+                 image_kwargs=None, line_kwargs=None, profile_kwargs=None, plot_line_kwargs=None):
     from ..reduce import profile, profile_h, profile_v
     import matplotlib as mpl
 
@@ -356,19 +356,23 @@ def plot_profile(image, ax, points, method='points', show_image=True, image_size
     if image_size is None:
         image_size = (.4, .4)
     if image_offset is None:
-        image_offset = (.1, .5)
+        image_offset = (.0, .5)
     l, b = l + image_offset[0] * w, b + image_offset[1] * h
     w, h = image_size[0] * w, image_size[1] * h
+    if profile_kwargs is None:
+        profile_kwargs = dict()
+    if plot_line_kwargs is None:
+        plot_line_kwargs = dict()
     if method == 'points':
-        v = profile(image, points)
-        p = points
-        ax.plot(np.arange(0, len(v)), v)
+        v = profile(image, points, **profile_kwargs)
+        p = (points[:, 0], points[:, 1])
+        hl = ax.plot(np.arange(0, len(v)), v, **plot_line_kwargs)
     elif method == 'h':
-        v, p = profile_h(image, points)
-        ax.plot(p[0], v)
+        v, p = profile_h(image, points, **profile_kwargs)
+        hl = ax.plot(p[0], v, **plot_line_kwargs)
     elif method == 'v':
-        v, p = profile_v(image, points)
-        ax.plot(p[1], v)
+        v, p = profile_v(image, points, **profile_kwargs)
+        hl = ax.plot(p[1], v, **plot_line_kwargs)
     if show_image:
         if image_kwargs is None:
             image_kwargs = dict()
@@ -379,4 +383,5 @@ def plot_profile(image, ax, points, method='points', show_image=True, image_size
         imgax.imshow(image, **image_kwargs)
         l = mpl.lines.Line2D(p[0], p[1], **line_kwargs)
         imgax.add_line(l)
-        return imgax 
+        return hl, imgax
+    return hl

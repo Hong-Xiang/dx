@@ -21,13 +21,15 @@ def load(tensor_spec, slices=None):
             return np.array(dataset[tensor_spec.dataset_names[-1]][slices])
 
 
-def load_npz(filename):
-    print('I: LOAD NPZ FILE: {}'.format(filename))
+def load_npz(filename, quiet=False):
+    if not quiet:
+        print('I: LOAD NPZ FILE: {}'.format(filename))
     data = np.load(filename)
     result = {k: data[k] for k in data}
-    for k in result:
-        if isinstance(result[k], np.ndarray):
-            print(k, result[k].shape)
-        else:
-            print(k, type(result[k]))
+    if not quiet:
+        for k in result:
+            if isinstance(result[k], np.ndarray):
+                print(k, result[k].shape)
+            else:
+                print(k, type(result[k]))
     return result

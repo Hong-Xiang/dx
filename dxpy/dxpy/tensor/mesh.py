@@ -9,3 +9,9 @@ def linspace(start, stop, num=50, *, method='default', endpoint=True):
         xi = (xi[1:] + xi[:-1]) / 2
     return xi
 
+
+def linspace_nd(start, end, num, *, method='default', endpoint=True):
+    result = [linspace(s, e, num, method=method, endpoint=endpoint)
+              for s, e in zip(start, end)]
+    result = np.array(result).T
+    return result
