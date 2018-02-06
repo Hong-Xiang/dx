@@ -220,15 +220,22 @@ def grid_view(images, windows=None, scale=1.0, cmap=None,
 
 
 class PlotItem:
-    def __init__(self, start, span, content, axis_type='line_bold', **kw):
+    def __init__(self, start, span, content, axis_type='line_bold', axis_color='k', fc='w', **kw):
         self._s = start
         self._e = span
         self._c = content
+        self._ac = axis_color
         self._axis_type = axis_type
+        self._fc = fc
 
     def add_to_figure(self, fig, gs):
         slices = [slice(s, s + e) for s, e in zip(self._s, self._e)]
         ax = fig.add_subplot(gs[slices[0], slices[1]])
+        for k in ax.spines:
+            ax.spines[k].set_color(self._ac)
+        ax.tick_params(axis='y', colors=self._ac)
+        ax.tick_params(axis='x', colors=self._ac)
+        ax.set_fc(self._fc)
         if self._axis_type == 'line':
             ax.set_xticks([])
             ax.set_yticks([])
@@ -248,32 +255,34 @@ class PlotItem:
 
 
 class TextItem(PlotItem):
-    def __init__(self, start, span, s, fontsize=16, rotation=0, **kw):
+    def __init__(self, start, span, s, fontsize=16, rotation=0, tc='k', **kw):
         super().__init__(start, span, s, **kw)
         self._fontsize = fontsize
         self._rotation = rotation
+        self._text_color = tc
 
     def add_to_figure(self, fig, gs):
         ax = super().add_to_figure(fig, gs)
         self._text = ax.text(0.5, 0.5, self._c, va='center', ha='center',
-                             fontsize=self._fontsize, rotation=self._rotation)
+                             fontsize=self._fontsize, rotation=self._rotation, color=self._text_color)
         return ax
 
 
 class ColorBarItem(PlotItem):
-    def __init__(self, start, span, img_item, image_scale=256.0 * 1.414, line_scale=100.0, label="10 mm", font_size=16, line_width=3.0, **kw):
+    def __init__(self, start, span, img_item, image_scale=256.0 * 1.414, line_scale=100.0, label="10 mm", font_size=16, line_width=3.0, font_color='k', **kw):
         super().__init__(start, span, img_item, **kw)
         self._image_scale = image_scale
         self._line_scale = line_scale
         self._label = label
         self._fontsize = font_size
+        self._fontcolor = font_color
         self._line_width = line_width
 
     def _get_cbar_axes(self, fig, ax):
         bbox = ax.get_position()
         l, b, r, t = bbox.x0, bbox.y0, bbox.x1, bbox.y1
         w, h = r - l, t - b
-        cb_l, cb_b = l + .7 * w, b + .2 * h
+        cb_l, cb_b = l + .6 * w, b + .2 * h
         cb_w, cb_h = .1 * w, .6 * h
         return fig.add_axes([cb_l, cb_b, cb_w, cb_h])
 
@@ -289,19 +298,29 @@ class ColorBarItem(PlotItem):
         ly = .9 * y0 + (1 - .9) * y1
         l = matplotlib.lines.Line2D([lx0, lx1], [ly, ly],
                                     linewidth=self._line_width,
-                                    color='k')
+                                    color=self._fontcolor)
 
         ax.add_line(l)
         ax.text(lx0 + .5 * len_line,
                 ly + .05 * (y1 - y0), self._label,
                 fontsize=self._fontsize,
                 horizontalalignment='center',
-                verticalalignment='bottom')
-
+                verticalalignment='bottom',
+                color=self._fontcolor)
+    def _add_colorbar(self, fig, ax):
+        import matplotlib.pyplot as plt
+        import numpy as np
+        vmin, vmax = self._c._img.get_clim() 
+        tks = np.linspace(vmin, vmax, 4).flatten()
+        tks = ['{:3.0f}'.format(v) for v in tks]
+        tks = [float(v) for v in tks]
+        cb = plt.colorbar(self._c._img, self._get_cbar_axes(fig, ax), ticks=tks)
+        cb.ax.tick_params(labelsize=self._fontsize)
+        cb.ax.tick_params(labelcolor=self._fontcolor)
     def add_to_figure(self, fig, gs):
         import matplotlib.pyplot as plt
         ax = super().add_to_figure(fig, gs)
-        plt.colorbar(self._c._img, self._get_cbar_axes(fig, ax))
+        self._add_colorbar(fig, ax)
         self._add_line(ax)
         return ax
 
@@ -337,6 +356,7 @@ def grid_plot(nb_row, nb_column, items, scale=1, output=None, grid_spec=None, dp
         it.add_to_figure(fig, gs)
     if output is not None:
         plt.savefig(output, dpi=dpi)
+    return fig
 
 
 def profiles(images, sample_points, window=None, cmap=None):
