@@ -34,6 +34,7 @@ def _apply_command(command):
         return fin.readlines()
 
 
+
 def sbatch(workdir, script_file, *args):
     cmd = 'cd {dir} && sbatch {args} {file}'.format(dir=workdir,
                                                     args=' '.join(args),
@@ -65,3 +66,12 @@ def is_complete(sid):
     #         .filter(lambda tinfo: tinfo.id == sid)
     #         .count()
     #         .to_blocking().first()) == 0
+
+class Directory:
+    pass
+class File:
+    pass
+
+class Slurm:
+    def sbatch(workdir:Directory, script_filename:File):
+        pass
