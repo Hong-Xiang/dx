@@ -97,7 +97,7 @@ class Trainer(Graph):
             opt = tf.train.SyncReplicasOptimizer(
                 opt, replicas_to_aggregate=nb_w, total_num_replicas=nb_w)
             from dxpy.debug.utils import dbgmsg
-            dbgmsg('IS_CHIEF', self.param('is_chief'))
+            # dbgmsg('IS_CHIEF', self.param('is_chief'))
             sync_replicas_hook = opt.make_session_run_hook(self.param('is_chief'))
             self.register_node('sync_hook', sync_replicas_hook)
             return opt

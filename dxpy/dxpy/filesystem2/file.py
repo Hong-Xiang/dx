@@ -1,27 +1,19 @@
 from fs.osfs import OSFS
-from ..path.model import Path
-from ..smartfs import FS
+from .path import Path
+from .fsauto import FileSystemAuto
 
 
 class File:
-    def __init__(self, path, load_depth=0, fs=None):
+    def __init__(self, path, filesystem=None):
         self.path = Path(path)
-        if load_depth > 0:
-            self.load(load_depth)
-        else:
-            self.contents = None
-        self.fs = fs
+        self.fs = filesystem
 
-    @property
-    def exists(self):
-        with FS(self.fs) as fs:
-            return fs.exists(self.path.rel) and fs.isfile(self.path.rel)
+    def exists(self) -> bool:
+        with FileSystemAuto(self.fs) as fs:
+            return fs.exists(self.path.s) and fs.isfile(self.path.s)
 
-    def load(self, depth):
-        self.contents = None
-        if depth < 0:
-            return
-        if not self.exists:
+    def load(self):
+        if not self.exists():
             raise FileNotFoundError(self.path.abs)
         if depth == 0:
             return

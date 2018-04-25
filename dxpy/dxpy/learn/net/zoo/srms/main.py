@@ -169,7 +169,6 @@ class SRMultiScale(Net):
                            self.nodes['outputs/{}'.format(NodeKeys.EVALUATE)])
         from dxpy.learn.train.trainer_2 import Trainer
         if NodeKeys.LOSS in self.nodes and self.param('sr_add_trainer'):
-            dbgmsg('TO CREATE TRAINER!')
             self.register_node(NodeKeys.TRAINER,
                                Trainer(self.name / 'trainer', self.nodes[NodeKeys.LOSS]))
         super()._post_kernel_post_outputs()
