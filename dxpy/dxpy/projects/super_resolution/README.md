@@ -1,4 +1,8 @@
 # Instructions about Enhancing the image quality via transferred deep residual learning of coarse PET sinograms
+## Prerequirements
+[Tensorflow](https://www.tensorflow.org/)
+[Astra-toolbox](http://www.astra-toolbox.com/)
+
 ## Install
 
 Run in shell:
