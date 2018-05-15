@@ -8,6 +8,7 @@ def ui():
 
 @ui.command()
 def start():
+    click.echo('Starting task operation server...')
     from ..web import lauch_database_server
     lauch_database_server()
 
