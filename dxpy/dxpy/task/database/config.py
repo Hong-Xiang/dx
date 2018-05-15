@@ -13,7 +13,7 @@ _default = {
     'ip': '127.0.0.1',
     'port': 23300,
     'debug': False,
-    'version': 0.1,
+    'version': 0.2,
     'base': '/'
 }
 

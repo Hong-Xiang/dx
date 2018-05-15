@@ -51,6 +51,7 @@ def add_apis(api, root, name='task'):
 
 def add_api(api):
     c = provider.get_or_create_service('config').get_config('interface')
+    print(c.task_url)
     api.add_resource(TaskResource, c.task_url + '/<int:id>')
     api.add_resource(TasksResource, c.tasks_url)
 
