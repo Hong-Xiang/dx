@@ -8,9 +8,14 @@
 Run in shell:
 `pip install dxl-dxpy`
 
+## Demo and dataset
+
+Dataset and a simple demonstration was available at[Capsule in code ocean](https://codeocean.com/2018/05/18/enhancing-the-image-quality-via-transferred-deep-residual-learning-of-coarse-pet-sinograms/code)
+
+
 ## Code
 
-### Dataset
+### Dataset loading
 `dxl.lean.dataset.super_resolution`
 
 ### Network
